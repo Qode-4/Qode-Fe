@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+COMMIT_MSG_FILE=$1
+BRANCH_NAME=$(git symbolic-ref --short HEAD || true)
+ISSUE_NUMBER=$(echo "$BRANCH_NAME" | grep -oE '[0-9]+' || true)
+
+if [ -n "$ISSUE_NUMBER" ]; then
+  sed -i.bak -e "1s/$/ (#$ISSUE_NUMBER)/" "$COMMIT_MSG_FILE"
+fi
