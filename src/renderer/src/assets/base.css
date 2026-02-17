@@ -1,0 +1,12 @@
+/* Legacy base.css — kept minimal. All design tokens live in main.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+ul {
+  list-style: none;
+}
