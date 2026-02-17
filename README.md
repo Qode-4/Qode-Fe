@@ -92,6 +92,19 @@ yarn build:linux  # Linux 패키징
 yarn format       # Prettier 포맷 적용
 ```
 
+## GitHub Releases 배포
+
+`v*` 태그를 푸시하면 GitHub Actions가 macOS/Windows/Linux 설치 파일을 빌드해
+GitHub Releases의 Draft 릴리즈에 자동 업로드합니다.
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+- 워크플로 파일: `.github/workflows/release.yml`
+- 릴리즈 확인: GitHub 저장소의 `Releases` 탭
+
 OpenAPI 타입/클라이언트 재생성이 필요하면:
 
 ```bash
