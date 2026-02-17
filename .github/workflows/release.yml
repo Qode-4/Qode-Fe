@@ -23,6 +23,8 @@ jobs:
   build-macos:
     runs-on: macos-latest
     needs: create-release
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
