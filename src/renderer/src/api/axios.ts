@@ -1,7 +1,33 @@
 import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
+const ACCESS_TOKEN_KEY = 'accessToken';
+
+const getAccessToken = (): string | null => {
+  try {
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const clearAccessToken = (): void => {
+  try {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+  } catch {
+    // noop
+  }
+};
+
+const redirectToLogin = (): void => {
+  const currentHash = window.location.hash || '#/';
+  const currentPath = currentHash.startsWith('#') ? currentHash.slice(1) : currentHash;
+  const next = encodeURIComponent(currentPath);
+  // Hash 기반 라우팅을 전제로 한다.
+  window.location.hash = `/login?next=${next}`;
+};
+
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -10,7 +36,8 @@ export const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // TODO: 토큰 로직 추가
+    const token = getAccessToken();
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error: AxiosError) => {
@@ -21,7 +48,6 @@ axiosInstance.interceptors.request.use(
 
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    console.log('📥 Response:', response.status, response.config.url);
     return response;
   },
   async (error: AxiosError) => {
@@ -30,15 +56,9 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      try {
-        // TODO: 리프레시 토큰 로직 추가
-      } catch (refreshError) {
-        // 리프레시 실패 시 로그아웃 처리
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      }
+      // 이 프로젝트의 명세에는 refresh token이 없다. 401이면 토큰 삭제 후 로그인으로 이동한다.
+      clearAccessToken();
+      redirectToLogin();
     }
 
     console.error('❌ Response Error:', error.response?.status, error.message);
@@ -53,11 +73,17 @@ export interface ApiError {
   code?: string;
 }
 
+export interface ApiErrorResponse {
+  status: number;
+  message: string;
+}
+
 // 에러 핸들러 유틸리티
 export const handleApiError = (error: unknown): ApiError => {
   if (axios.isAxiosError(error)) {
+    const data = error.response?.data as Partial<ApiErrorResponse> | undefined;
     return {
-      message: error.response?.data?.message || error.message || 'An error occurred',
+      message: data?.message || error.message || 'An error occurred',
       status: error.response?.status,
       code: error.code
     };
