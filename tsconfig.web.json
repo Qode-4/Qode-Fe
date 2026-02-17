@@ -15,5 +15,6 @@
         "src/renderer/src/*"
       ]
     }
-  }
+  },
+  "exclude": ["src/renderer/src/**/*.stories.tsx"]
 }

@@ -7,6 +7,12 @@ export default defineConfig({
   main: {},
   preload: {},
   renderer: {
+    server: {
+      proxy: {
+        '/api': 'http://localhost:3000',
+        '/health': 'http://localhost:3000'
+      }
+    },
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src')
