@@ -39,6 +39,8 @@ Desktop.ini
 # Local-only docs / agent config
 docs-private/
 .codex/
+.claude/
+AGENTS.md
 
 # Electron-builder artifacts (in case output is configured outside dist/)
 *.dmg
