@@ -1,6 +1,6 @@
 import { Api } from './generated/Api';
+import { Auth } from './generated/Auth';
 import { Health } from './generated/Health';
-import { QodeApi } from './generated/QodeApi';
 import { tokenStorage } from './tokenStorage';
 
 const useMswInDev = import.meta.env.DEV && import.meta.env.VITE_USE_MSW !== 'false';
@@ -24,8 +24,8 @@ const apiClientConfig = {
 } as const;
 
 export const apiClient = new Api(apiClientConfig);
+export const authApiClient = new Auth(apiClientConfig);
 export const healthApiClient = new Health(apiClientConfig);
-export const qodeApiClient = new QodeApi(apiClientConfig);
 
 const redirectToLogin = (): void => {
   const raw = window.location.hash || '#/';
@@ -34,13 +34,13 @@ const redirectToLogin = (): void => {
   window.location.hash = `/login?next=${next}`;
 };
 
-qodeApiClient.instance.interceptors.response.use(
-  (res) => res,
-  (error) => {
-    if (error?.response?.status === 401) {
-      tokenStorage.clearAccessToken();
-      redirectToLogin();
-    }
-    return Promise.reject(error);
+const onAuthError = (error: unknown): Promise<never> => {
+  if ((error as { response?: { status?: number } })?.response?.status === 401) {
+    tokenStorage.clearAccessToken();
+    redirectToLogin();
   }
-);
+  return Promise.reject(error);
+};
+
+apiClient.instance.interceptors.response.use((res) => res, onAuthError);
+authApiClient.instance.interceptors.response.use((res) => res, onAuthError);

@@ -1,5 +1,6 @@
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 /*
  * ---------------------------------------------------------------
  * ## THIS FILE WAS GENERATED VIA SWAGGER-TYPESCRIPT-API        ##
@@ -10,100 +11,155 @@
  */
 
 import {
-  CreateSampleItemBody,
-  CreateSampleItemData,
-  CreateSampleItemError,
-  DeleteSampleItemData,
-  DeleteSampleItemError,
-  GetSampleItemData,
-  GetSampleItemError,
-  ListSampleItemsData,
-  UpdateSampleItemBody,
-  UpdateSampleItemData,
-  UpdateSampleItemError
-} from './data-contracts';
-import { ContentType, HttpClient, RequestParams } from './http-client';
+  CreateProjectRequest,
+  CreateSampleItemRequest,
+  ProjectsCreateData,
+  ProjectsCreateError,
+  ProjectsListData,
+  SampleItemsCreateData,
+  SampleItemsCreateError,
+  SampleItemsDeleteData,
+  SampleItemsDeleteError,
+  SampleItemsDetailData,
+  SampleItemsDetailError,
+  SampleItemsListData,
+  SampleItemsPartialUpdateData,
+  SampleItemsPartialUpdateError,
+  UpdateSampleItemRequest,
+} from "./data-contracts";
+import { ContentType, HttpClient, RequestParams } from "./http-client";
 
-export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
+export class Api<
+  SecurityDataType = unknown,
+> extends HttpClient<SecurityDataType> {
   /**
    * No description
    *
    * @tags sample-items
-   * @name ListSampleItems
+   * @name SampleItemsList
+   * @summary List sample items
    * @request GET:/api/sample-items
-   * @response `200` `ListSampleItemsData` OK
+   * @response `200` `SampleItemsListData` Sample item list
    */
-  listSampleItems = (params: RequestParams = {}) =>
-    this.request<ListSampleItemsData, any>({
+  sampleItemsList = (params: RequestParams = {}) =>
+    this.request<SampleItemsListData, any>({
       path: `/api/sample-items`,
-      method: 'GET',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
     });
   /**
    * No description
    *
    * @tags sample-items
-   * @name CreateSampleItem
+   * @name SampleItemsCreate
+   * @summary Create sample item
    * @request POST:/api/sample-items
-   * @response `201` `CreateSampleItemData` Created
-   * @response `400` `ApiErrorResponse` Bad Request
+   * @response `201` `SampleItemsCreateData` Created sample item
+   * @response `400` `ErrorResponse` Validation error
    */
-  createSampleItem = (data: CreateSampleItemBody, params: RequestParams = {}) =>
-    this.request<CreateSampleItemData, CreateSampleItemError>({
+  sampleItemsCreate = (
+    data: CreateSampleItemRequest,
+    params: RequestParams = {},
+  ) =>
+    this.request<SampleItemsCreateData, SampleItemsCreateError>({
       path: `/api/sample-items`,
-      method: 'POST',
+      method: "POST",
       body: data,
       type: ContentType.Json,
-      ...params
+      format: "json",
+      ...params,
     });
   /**
    * No description
    *
    * @tags sample-items
-   * @name GetSampleItem
+   * @name SampleItemsDetail
+   * @summary Get sample item
    * @request GET:/api/sample-items/{id}
-   * @response `200` `GetSampleItemData` OK
-   * @response `400` `ApiErrorResponse` Bad Request
-   * @response `404` `ApiErrorResponse` Not Found
+   * @response `200` `SampleItemsDetailData` Sample item detail
+   * @response `404` `ErrorResponse` Not found
    */
-  getSampleItem = (id: string, params: RequestParams = {}) =>
-    this.request<GetSampleItemData, GetSampleItemError>({
+  sampleItemsDetail = (id: string, params: RequestParams = {}) =>
+    this.request<SampleItemsDetailData, SampleItemsDetailError>({
       path: `/api/sample-items/${id}`,
-      method: 'GET',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
     });
   /**
    * No description
    *
    * @tags sample-items
-   * @name UpdateSampleItem
+   * @name SampleItemsPartialUpdate
+   * @summary Update sample item
    * @request PATCH:/api/sample-items/{id}
-   * @response `200` `UpdateSampleItemData` OK
-   * @response `400` `ApiErrorResponse` Bad Request
-   * @response `404` `ApiErrorResponse` Not Found
+   * @response `200` `SampleItemsPartialUpdateData` Updated sample item
+   * @response `400` `ErrorResponse` Validation error
+   * @response `404` `ErrorResponse` Not found
    */
-  updateSampleItem = (id: string, data: UpdateSampleItemBody, params: RequestParams = {}) =>
-    this.request<UpdateSampleItemData, UpdateSampleItemError>({
+  sampleItemsPartialUpdate = (
+    id: string,
+    data: UpdateSampleItemRequest,
+    params: RequestParams = {},
+  ) =>
+    this.request<SampleItemsPartialUpdateData, SampleItemsPartialUpdateError>({
       path: `/api/sample-items/${id}`,
-      method: 'PATCH',
+      method: "PATCH",
       body: data,
       type: ContentType.Json,
-      ...params
+      format: "json",
+      ...params,
     });
   /**
    * No description
    *
    * @tags sample-items
-   * @name DeleteSampleItem
+   * @name SampleItemsDelete
+   * @summary Delete sample item
    * @request DELETE:/api/sample-items/{id}
-   * @response `204` `DeleteSampleItemData` No Content
-   * @response `400` `ApiErrorResponse` Bad Request
-   * @response `404` `ApiErrorResponse` Not Found
+   * @response `204` `SampleItemsDeleteData` Deleted
+   * @response `404` `ErrorResponse` Not found
    */
-  deleteSampleItem = (id: string, params: RequestParams = {}) =>
-    this.request<DeleteSampleItemData, DeleteSampleItemError>({
+  sampleItemsDelete = (id: string, params: RequestParams = {}) =>
+    this.request<SampleItemsDeleteData, SampleItemsDeleteError>({
       path: `/api/sample-items/${id}`,
-      method: 'DELETE',
-      ...params
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags projects
+   * @name ProjectsList
+   * @summary List projects
+   * @request GET:/api/projects
+   * @response `200` `ProjectsListData` Project list
+   */
+  projectsList = (params: RequestParams = {}) =>
+    this.request<ProjectsListData, any>({
+      path: `/api/projects`,
+      method: "GET",
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags projects
+   * @name ProjectsCreate
+   * @summary Create project
+   * @request POST:/api/projects
+   * @response `201` `ProjectsCreateData` Created project
+   * @response `400` `ErrorResponse` Validation error
+   */
+  projectsCreate = (data: CreateProjectRequest, params: RequestParams = {}) =>
+    this.request<ProjectsCreateData, ProjectsCreateError>({
+      path: `/api/projects`,
+      method: "POST",
+      body: data,
+      type: ContentType.Json,
+      format: "json",
+      ...params,
     });
 }

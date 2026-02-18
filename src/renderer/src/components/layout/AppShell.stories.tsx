@@ -1,20 +1,20 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import type { ChatItem } from '../../api/generated/qode/chats';
-import type { ProjectListItem } from '../../api/generated/qode/projects';
+import type { ChatItem } from '../../api/contracts/chats';
+import type { ProjectListItem } from '../../api/contracts/projects';
 import { AppShell } from './AppShell';
 
 const sampleProjects: ProjectListItem[] = [
   {
     id: 'project-1',
     name: 'Qode Frontend',
-    myRole: 'owner',
+    myRole: 'OWNER',
     lastSyncedAt: '2026-02-17T10:00:00Z'
   },
   {
     id: 'project-2',
     name: 'Qode Server',
-    myRole: 'member',
+    myRole: 'MEMBER',
     lastSyncedAt: '2026-02-16T08:00:00Z'
   }
 ];

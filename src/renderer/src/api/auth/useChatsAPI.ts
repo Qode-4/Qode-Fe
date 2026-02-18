@@ -1,17 +1,18 @@
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { qodeApiClient } from '../apiClient';
-import { QUERY_KEY } from '../queryKeys';
-import { tokenStorage } from '../tokenStorage';
+import { apiClient } from '../apiClient';
 import type {
   ChatMessagesResponse,
-  PostProjectChatsError,
   ProjectChatsResponse,
   ProjectGuideResponse,
   ShareMessageBody,
   ShareMessageResponse,
   SourceItem
-} from '../generated/qode/chats';
+} from '../contracts/chats';
+import { ContentType } from '../generated/http-client';
+import { QUERY_KEY } from '../queryKeys';
+import { tokenStorage } from '../tokenStorage';
+import type { ErrorResponse } from '../generated/data-contracts';
 
 type SseStatusPayload = {
   status?: string;
@@ -106,7 +107,7 @@ const streamChatMessage = async (params: {
   content: string;
   callbacks?: MessageStreamCallbacks;
 }): Promise<void> => {
-  const baseURL = String(qodeApiClient.instance.defaults.baseURL ?? '').replace(/\/$/, '');
+  const baseURL = String(apiClient.instance.defaults.baseURL ?? '').replace(/\/$/, '');
   const url = `${baseURL}${params.path}`;
   const token = tokenStorage.getAccessToken();
 
@@ -164,7 +165,13 @@ export const useGetProjectChats = (params: {
     queryKey: QUERY_KEY.projectChats(params.projectId, params.type),
     queryFn: async () => {
       const query = params.type ? { type: params.type } : undefined;
-      const res = await qodeApiClient.getProjectChats(params.projectId, query, { secure: true });
+      const res = await apiClient.request<ProjectChatsResponse>({
+        path: `/api/projects/${params.projectId}/chats`,
+        method: 'GET',
+        query,
+        secure: true,
+        format: 'json'
+      });
       return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
@@ -174,17 +181,24 @@ export const usePostProjectChats = (params: {
   projectId: string;
 }): UseMutationResult<
   ProjectChatsResponse['chats'][number],
-  PostProjectChatsError,
+  ErrorResponse,
   { name?: string; type: 'personal' | 'team' }
 > => {
   const qc = useQueryClient();
   return useMutation<
     ProjectChatsResponse['chats'][number],
-    PostProjectChatsError,
+    ErrorResponse,
     { name?: string; type: 'personal' | 'team' }
   >({
     mutationFn: async (body) => {
-      const res = await qodeApiClient.postProjectChats(params.projectId, body, { secure: true });
+      const res = await apiClient.request<ProjectChatsResponse['chats'][number]>({
+        path: `/api/projects/${params.projectId}/chats`,
+        method: 'POST',
+        body,
+        type: ContentType.Json,
+        secure: true,
+        format: 'json'
+      });
       return res.data;
     },
     onSuccess: () => {
@@ -202,13 +216,21 @@ export const useGetChatMessages = (params: {
     queryKey: QUERY_KEY.chatMessages(params.chatId, Boolean(params.personal)),
     queryFn: async () => {
       if (params.personal) {
-        const res = await qodeApiClient.getMyChatMessages(params.chatId, undefined, {
-          secure: true
+        const res = await apiClient.request<ChatMessagesResponse>({
+          path: `/api/chats/me/${params.chatId}/messages`,
+          method: 'GET',
+          secure: true,
+          format: 'json'
         });
         return res.data;
       }
 
-      const res = await qodeApiClient.getChatMessages(params.chatId, { secure: true });
+      const res = await apiClient.request<ChatMessagesResponse>({
+        path: `/api/chats/${params.chatId}/messages`,
+        method: 'GET',
+        secure: true,
+        format: 'json'
+      });
       return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.chatId)
@@ -266,7 +288,14 @@ export const usePostMessageShare = (params: {
   return useMutation<ShareMessageResponse, unknown, { messageId: string; body?: ShareMessageBody }>(
     {
       mutationFn: async ({ messageId, body }) => {
-        const res = await qodeApiClient.postMessageShare(messageId, body, { secure: true });
+        const res = await apiClient.request<ShareMessageResponse>({
+          path: `/api/messages/${messageId}/share`,
+          method: 'POST',
+          body,
+          type: ContentType.Json,
+          secure: true,
+          format: 'json'
+        });
         return res.data;
       },
       onSuccess: () => {
@@ -285,7 +314,12 @@ export const useGetProjectGuide = (params: {
   useQuery({
     queryKey: QUERY_KEY.projectGuide(params.projectId),
     queryFn: async () => {
-      const res = await qodeApiClient.getProjectGuide(params.projectId, { secure: true });
+      const res = await apiClient.request<ProjectGuideResponse>({
+        path: `/api/projects/${params.projectId}/guide`,
+        method: 'GET',
+        secure: true,
+        format: 'json'
+      });
       return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)

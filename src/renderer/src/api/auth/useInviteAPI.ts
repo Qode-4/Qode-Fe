@@ -1,8 +1,8 @@
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { qodeApiClient } from '../apiClient';
+import { apiClient } from '../apiClient';
+import type { InviteInfoResponse, InviteJoinResponse } from '../contracts/invite';
 import { QUERY_KEY } from '../queryKeys';
-import type { InviteInfoResponse, InviteJoinResponse } from '../generated/qode/invite';
 
 export const useGetInviteInfo = ({
   inviteCode,
@@ -14,7 +14,12 @@ export const useGetInviteInfo = ({
   useQuery({
     queryKey: QUERY_KEY.inviteInfo(inviteCode),
     queryFn: async () => {
-      const res = await qodeApiClient.getInviteInfo(inviteCode, { secure: true });
+      const res = await apiClient.request<InviteInfoResponse>({
+        path: `/api/invite/${inviteCode}`,
+        method: 'GET',
+        secure: true,
+        format: 'json'
+      });
       return res.data;
     },
     enabled
@@ -23,7 +28,12 @@ export const useGetInviteInfo = ({
 export const usePostInviteJoin = (): UseMutationResult<InviteJoinResponse, unknown, string> =>
   useMutation<InviteJoinResponse, unknown, string>({
     mutationFn: async (inviteCode) => {
-      const res = await qodeApiClient.postInviteJoin(inviteCode, { secure: true });
+      const res = await apiClient.request<InviteJoinResponse>({
+        path: `/api/invite/${inviteCode}/join`,
+        method: 'POST',
+        secure: true,
+        format: 'json'
+      });
       return res.data;
     }
   });
