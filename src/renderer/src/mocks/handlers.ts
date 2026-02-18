@@ -1,5 +1,11 @@
 import { delay, http, HttpResponse } from 'msw';
-import type { AuthResponse, MeResponse } from '../api/generated/qode/auth';
+import type { ChatType as ContractChatType } from '../api/contracts/chats';
+import type {
+  GithubOAuthDeviceFlowResponse,
+  GithubOAuthDeviceStartResponse,
+  GithubOAuthReposResponse
+} from '../api/contracts/githubOauth';
+import type { InviteInfoResponse, InviteJoinResponse } from '../api/contracts/invite';
 import type {
   CreateProjectResponse,
   PatchProjectGitResponse,
@@ -8,14 +14,26 @@ import type {
   ProjectMembersResponse,
   SyncStatusResponse,
   TriggerSyncResponse
-} from '../api/generated/qode/projects';
-import type { InviteInfoResponse, InviteJoinResponse } from '../api/generated/qode/invite';
+} from '../api/contracts/projects';
+import type {
+  AuthTokenResponse,
+  CreateSampleItemRequest,
+  MeResponse,
+  SampleItem,
+  SampleItemListResponse,
+  SampleItemSingleResponse,
+  UpdateSampleItemRequest
+} from '../api/generated/data-contracts';
+
+type AuthResponse = AuthTokenResponse;
+type SampleItemResponse = SampleItemSingleResponse;
 
 type Role = 'OWNER' | 'MEMBER';
-type SyncState = 'idle' | 'syncing' | 'done' | 'failed';
-type ChatType = 'personal' | 'team';
+type SyncState = 'idle' | 'queued' | 'syncing' | 'done' | 'failed';
+type ChatType = ContractChatType;
 type MessageRole = 'user' | 'assistant';
 type MessageStatus = 'complete' | 'streaming' | 'failed';
+type OAuthFlowStatus = 'auth_pending' | 'authorized' | 'auth_failed' | 'expired';
 
 type MockSource = {
   filePath: string;
@@ -82,10 +100,49 @@ type MockMessage = {
   originalMessage: OriginalMessageSnapshot | null;
 };
 
+type MockGithubRepo = {
+  owner: string;
+  name: string;
+  fullName: string;
+  cloneUrl: string;
+  defaultBranch: string;
+  private: boolean;
+};
+
+type MockGithubOAuthFlow = {
+  flowId: string;
+  requestedBy: string;
+  userCode: string;
+  verificationUri: string;
+  verificationUriComplete: string;
+  expiresAt: string;
+  interval: number;
+  status: OAuthFlowStatus;
+  error: string | null;
+  githubUser: {
+    id: number;
+    login: string;
+  };
+  repositories: MockGithubRepo[];
+};
+
 type UserSummary = {
   id: string;
   name: string;
   avatarUrl: string | null;
+};
+
+type SwaggerProject = {
+  id: string;
+  name: string;
+  description: string | null;
+  gitUrl: string | null;
+  inviteCode: string;
+  lastSyncedAt: string | null;
+  questionCount: number;
+  createdAt: string;
+  createdBy: UserSummary;
+  role: 'OWNER';
 };
 
 type PersonalMessageResponse = {
@@ -109,6 +166,48 @@ type TeamMessageResponse = {
 
 const createId = (): string => crypto.randomUUID();
 const now = (): string => new Date().toISOString();
+const makeUserCode = (): string => {
+  const makeChunk = (): string => Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${makeChunk()}-${makeChunk()}`;
+};
+const addMinutes = (date: Date, minutes: number): Date =>
+  new Date(date.getTime() + minutes * 60 * 1000);
+const isExpired = (iso: string): boolean => new Date(iso).getTime() <= Date.now();
+
+const toGithubLogin = (user: MockUser): string => {
+  const head = user.email.split('@')[0] ?? 'qode-user';
+  return head.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase();
+};
+
+const buildMockGithubRepos = (user: MockUser): MockGithubRepo[] => {
+  const login = toGithubLogin(user);
+  return [
+    {
+      owner: 'my-org',
+      name: 'qode-fe',
+      fullName: 'my-org/qode-fe',
+      cloneUrl: 'https://github.com/my-org/qode-fe.git',
+      defaultBranch: 'main',
+      private: true
+    },
+    {
+      owner: 'my-org',
+      name: 'qode-server',
+      fullName: 'my-org/qode-server',
+      cloneUrl: 'https://github.com/my-org/qode-server.git',
+      defaultBranch: 'main',
+      private: true
+    },
+    {
+      owner: login,
+      name: 'my-personal-sandbox',
+      fullName: `${login}/my-personal-sandbox`,
+      cloneUrl: `https://github.com/${login}/my-personal-sandbox.git`,
+      defaultBranch: 'main',
+      private: true
+    }
+  ];
+};
 
 const users: MockUser[] = [
   {
@@ -126,6 +225,8 @@ const members: MockMember[] = [];
 const chats: MockChat[] = [];
 const messages: MockMessage[] = [];
 const sessions = new Map<string, string>();
+const githubOauthFlows = new Map<string, MockGithubOAuthFlow>();
+const sampleItems: SampleItem[] = [];
 
 const getUserSummary = (userId: string): UserSummary => {
   const user = users.find((it) => it.id === userId);
@@ -161,6 +262,19 @@ const findProject = (projectId: string): MockProject | undefined =>
   projects.find((it) => it.id === projectId);
 
 const findChat = (chatId: string): MockChat | undefined => chats.find((it) => it.id === chatId);
+
+const toSwaggerProject = (project: MockProject): SwaggerProject => ({
+  id: project.id,
+  name: project.name,
+  description: project.description,
+  gitUrl: project.gitUrl,
+  inviteCode: project.inviteCode,
+  lastSyncedAt: project.lastSyncedAt,
+  questionCount: project.questionCount,
+  createdAt: project.createdAt,
+  createdBy: getUserSummary(project.createdBy),
+  role: 'OWNER' as const
+});
 
 const isChatAccessible = (chat: MockChat, userId: string): boolean => {
   if (!isProjectMember(chat.projectId, userId)) return false;
@@ -265,6 +379,209 @@ const forbidden = (message: string): Response =>
   HttpResponse.json({ status: 403, message }, { status: 403 });
 const conflict = (message: string): Response =>
   HttpResponse.json({ status: 409, message }, { status: 409 });
+const failedDependency = (message: string): Response =>
+  HttpResponse.json({ status: 424, message }, { status: 424 });
+
+const findSampleItem = (id: string): SampleItem | undefined =>
+  sampleItems.find((it) => it.id === id);
+
+const handleAuthSignup = async (request: Request): Promise<Response> => {
+  const body = (await request.json()) as { email?: string; password?: string; name?: string };
+  const email = body.email?.trim().toLowerCase();
+  const password = body.password ?? '';
+  const name = body.name?.trim();
+
+  if (!email || !password || !name) {
+    return HttpResponse.json(
+      { status: 400, message: '필수 입력값이 누락되었습니다.' },
+      { status: 400 }
+    );
+  }
+
+  if (users.some((it) => it.email.toLowerCase() === email)) {
+    return conflict('이미 사용 중인 이메일입니다.');
+  }
+
+  const user: MockUser = {
+    id: createId(),
+    email,
+    password,
+    name,
+    avatarUrl: null,
+    createdAt: now()
+  };
+  users.push(user);
+
+  const token = makeToken(user.id);
+  sessions.set(token, user.id);
+
+  const response: AuthResponse = {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatarUrl: user.avatarUrl
+    }
+  };
+
+  await delay(240);
+  return HttpResponse.json(response, { status: 201 });
+};
+
+const handleAuthLogin = async (request: Request): Promise<Response> => {
+  const body = (await request.json()) as { email?: string; password?: string };
+  const email = body.email?.trim().toLowerCase();
+  const password = body.password ?? '';
+  const user = users.find((it) => it.email.toLowerCase() === email && it.password === password);
+
+  if (!user) {
+    return HttpResponse.json(
+      {
+        status: 401,
+        message: '이메일 또는 비밀번호가 올바르지 않습니다.'
+      },
+      { status: 401 }
+    );
+  }
+
+  const token = makeToken(user.id);
+  sessions.set(token, user.id);
+
+  const response: AuthResponse = {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatarUrl: user.avatarUrl
+    }
+  };
+
+  await delay(220);
+  return HttpResponse.json(response, { status: 200 });
+};
+
+const handleAuthMe = async (request: Request): Promise<Response> => {
+  const user = authUser(request);
+  if (!user) return unauthorized();
+
+  const token = readToken(request) ?? '';
+  const response: MeResponse = {
+    id: user.id,
+    token,
+    email: user.email,
+    name: user.name,
+    avatarUrl: user.avatarUrl
+  };
+
+  await delay(80);
+  return HttpResponse.json(response, { status: 200 });
+};
+
+const handleAuthRefresh = async (request: Request): Promise<Response> => {
+  const user = authUser(request);
+  if (!user) return unauthorized();
+
+  const token = makeToken(user.id);
+  sessions.set(token, user.id);
+
+  const response: AuthResponse = {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatarUrl: user.avatarUrl
+    }
+  };
+
+  await delay(120);
+  return HttpResponse.json(response, { status: 200 });
+};
+
+const handleAuthLogout = async (request: Request): Promise<Response> => {
+  const token = readToken(request);
+  if (token) sessions.delete(token);
+
+  await delay(60);
+  return new HttpResponse(null, { status: 204 });
+};
+
+const handleCreateSampleItem = async (request: Request): Promise<Response> => {
+  const body = (await request.json()) as CreateSampleItemRequest;
+  const title = body.title?.trim();
+  const description = body.description?.trim();
+
+  if (!title || title.length > 120) {
+    return HttpResponse.json(
+      { status: 400, message: 'title은 1~120자여야 합니다.' },
+      { status: 400 }
+    );
+  }
+
+  if (description !== undefined && (description.length < 1 || description.length > 1000)) {
+    return HttpResponse.json(
+      { status: 400, message: 'description은 1~1000자여야 합니다.' },
+      { status: 400 }
+    );
+  }
+
+  const timestamp = now();
+  const next: SampleItem = {
+    id: createId(),
+    title,
+    ...(description ? { description } : {}),
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
+  sampleItems.push(next);
+
+  const response: SampleItemResponse = { ok: true, data: next };
+  await delay(120);
+  return HttpResponse.json(response, { status: 201 });
+};
+
+const handleUpdateSampleItem = async (request: Request, id: string): Promise<Response> => {
+  const sampleItem = findSampleItem(id);
+  if (!sampleItem) return notFound('존재하지 않는 sample-item입니다.');
+
+  const body = (await request.json()) as UpdateSampleItemRequest;
+  const hasTitle = typeof body.title === 'string';
+  const hasDescription = typeof body.description === 'string';
+
+  if (!hasTitle && !hasDescription) {
+    return HttpResponse.json({ status: 400, message: '수정할 필드가 없습니다.' }, { status: 400 });
+  }
+
+  if (hasTitle) {
+    const title = body.title?.trim();
+    if (!title || title.length > 120) {
+      return HttpResponse.json(
+        { status: 400, message: 'title은 1~120자여야 합니다.' },
+        { status: 400 }
+      );
+    }
+    sampleItem.title = title;
+  }
+
+  if (hasDescription) {
+    const description = body.description?.trim();
+    if (!description || description.length > 1000) {
+      return HttpResponse.json(
+        { status: 400, message: 'description은 1~1000자여야 합니다.' },
+        { status: 400 }
+      );
+    }
+    sampleItem.description = description;
+  }
+
+  sampleItem.updatedAt = now();
+
+  const response: SampleItemResponse = { ok: true, data: sampleItem };
+  await delay(100);
+  return HttpResponse.json(response, { status: 200 });
+};
 
 const seedProject = (): void => {
   const owner = users[0];
@@ -380,99 +697,53 @@ export const handlers = [
     });
   }),
 
-  http.post('*/api/auth/signup', async ({ request }) => {
-    const body = (await request.json()) as { email?: string; password?: string; name?: string };
-    const email = body.email?.trim().toLowerCase();
-    const password = body.password ?? '';
-    const name = body.name?.trim();
-
-    if (!email || !password || !name) {
-      return HttpResponse.json(
-        { status: 400, message: '필수 입력값이 누락되었습니다.' },
-        { status: 400 }
-      );
-    }
-
-    if (users.some((it) => it.email.toLowerCase() === email)) {
-      return conflict('이미 사용 중인 이메일입니다.');
-    }
-
-    const user: MockUser = {
-      id: createId(),
-      email,
-      password,
-      name,
-      avatarUrl: null,
-      createdAt: now()
-    };
-    users.push(user);
-
-    const token = makeToken(user.id);
-    sessions.set(token, user.id);
-
-    const response: AuthResponse = {
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatarUrl: user.avatarUrl
-      }
-    };
-
-    await delay(240);
+  http.get('*/api/sample-items', async () => {
+    const response: SampleItemListResponse = { ok: true, data: sampleItems };
+    await delay(110);
     return HttpResponse.json(response, { status: 200 });
   }),
 
-  http.post('*/api/auth/login', async ({ request }) => {
-    const body = (await request.json()) as { email?: string; password?: string };
-    const email = body.email?.trim().toLowerCase();
-    const password = body.password ?? '';
-    const user = users.find((it) => it.email.toLowerCase() === email && it.password === password);
+  http.get('*/api/sample-items/:id', async ({ params }) => {
+    const id = String(params.id ?? '');
+    const sampleItem = findSampleItem(id);
+    if (!sampleItem) return notFound('존재하지 않는 sample-item입니다.');
 
-    if (!user) {
-      return HttpResponse.json(
-        {
-          status: 401,
-          message: '이메일 또는 비밀번호가 올바르지 않습니다.'
-        },
-        { status: 401 }
-      );
-    }
-
-    const token = makeToken(user.id);
-    sessions.set(token, user.id);
-
-    const response: AuthResponse = {
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatarUrl: user.avatarUrl
-      }
-    };
-
-    await delay(220);
+    const response: SampleItemResponse = { ok: true, data: sampleItem };
+    await delay(100);
     return HttpResponse.json(response, { status: 200 });
   }),
 
-  http.get('*/api/auth/me', async ({ request }) => {
-    const user = authUser(request);
-    if (!user) return unauthorized();
+  http.post('*/api/sample-items', async ({ request }) => handleCreateSampleItem(request)),
 
-    const token = readToken(request) ?? '';
-    const response: MeResponse = {
-      id: user.id,
-      token,
-      email: user.email,
-      name: user.name,
-      avatarUrl: user.avatarUrl
-    };
-
-    await delay(80);
-    return HttpResponse.json(response, { status: 200 });
+  http.patch('*/api/sample-items/:id', async ({ params, request }) => {
+    const id = String(params.id ?? '');
+    return handleUpdateSampleItem(request, id);
   }),
+
+  http.delete('*/api/sample-items/:id', async ({ params }) => {
+    const id = String(params.id ?? '');
+    const index = sampleItems.findIndex((it) => it.id === id);
+    if (index < 0) return notFound('존재하지 않는 sample-item입니다.');
+
+    sampleItems.splice(index, 1);
+    await delay(90);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post('*/api/auth/signup', async ({ request }) => handleAuthSignup(request)),
+  http.post('*/auth/signup', async ({ request }) => handleAuthSignup(request)),
+
+  http.post('*/api/auth/login', async ({ request }) => handleAuthLogin(request)),
+  http.post('*/auth/login', async ({ request }) => handleAuthLogin(request)),
+
+  http.get('*/api/auth/me', async ({ request }) => handleAuthMe(request)),
+  http.get('*/auth/me', async ({ request }) => handleAuthMe(request)),
+
+  http.post('*/api/auth/refresh', async ({ request }) => handleAuthRefresh(request)),
+  http.post('*/auth/refresh', async ({ request }) => handleAuthRefresh(request)),
+
+  http.post('*/api/auth/logout', async ({ request }) => handleAuthLogout(request)),
+  http.post('*/auth/logout', async ({ request }) => handleAuthLogout(request)),
 
   http.get('*/api/invite/:inviteCode', async ({ params, request }) => {
     const user = authUser(request);
@@ -524,6 +795,120 @@ export const handlers = [
     return HttpResponse.json(response, { status: 200 });
   }),
 
+  http.post('*/api/github/oauth/device/start', async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return unauthorized();
+
+    const flowId = createId();
+    const userCode = makeUserCode();
+    const verificationUri = 'https://github.com/login/device';
+    const interval = 2;
+    const expiresAt = addMinutes(new Date(), 10).toISOString();
+    const githubLogin = toGithubLogin(user);
+    const githubUserId = Array.from(githubLogin).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+
+    const flow: MockGithubOAuthFlow = {
+      flowId,
+      requestedBy: user.id,
+      userCode,
+      verificationUri,
+      verificationUriComplete: `${verificationUri}?user_code=${encodeURIComponent(userCode)}`,
+      expiresAt,
+      interval,
+      status: 'auth_pending',
+      error: null,
+      githubUser: {
+        id: 100000 + githubUserId,
+        login: githubLogin
+      },
+      repositories: buildMockGithubRepos(user)
+    };
+
+    githubOauthFlows.set(flowId, flow);
+
+    setTimeout(() => {
+      const current = githubOauthFlows.get(flowId);
+      if (!current || current.status !== 'auth_pending') return;
+      if (isExpired(current.expiresAt)) {
+        current.status = 'expired';
+        current.error = '인증 시간이 만료되었습니다.';
+        return;
+      }
+      current.status = 'authorized';
+      current.error = null;
+    }, 1400);
+
+    const response: GithubOAuthDeviceStartResponse = {
+      flowId: flow.flowId,
+      userCode: flow.userCode,
+      verificationUri: flow.verificationUri,
+      verificationUriComplete: flow.verificationUriComplete,
+      expiresAt: flow.expiresAt,
+      interval: flow.interval
+    };
+
+    await delay(160);
+    return HttpResponse.json(response, { status: 200 });
+  }),
+
+  http.get('*/api/github/oauth/device/flows/:flowId', async ({ params, request }) => {
+    const user = authUser(request);
+    if (!user) return unauthorized();
+
+    const flowId = String(params.flowId ?? '');
+    const flow = githubOauthFlows.get(flowId);
+    if (!flow) return notFound('OAuth 인증 흐름을 찾을 수 없습니다.');
+    if (flow.requestedBy !== user.id) return forbidden('해당 인증 흐름을 조회할 권한이 없습니다.');
+
+    if (flow.status === 'auth_pending' && isExpired(flow.expiresAt)) {
+      flow.status = 'expired';
+      flow.error = '인증 시간이 만료되었습니다.';
+    }
+
+    const response: GithubOAuthDeviceFlowResponse = {
+      flowId: flow.flowId,
+      status: flow.status,
+      githubUser: flow.status === 'authorized' ? flow.githubUser : null,
+      error: flow.error
+    };
+
+    await delay(100);
+    return HttpResponse.json(response, { status: 200 });
+  }),
+
+  http.get('*/api/github/oauth/repos', async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return unauthorized();
+
+    const url = new URL(request.url);
+    const flowId = (url.searchParams.get('flowId') ?? '').trim();
+    if (!flowId) {
+      return HttpResponse.json({ status: 400, message: 'flowId는 필수입니다.' }, { status: 400 });
+    }
+
+    const flow = githubOauthFlows.get(flowId);
+    if (!flow) return notFound('OAuth 인증 흐름을 찾을 수 없습니다.');
+    if (flow.requestedBy !== user.id) return forbidden('해당 인증 흐름을 조회할 권한이 없습니다.');
+    if (flow.status === 'auth_pending' && isExpired(flow.expiresAt)) {
+      flow.status = 'expired';
+      flow.error = '인증 시간이 만료되었습니다.';
+    }
+
+    if (flow.status !== 'authorized') {
+      return HttpResponse.json(
+        { status: 401, message: 'GitHub 인증이 만료되었거나 완료되지 않았습니다.' },
+        { status: 401 }
+      );
+    }
+
+    const response: GithubOAuthReposResponse = {
+      repositories: flow.repositories
+    };
+
+    await delay(120);
+    return HttpResponse.json(response, { status: 200 });
+  }),
+
   http.get('*/api/projects', async ({ request }) => {
     const user = authUser(request);
     if (!user) return unauthorized();
@@ -548,7 +933,17 @@ export const handlers = [
         };
       });
 
-    const response: ProjectListResponse = { projects: rows };
+    const response: ProjectListResponse & {
+      ok: true;
+      data: SwaggerProject[];
+    } = {
+      projects: rows,
+      ok: true,
+      data: projects
+        .filter((it) => userProjectIds.has(it.id))
+        .filter((it) => (q ? it.name.toLowerCase().includes(q) : true))
+        .map(toSwaggerProject)
+    };
     await delay(160);
     return HttpResponse.json(response, { status: 200 });
   }),
@@ -557,7 +952,17 @@ export const handlers = [
     const user = authUser(request);
     if (!user) return unauthorized();
 
-    const body = (await request.json()) as { name?: string; description?: string };
+    const body = (await request.json()) as {
+      name?: string;
+      description?: string;
+      git?: {
+        provider?: string;
+        flowId?: string;
+        owner?: string;
+        repo?: string;
+        defaultBranch?: string;
+      };
+    };
     const name = body.name?.trim();
     if (!name) {
       return HttpResponse.json(
@@ -566,17 +971,59 @@ export const handlers = [
       );
     }
 
+    let gitUrl: string | null = null;
+    let syncId: string | null = null;
+
+    if (body.git) {
+      const provider = body.git.provider?.trim();
+      const flowId = body.git.flowId?.trim() ?? '';
+      const owner = body.git.owner?.trim() ?? '';
+      const repo = body.git.repo?.trim() ?? '';
+      const defaultBranch = body.git.defaultBranch?.trim() ?? '';
+      if (provider !== 'github_oauth' || !flowId || !owner || !repo || !defaultBranch) {
+        return HttpResponse.json(
+          { status: 400, message: 'Git 연결 정보가 올바르지 않습니다.' },
+          { status: 400 }
+        );
+      }
+
+      const flow = githubOauthFlows.get(flowId);
+      if (!flow || flow.requestedBy !== user.id) {
+        return failedDependency('GitHub 인증이 필요합니다.');
+      }
+
+      if (flow.status === 'auth_pending' && isExpired(flow.expiresAt)) {
+        flow.status = 'expired';
+        flow.error = '인증 시간이 만료되었습니다.';
+      }
+
+      if (flow.status !== 'authorized') {
+        return failedDependency('GitHub 인증이 필요합니다.');
+      }
+
+      const matchedRepo = flow.repositories.find((it) => it.owner === owner && it.name === repo);
+      if (!matchedRepo) {
+        return HttpResponse.json(
+          { status: 400, message: '선택한 저장소에 접근할 수 없습니다.' },
+          { status: 400 }
+        );
+      }
+
+      gitUrl = matchedRepo.cloneUrl;
+      syncId = createId();
+    }
+
     const project: MockProject = {
       id: createId(),
       name,
       description: body.description?.trim() || null,
-      gitUrl: null,
+      gitUrl,
       inviteCode: Math.random().toString(36).slice(2, 10).toUpperCase(),
       lastSyncedAt: null,
       createdAt: now(),
       createdBy: user.id,
       questionCount: 0,
-      syncStatus: 'idle',
+      syncStatus: syncId ? 'queued' : 'idle',
       syncError: null
     };
     projects.push(project);
@@ -598,7 +1045,10 @@ export const handlers = [
       lastMessageAt: null
     });
 
-    const response: CreateProjectResponse = {
+    const response: CreateProjectResponse & {
+      ok: true;
+      data: SwaggerProject;
+    } = {
       id: project.id,
       name: project.name,
       description: project.description,
@@ -608,8 +1058,33 @@ export const handlers = [
       questionCount: project.questionCount,
       createdAt: project.createdAt,
       createdBy: getUserSummary(project.createdBy),
-      role: 'OWNER'
+      role: 'OWNER',
+      ok: true,
+      data: toSwaggerProject(project),
+      ...(syncId
+        ? {
+            sync: {
+              syncId,
+              status: 'queued'
+            }
+          }
+        : {})
     };
+
+    if (syncId) {
+      setTimeout(() => {
+        if (project.syncStatus !== 'queued') return;
+        project.syncStatus = 'syncing';
+        project.syncError = null;
+      }, 400);
+
+      setTimeout(() => {
+        if (project.syncStatus !== 'queued' && project.syncStatus !== 'syncing') return;
+        project.syncStatus = 'done';
+        project.lastSyncedAt = now();
+        project.syncError = null;
+      }, 2200);
+    }
 
     await delay(170);
     return HttpResponse.json(response, { status: 201 });
@@ -686,13 +1161,22 @@ export const handlers = [
 
     const member = findMember(project.id, user.id);
     if (!member) return forbidden('해당 프로젝트의 멤버가 아닙니다.');
-    if (project.syncStatus === 'syncing') return conflict('이미 동기화가 진행 중입니다.');
+    if (project.syncStatus === 'queued' || project.syncStatus === 'syncing') {
+      return conflict('이미 동기화가 진행 중입니다.');
+    }
 
-    project.syncStatus = 'syncing';
+    project.syncStatus = 'queued';
     project.syncError = null;
     const syncId = createId();
 
     setTimeout(() => {
+      if (project.syncStatus !== 'queued') return;
+      project.syncStatus = 'syncing';
+      project.syncError = null;
+    }, 300);
+
+    setTimeout(() => {
+      if (project.syncStatus !== 'queued' && project.syncStatus !== 'syncing') return;
       project.syncStatus = 'done';
       project.lastSyncedAt = now();
       project.syncError = null;
@@ -700,7 +1184,7 @@ export const handlers = [
 
     const response: TriggerSyncResponse = {
       syncId,
-      status: 'syncing',
+      status: 'queued',
       message: '코드 동기화를 시작합니다.'
     };
 

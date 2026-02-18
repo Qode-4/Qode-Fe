@@ -20,13 +20,41 @@ const startMockWorker = async (): Promise<void> => {
   if (!import.meta.env.DEV) return;
   // DEV 기본값은 MSW ON, 필요하면 VITE_USE_MSW=false 로 끈다.
   if (import.meta.env.VITE_USE_MSW === 'false') return;
+  if (!('serviceWorker' in navigator)) return;
 
-  const { worker } = await import('./mocks/browser');
-  await worker.start({
-    onUnhandledRequest: 'bypass'
-  });
+  const startWorker = async (): Promise<void> => {
+    const { worker } = await import('./mocks/browser');
+    await worker.start({
+      serviceWorker: {
+        url: '/mockServiceWorker.js'
+      },
+      onUnhandledRequest: 'bypass'
+    });
+  };
+
+  try {
+    await startWorker();
+  } catch (error) {
+    // Recover from stale/corrupted registrations seen in Electron Chromium profiles.
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(
+      registrations
+        .filter((registration) => registration.active?.scriptURL.includes('mockServiceWorker.js'))
+        .map((registration) => registration.unregister())
+    );
+
+    try {
+      await startWorker();
+    } catch (retryError) {
+      console.warn('[MSW] Failed to start mock worker. Falling back to real API.', {
+        error,
+        retryError
+      });
+    }
+  }
 };
 
-void startMockWorker().then(() => {
+void (async () => {
+  await startMockWorker();
   renderApp();
-});
+})();
