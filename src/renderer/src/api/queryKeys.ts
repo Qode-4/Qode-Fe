@@ -1,6 +1,8 @@
 export const QUERY_KEY = {
   health: ['health'] as const,
   me: ['me'] as const,
+  githubOauthDeviceFlow: (flowId: string) => ['githubOauthDeviceFlow', flowId] as const,
+  githubOauthRepos: (flowId: string) => ['githubOauthRepos', flowId] as const,
   inviteInfo: (inviteCode: string) => ['invite', inviteCode] as const,
   projects: (search?: string) => ['projects', { search: search ?? '' }] as const,
   project: (projectId: string) => ['project', projectId] as const,
