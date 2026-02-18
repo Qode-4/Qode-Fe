@@ -111,7 +111,7 @@ OpenAPI 타입/클라이언트 재생성이 필요하면:
 yarn swagger:local
 ```
 
-실행 전 백엔드가 `http://127.0.0.1:3000/openapi.json`에서 응답해야 합니다.
+실행 전 백엔드가 `http://localhost:3000/swagger/json`에서 응답해야 합니다.
 
 ## 프로젝트 구조
 
