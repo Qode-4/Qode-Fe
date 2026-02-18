@@ -2,6 +2,7 @@ import { resolve } from 'path';
 import { defineConfig } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
+import svgr from 'vite-plugin-svgr';
 
 export default defineConfig({
   main: {},
@@ -18,6 +19,6 @@ export default defineConfig({
         '@renderer': resolve('src/renderer/src')
       }
     },
-    plugins: [react(), vanillaExtractPlugin()]
+    plugins: [react(), svgr(), vanillaExtractPlugin()]
   }
 });
