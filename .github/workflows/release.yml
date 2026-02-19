@@ -34,7 +34,7 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
       - name: Install dependencies
-        run: yarn
+        run: yarn install --immutable
       - name: Build macOS package
         run: |
           yarn electron-vite build
@@ -59,7 +59,7 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
       - name: Install dependencies
-        run: yarn
+        run: yarn install --immutable
       - name: Build Windows package
         run: |
           yarn electron-vite build
@@ -84,7 +84,7 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
       - name: Install dependencies
-        run: yarn
+        run: yarn install --immutable
       - name: Build Linux package
         run: |
           yarn electron-vite build
