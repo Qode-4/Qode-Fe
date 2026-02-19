@@ -6,6 +6,7 @@ import Group_light from './raw/Group_light.svg?react';
 import Refresh_light from './raw/Refresh_light.svg?react';
 import Send_hor_fill from './raw/Send_hor_fill.svg?react';
 import Setting_line_light from './raw/Setting_line_light.svg?react';
+import User_light from './raw/User_light.svg?react';
 import dot_round_fill from './raw/dot_round_fill.svg?react';
 
 export const ICON_REGISTRY = {
@@ -17,6 +18,7 @@ export const ICON_REGISTRY = {
   Refresh_light,
   Send_hor_fill,
   Setting_line_light,
+  User_light,
   dot_round_fill
 } as const;
 
