@@ -10,7 +10,8 @@ import {
 import {
   useGetProject,
   useGetProjectMembers,
-  useGetProjectSyncStatus
+  useGetProjectSyncStatus,
+  usePostProjectSync
 } from '../api/auth/useProjectsAPI';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
@@ -106,6 +107,7 @@ export const ProjectDetailPage = ({
 
   const project = useGetProject({ projectId, enabled: Boolean(projectId) });
   const syncStatus = useGetProjectSyncStatus({ projectId, enabled: Boolean(projectId) });
+  const postProjectSync = usePostProjectSync({ projectId });
   const chats = useGetProjectChats({ projectId, type: 'all', enabled: Boolean(projectId) });
   // const guide = useGetProjectGuide({ projectId, enabled: Boolean(projectId) });
   const members = useGetProjectMembers({ projectId, enabled: Boolean(projectId) });
@@ -149,10 +151,22 @@ export const ProjectDetailPage = ({
   const canSend =
     Boolean(activeChatId) && Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly;
   const teamReadOnlyReason = TEAM_CHAT_READONLY_TOOLTIP;
+  const syncStatusValue = syncStatus.data?.data.status;
+  const syncStatusLabel = (() => {
+    if (!syncStatusValue) return '동기화 상태 확인 중';
+    if (syncStatusValue === 'queued') return '동기화 대기 중';
+    if (syncStatusValue === 'syncing') return '동기화 중';
+    if (syncStatusValue === 'done') return '동기화됨';
+    if (syncStatusValue === 'failed') return '동기화 실패';
+    return '동기화 상태 확인 중';
+  })();
+  const isSyncInProgress = syncStatusValue === 'queued' || syncStatusValue === 'syncing';
+  const canRequestProjectSync =
+    Boolean(projectId) && !isSyncInProgress && !postProjectSync.isPending;
 
-  const projectName = project.data?.name;
+  const projectName = project.data?.data.name;
   const chatName = activeChat?.name;
-  const memberCount = members.data?.members.length ?? 0;
+  const memberCount = members.data?.data.length ?? 0;
 
   const copyText = async (value: string): Promise<void> => {
     try {
@@ -208,6 +222,11 @@ export const ProjectDetailPage = ({
     }
   };
 
+  const requestProjectSync = (): void => {
+    if (!canRequestProjectSync) return;
+    postProjectSync.mutate();
+  };
+
   if (!projectId) {
     return (
       <InlineAlert tone="danger" title="잘못된 경로">
@@ -229,11 +248,21 @@ export const ProjectDetailPage = ({
       <header className="flex h-10 shrink-0 items-center justify-between px-4">
         <div className="flex min-w-0 items-center gap-1">
           <Chip label={projectName} startIcon startIconName="Code_light" />
-          <Chip label="동기화됨" startIcon startIconName="dot_round_fill" />
+          <Chip label={syncStatusLabel} startIcon startIconName="dot_round_fill" />
           <span className="text-[10px] font-medium text-zinc-400">
-            {formatTimeLabel(syncStatus.data?.lastSyncedAt ?? null)}
+            {formatTimeLabel(syncStatus.data?.data.latestJob?.updatedAt ?? null)}
           </span>
-          <IconButton size="md" name="Refresh_light" aria-label="새로고침" />
+          <IconButton
+            size="md"
+            name="Refresh_light"
+            aria-label="프로젝트 동기화 요청"
+            title={canRequestProjectSync ? '프로젝트 동기화 요청' : '동기화 진행 중'}
+            disabled={!canRequestProjectSync}
+            onClick={requestProjectSync}
+            iconClassName={
+              isSyncInProgress || postProjectSync.isPending ? 'animate-spin' : undefined
+            }
+          />
         </div>
 
         <Chip label={`${memberCount} 멤버들`} startIcon startIconName="Group_light" />
@@ -251,6 +280,20 @@ export const ProjectDetailPage = ({
           <div className="mb-2">
             <InlineAlert tone="danger" title="메시지 조회 실패">
               {handleApiError(messages.error).message}
+            </InlineAlert>
+          </div>
+        ) : null}
+        {syncStatus.isError ? (
+          <div className="mb-2">
+            <InlineAlert tone="danger" title="동기화 상태 조회 실패">
+              {handleApiError(syncStatus.error).message}
+            </InlineAlert>
+          </div>
+        ) : null}
+        {postProjectSync.isError ? (
+          <div className="mb-2">
+            <InlineAlert tone="danger" title="프로젝트 동기화 요청 실패">
+              {handleApiError(postProjectSync.error).message}
             </InlineAlert>
           </div>
         ) : null}
