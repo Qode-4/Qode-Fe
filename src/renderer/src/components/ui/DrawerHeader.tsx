@@ -30,6 +30,7 @@ export const DrawerHeader = ({
         size="md"
         name={settingsIconName}
         aria-label={settingsAriaLabel}
+        data-settings-trigger
         onClick={onSettingsClick}
       />
     </header>

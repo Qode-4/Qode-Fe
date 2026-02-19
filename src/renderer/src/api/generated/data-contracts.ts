@@ -343,6 +343,8 @@ export interface ProjectsCreateData {
   };
 }
 
+export type ProjectsDeleteData = any;
+
 export interface ProjectsDetailData {
   ok: boolean;
   data: {
@@ -367,6 +369,26 @@ export interface ProjectsDetailData {
 }
 
 export interface ProjectsMembersListData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+    role: "OWNER" | "MEMBER";
+    joinedAt: string | null;
+  }[];
+}
+
+export interface ProjectsMembersInviteCreatePayload {
+  /**
+   * @maxItems 50
+   * @minItems 1
+   */
+  emails: string[];
+}
+
+export interface ProjectsMembersInviteCreateData {
   ok: boolean;
   data: {
     /** @format uuid */
@@ -498,6 +520,44 @@ export interface ProjectsSyncJobsDetailData {
   };
 }
 
+export interface ProjectsAnalyzeCreateData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    projectId: string;
+    status: "building" | "ready" | "failed";
+  };
+}
+
+export interface ProjectsAnalysisListData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    /** @format uuid */
+    projectId: string;
+    version: number;
+    status: "building" | "ready" | "failed";
+    summary: {
+      project_overview: string;
+      architecture: string[];
+      core_modules: {
+        path: string;
+        purpose: string;
+      }[];
+      key_flows: string[];
+      risks: string[];
+      recommended_next_steps: string[];
+    } | null;
+    sourceCommit: string | null;
+    errorMessage: string | null;
+    /** @format date-time */
+    createdAt: string;
+    /** @format date-time */
+    updatedAt: string;
+  };
+}
+
 export interface ChatsMeListData {
   ok: boolean;
   data: {
@@ -517,8 +577,6 @@ export interface ChatsMeListData {
 export interface ChatsMeCreatePayload {
   /** @format uuid */
   project_id: string;
-  /** @format uuid */
-  created_by: string;
   chat_type: "PERSONAL";
   /**
    * @minLength 1
@@ -543,9 +601,9 @@ export interface ChatsMeCreateData {
   };
 }
 
+export type ChatsMeDeleteData = any;
+
 export interface ChatsMeMessagesCreatePayload {
-  /** @format uuid */
-  user_id: string;
   /**
    * @minLength 1
    * @maxLength 4000

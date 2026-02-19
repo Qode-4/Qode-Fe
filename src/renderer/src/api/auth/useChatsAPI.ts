@@ -1,4 +1,4 @@
-import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../apiClient';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../capabilities';
 import type {
@@ -11,7 +11,6 @@ import type { ChatsMeMessagesCreatePayload } from '../generated/data-contracts';
 import { ContentType } from '../generated/http-client';
 import { QUERY_KEY } from '../queryKeys';
 import { tokenStorage } from '../tokenStorage';
-import { getAuthMe } from './useAuthAPI';
 
 type SseStatusPayload = {
   status?: string;
@@ -48,19 +47,6 @@ const ensureTeamChatWritable = (): void => {
   if (!API_CAPABILITIES.teamChatWritable) {
     throw new Error(TEAM_CHAT_READONLY_TOOLTIP);
   }
-};
-
-const getCurrentUser = async (
-  queryClient?: QueryClient
-): Promise<Awaited<ReturnType<typeof getAuthMe>>> => {
-  const me = queryClient
-    ? await queryClient.ensureQueryData({
-        queryKey: QUERY_KEY.me,
-        queryFn: getAuthMe
-      })
-    : await getAuthMe();
-
-  return me;
 };
 
 const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void => {
@@ -187,16 +173,12 @@ export const useGetProjectChats = (params: {
   type?: 'all' | 'personal' | 'team';
   enabled?: boolean;
 }) => {
-  const qc = useQueryClient();
-
   return useQuery({
     queryKey: QUERY_KEY.projectChats(params.projectId, params.type),
     queryFn: async () => {
-      const currentUser = await getCurrentUser(qc);
       const res = await apiClient.chatsMeList(
         {
-          project_id: params.projectId,
-          user_id: currentUser.id
+          project_id: params.projectId
         },
         { secure: true }
       );
@@ -216,11 +198,9 @@ export const usePostProjectChats = (params: { projectId: string }) => {
       }
 
       if (body.type === 'personal') {
-        const currentUser = await getCurrentUser(qc);
         const res = await apiClient.chatsMeCreate(
           {
             project_id: params.projectId,
-            created_by: currentUser.id,
             chat_type: 'PERSONAL',
             name: body.name?.trim() || '새 개인 채팅'
           },
@@ -245,24 +225,32 @@ export const usePostProjectChats = (params: { projectId: string }) => {
   });
 };
 
+export const useDeleteChat = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ chatId }: { projectId: string; chatId: string }) => {
+      const res = await apiClient.chatsMeDelete(chatId, { secure: true });
+      return res.data;
+    },
+    onSuccess: (_result, variables) => {
+      qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(variables.projectId) });
+      qc.removeQueries({ queryKey: QUERY_KEY.chatMessagesByChat(variables.chatId) });
+    }
+  });
+};
+
 export const useGetChatMessages = (params: {
   chatId: string;
   personal?: boolean;
   enabled?: boolean;
 }) => {
-  const qc = useQueryClient();
-
   return useQuery({
     queryKey: QUERY_KEY.chatMessages(params.chatId, Boolean(params.personal)),
     queryFn: async () => {
       // 일단 지금은 팀 채팅 없으니까 주석처리
       // if (params.personal) {
-      const currentUser = await getCurrentUser(qc);
-      const res = await apiClient.chatsMeMessagesList(
-        params.chatId,
-        { user_id: currentUser.id },
-        { secure: true }
-      );
+      const res = await apiClient.chatsMeMessagesList(params.chatId, undefined, { secure: true });
       return res.data;
       // }
 
@@ -289,11 +277,9 @@ export const usePostPersonalChatMessageSSE = (params: { projectId: string; chatI
       content: string;
       callbacks?: MessageStreamCallbacks;
     }) => {
-      const currentUser = await getCurrentUser(qc);
       return streamChatMessage({
         path: `/api/chats/me/${params.chatId}/messages`,
         body: {
-          user_id: currentUser.id,
           content
         },
         callbacks

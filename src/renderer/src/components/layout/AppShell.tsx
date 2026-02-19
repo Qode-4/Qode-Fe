@@ -1,23 +1,35 @@
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode
 } from 'react';
 import { createPortal } from 'react-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { useGetProject, useGetProjectMembers } from '../../api/auth/useProjectsAPI';
+import {
+  useDeleteProject,
+  useGetProject,
+  useGetProjectMembers
+} from '../../api/auth/useProjectsAPI';
+import { useDeleteChat } from '../../api/auth/useChatsAPI';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
+import { handleApiError } from '../../api/axios';
 import type {
   ChatsMeListData,
+  GetAuthData,
   ProjectsDetailData,
   ProjectsListData
 } from '../../api/generated/data-contracts';
 import { QUERY_KEY } from '../../api/queryKeys';
+import { tokenStorage } from '../../api/tokenStorage';
+import { navigate } from '../../lib/hashRouter';
+import type { IconName } from '../icons/iconTypes';
 import { Button } from '../ui/Button';
 import { ContentTitle } from '../ui/ContentTitle';
 import { DrawerHeader } from '../ui/DrawerHeader';
@@ -27,6 +39,7 @@ import { Link } from '../ui/Link';
 import { OverlayModal } from '../ui/OverlayModal';
 
 type Props = {
+  me?: GetAuthData | null;
   projects: ProjectsListData['data'];
   selectedProjectId?: string;
   onOpenCreateProject?: () => void;
@@ -41,7 +54,47 @@ type Props = {
 
 type ProjectActionKind = 'rename' | 'invite' | 'members' | 'source';
 type ProjectModalState = { kind: ProjectActionKind; projectId: string } | null;
-type MenuAction = { key: ProjectActionKind; label: string };
+type ProjectMenuAction = { key: ProjectActionKind | 'delete'; label: string };
+type SettingsActionKind = 'profile' | 'logout';
+type SettingsMenuAction = { key: SettingsActionKind; label: string; iconName: IconName };
+type AvatarSize = 'sm' | 'md';
+
+const avatarSizeClassMap: Record<AvatarSize, string> = {
+  sm: 'size-7 text-[12px]',
+  md: 'size-10 text-[16px]'
+};
+
+const UserAvatar = ({
+  name,
+  avatarUrl,
+  size
+}: {
+  name: string;
+  avatarUrl?: string | null;
+  size: AvatarSize;
+}): React.JSX.Element => {
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
+  const sizeClassName = avatarSizeClassMap[size];
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={`${name} 프로필 이미지`}
+        className={`inline-flex shrink-0 rounded-full border border-zinc-200 object-cover ${sizeClassName}`}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`inline-flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 font-medium text-zinc-500 ${sizeClassName}`}
+      aria-hidden="true"
+    >
+      {initial}
+    </div>
+  );
+};
 
 const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -62,14 +115,21 @@ const getUniqueProjectName = (
   return `${base} (${idx})`;
 };
 
-const projectMenuActions: MenuAction[] = [
+const projectMenuActions: ProjectMenuAction[] = [
   { key: 'rename', label: '이름 바꾸기' },
   { key: 'invite', label: '멤버 초대하기' },
   { key: 'members', label: '멤버들' },
-  { key: 'source', label: '연결된 소스' }
+  { key: 'source', label: '연결된 소스' },
+  { key: 'delete', label: '삭제' }
+];
+
+const settingsMenuActions: SettingsMenuAction[] = [
+  { key: 'profile', label: '프로필 설정', iconName: 'User_light' },
+  { key: 'logout', label: '로그아웃', iconName: 'Code_light' }
 ];
 
 export const AppShell = ({
+  me,
   projects,
   selectedProjectId,
   onOpenCreateProject,
@@ -82,15 +142,30 @@ export const AppShell = ({
   children
 }: Props): React.JSX.Element => {
   const qc = useQueryClient();
+  const profileSettingsTitleId = useId();
   const [openMenuProjectId, setOpenMenuProjectId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [openSettingsMenu, setOpenSettingsMenu] = useState(false);
+  const [settingsMenuPos, setSettingsMenuPos] = useState<{ top: number; left: number } | null>(
+    null
+  );
+  const settingsMenuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [profileDialogPos, setProfileDialogPos] = useState<{ top: number; left: number } | null>(
+    null
+  );
   const [projectModal, setProjectModal] = useState<ProjectModalState>(null);
+  const deleteProject = useDeleteProject();
+  const deleteChat = useDeleteChat();
 
   const [renameValue, setRenameValue] = useState('');
   const [renameTouched, setRenameTouched] = useState(false);
   const [renameInfo, setRenameInfo] = useState<string | null>(null);
+  const [projectDeleteError, setProjectDeleteError] = useState<string | null>(null);
+  const [chatDeleteError, setChatDeleteError] = useState<string | null>(null);
 
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -100,6 +175,9 @@ export const AppShell = ({
     () => projects.find((it) => it.id === projectModal?.projectId),
     [projects, projectModal?.projectId]
   );
+  const userName = me?.name?.trim() || '사용자';
+  const userEmail = me?.email?.trim() || '이메일 정보 없음';
+  const userAvatarUrl = me?.avatarUrl ?? null;
   const modalProjectId = modalProject?.id ?? '';
   const projectMenuId = openMenuProjectId ? `project-actions-menu-${openMenuProjectId}` : undefined;
 
@@ -118,9 +196,26 @@ export const AppShell = ({
     const onPointerDown = (e: MouseEvent): void => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
-      if (target.closest('[data-project-actions-menu]')) return;
-      if (target.closest('[data-project-actions-button]')) return;
-      setOpenMenuProjectId(null);
+      if (
+        !target.closest('[data-project-actions-menu]') &&
+        !target.closest('[data-project-actions-button]')
+      ) {
+        setOpenMenuProjectId(null);
+      }
+      if (
+        !target.closest('[data-settings-menu]') &&
+        !target.closest('[data-settings-trigger]') &&
+        !target.closest('[data-profile-settings-dialog]')
+      ) {
+        setOpenSettingsMenu(false);
+      }
+      if (
+        !target.closest('[data-profile-settings-dialog]') &&
+        !target.closest('[data-settings-trigger]') &&
+        !target.closest('[data-settings-menu]')
+      ) {
+        setProfileDialogOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', onPointerDown);
@@ -135,12 +230,54 @@ export const AppShell = ({
     setMenuPos({ top, left: rect.right + 6 });
   }, []);
 
+  const updateSettingsMenuPos = useCallback((button: HTMLButtonElement) => {
+    const rect = button.getBoundingClientRect();
+    const menuWidth = 174;
+    const left = Math.min(rect.right - 24, window.innerWidth - menuWidth - 8);
+    const top = rect.bottom + 2;
+    setSettingsMenuPos({ top, left });
+  }, []);
+
+  const updateProfileDialogPos = useCallback((button: HTMLButtonElement) => {
+    const rect = button.getBoundingClientRect();
+    const dialogWidth = 240;
+    const left = Math.min(rect.right + 150, window.innerWidth - dialogWidth - 8);
+    const top = rect.bottom + 50;
+    setProfileDialogPos({ top, left });
+  }, []);
+
   // Recalculate position when menu opens
   useLayoutEffect(() => {
     if (openMenuProjectId && menuTriggerRef.current) {
       updateMenuPos(menuTriggerRef.current);
     }
   }, [openMenuProjectId, updateMenuPos]);
+
+  useLayoutEffect(() => {
+    if (openSettingsMenu && settingsTriggerRef.current) {
+      updateSettingsMenuPos(settingsTriggerRef.current);
+    }
+    if (profileDialogOpen && settingsTriggerRef.current) {
+      updateProfileDialogPos(settingsTriggerRef.current);
+    }
+  }, [openSettingsMenu, profileDialogOpen, updateProfileDialogPos, updateSettingsMenuPos]);
+
+  useEffect(() => {
+    if (!openSettingsMenu && !profileDialogOpen) return;
+
+    const onViewportChange = (): void => {
+      if (!settingsTriggerRef.current) return;
+      if (openSettingsMenu) updateSettingsMenuPos(settingsTriggerRef.current);
+      if (profileDialogOpen) updateProfileDialogPos(settingsTriggerRef.current);
+    };
+
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('scroll', onViewportChange, true);
+    return () => {
+      window.removeEventListener('resize', onViewportChange);
+      window.removeEventListener('scroll', onViewportChange, true);
+    };
+  }, [openSettingsMenu, profileDialogOpen, updateProfileDialogPos, updateSettingsMenuPos]);
 
   useEffect(() => {
     if (!openMenuProjectId) return;
@@ -149,6 +286,14 @@ export const AppShell = ({
     });
     return () => window.cancelAnimationFrame(frameId);
   }, [openMenuProjectId]);
+
+  useEffect(() => {
+    if (!openSettingsMenu) return;
+    const frameId = window.requestAnimationFrame(() => {
+      settingsMenuItemRefs.current[0]?.focus();
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [openSettingsMenu]);
 
   useEffect(() => {
     if (!openMenuProjectId) return;
@@ -162,6 +307,23 @@ export const AppShell = ({
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [openMenuProjectId]);
+
+  useEffect(() => {
+    if (!openSettingsMenu && !profileDialogOpen) return;
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      if (profileDialogOpen) {
+        setProfileDialogOpen(false);
+      } else {
+        setOpenSettingsMenu(false);
+      }
+      settingsTriggerRef.current?.focus();
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [openSettingsMenu, profileDialogOpen]);
 
   const handleProjectMenuKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>): void => {
     const items = menuItemRefs.current.filter(Boolean) as HTMLButtonElement[];
@@ -203,12 +365,79 @@ export const AppShell = ({
     }
   };
 
+  const handleSettingsMenuKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>): void => {
+    const items = settingsMenuItemRefs.current.filter(Boolean) as HTMLButtonElement[];
+    if (items.length === 0) return;
+
+    const active = document.activeElement as HTMLButtonElement | null;
+    const currentIndex = Math.max(
+      0,
+      items.findIndex((item) => item === active)
+    );
+
+    const focusAt = (index: number): void => {
+      const normalized = (index + items.length) % items.length;
+      items[normalized]?.focus();
+    };
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusAt(currentIndex + 1);
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusAt(currentIndex - 1);
+      return;
+    }
+    if (e.key === 'Home') {
+      e.preventDefault();
+      focusAt(0);
+      return;
+    }
+    if (e.key === 'End') {
+      e.preventDefault();
+      focusAt(items.length - 1);
+      return;
+    }
+    if (e.key === 'Tab') {
+      setOpenSettingsMenu(false);
+    }
+  };
+
+  const handleSettingsTriggerClick = (e: ReactMouseEvent<HTMLButtonElement>): void => {
+    const trigger = e.currentTarget;
+    settingsTriggerRef.current = trigger;
+    setProfileDialogOpen(false);
+    updateSettingsMenuPos(trigger);
+    setOpenSettingsMenu(true);
+  };
+
+  const handleSettingsAction = (action: SettingsActionKind): void => {
+    if (action === 'profile') {
+      if (settingsTriggerRef.current) updateProfileDialogPos(settingsTriggerRef.current);
+      setProfileDialogOpen(true);
+      return;
+    }
+    setOpenSettingsMenu(false);
+    tokenStorage.clearAccessToken();
+    qc.clear();
+    setProfileDialogOpen(false);
+    navigate('/login', { replace: true });
+  };
+
+  const handleProfileDialogCancel = (): void => {
+    setProfileDialogOpen(false);
+  };
+
   const openProjectModal = (
     kind: ProjectActionKind,
     project: ProjectsListData['data'][number]
   ): void => {
     setOpenMenuProjectId(null);
     setProjectModal({ kind, projectId: project.id });
+    setProjectDeleteError(null);
+    setChatDeleteError(null);
     if (kind === 'rename') {
       setRenameValue(project.name);
       setRenameTouched(false);
@@ -227,6 +456,7 @@ export const AppShell = ({
     setRenameTouched(false);
     setInviteError(null);
     setInviteSuccess(null);
+    setProjectDeleteError(null);
   };
 
   const applyProjectRename = (): void => {
@@ -291,6 +521,36 @@ export const AppShell = ({
     setInviteSuccess(`${rows.length}명에게 초대 링크를 전송했어요. (${invitePath})`);
   };
 
+  const handleProjectDeleteFromMenu = async (
+    project: ProjectsListData['data'][number]
+  ): Promise<void> => {
+    setOpenMenuProjectId(null);
+    setProjectDeleteError(null);
+    if (!window.confirm(`"${project.name}" 프로젝트를 삭제할까요?`)) return;
+
+    try {
+      await deleteProject.mutateAsync(project.id);
+      if (selectedProjectId === project.id) {
+        navigate('/projects', { replace: true });
+      }
+    } catch (error) {
+      setProjectDeleteError(handleApiError(error).message);
+    }
+  };
+
+  const handlePersonalChatDelete = async (chat: ChatsMeListData['data'][number]): Promise<void> => {
+    if (!selectedProjectId) return;
+
+    setChatDeleteError(null);
+    if (!window.confirm(`"${chat.name}" 채팅을 삭제할까요?`)) return;
+
+    try {
+      await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
+    } catch (error) {
+      setChatDeleteError(handleApiError(error).message);
+    }
+  };
+
   return (
     <div className="h-full w-full bg-zinc-50">
       <div className="grid h-full grid-cols-[220px_1fr]">
@@ -298,11 +558,18 @@ export const AppShell = ({
           aria-label="사이드바 네비게이션"
           className="flex min-h-0 flex-col border-r border-zinc-200 bg-zinc-50"
         >
-          <DrawerHeader className="w-full" />
+          <DrawerHeader className="w-full" onSettingsClick={handleSettingsTriggerClick} />
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <section className="px-4 pt-4">
               <ContentTitle title="프로젝트" className="w-full" onAddClick={onOpenCreateProject} />
+              {projectDeleteError ? (
+                <div className="mt-1">
+                  <InlineAlert tone="danger" title="프로젝트 삭제 실패">
+                    {projectDeleteError}
+                  </InlineAlert>
+                </div>
+              ) : null}
 
               {projects.length === 0 ? (
                 <div className="flex h-40 items-center justify-center text-center text-[12px] font-medium leading-[1.6] text-zinc-700">
@@ -370,25 +637,53 @@ export const AppShell = ({
                 onAddClick={onCreatePersonalChat}
                 addAriaLabel="새 개인 채팅"
               />
+              {chatDeleteError ? (
+                <div className="mt-1">
+                  <InlineAlert tone="danger" title="채팅 삭제 실패">
+                    {chatDeleteError}
+                  </InlineAlert>
+                </div>
+              ) : null}
 
               <nav aria-label="내 채팅 목록" className="mt-0.5">
                 {personalChats.map((chat) => {
                   const isActive = activeChatId === chat.id;
                   return (
-                    <button
-                      key={chat.id}
-                      type="button"
-                      aria-current={isActive ? 'true' : undefined}
-                      className={[
-                        'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left text-[12px] font-medium transition-colors',
-                        isActive
-                          ? 'bg-zinc-700 text-white'
-                          : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
-                      ].join(' ')}
-                      onClick={() => onSelectChat?.(chat.id)}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{chat.name}</span>
-                    </button>
+                    <div key={chat.id} className="group relative">
+                      <button
+                        type="button"
+                        aria-current={isActive ? 'true' : undefined}
+                        className={[
+                          'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left text-[12px] font-medium transition-colors',
+                          isActive
+                            ? 'bg-zinc-700 text-white'
+                            : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
+                        ].join(' ')}
+                        onClick={() => onSelectChat?.(chat.id)}
+                      >
+                        <span className="min-w-0 flex-1 truncate">{chat.name}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        aria-label={`${chat.name} 채팅 삭제`}
+                        className={[
+                          'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 text-[10px] font-medium transition-opacity',
+                          isActive ? 'text-zinc-200 hover:bg-zinc-600' : 'text-zinc-500 hover:bg-zinc-100',
+                          deleteChat.isPending
+                            ? 'pointer-events-none opacity-50'
+                            : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
+                        ].join(' ')}
+                        disabled={deleteChat.isPending}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void handlePersonalChatDelete(chat);
+                        }}
+                      >
+                        삭제
+                      </button>
+                    </div>
                   );
                 })}
               </nav>
@@ -441,6 +736,103 @@ export const AppShell = ({
         <main className="min-h-0 overflow-hidden bg-zinc-50 p-2">{children}</main>
       </div>
 
+      {openSettingsMenu && settingsMenuPos
+        ? createPortal(
+            <div
+              data-settings-menu
+              className="fixed z-50 w-[174px] rounded-[12px] border border-zinc-200 bg-white p-1 shadow-[0px_4px_18.7px_0px_rgba(0,0,0,0.08)]"
+              style={{ top: settingsMenuPos.top, left: settingsMenuPos.left }}
+              role="menu"
+              aria-label="설정 메뉴"
+              onKeyDown={handleSettingsMenuKeyDown}
+            >
+              <div className="flex items-center gap-2 p-2">
+                <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" />
+                <div className="min-w-0">
+                  <p className="truncate text-[12px] font-semibold text-zinc-800">{userName}</p>
+                  <p className="truncate text-[11px] text-zinc-400">{userEmail}</p>
+                </div>
+              </div>
+
+              {settingsMenuActions.map((it, index) => (
+                <button
+                  key={it.key}
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  ref={(el) => {
+                    settingsMenuItemRefs.current[index] = el;
+                  }}
+                  className="flex h-6 w-full items-center gap-1 rounded-[8px] px-2 py-0.5 text-left text-[11px] font-medium text-zinc-700 hover:bg-zinc-100"
+                  onClick={() => handleSettingsAction(it.key)}
+                >
+                  <Icon name={it.iconName} size={16} decorative className="text-zinc-700" />
+                  <span>{it.label}</span>
+                </button>
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
+
+      {profileDialogOpen && profileDialogPos
+        ? createPortal(
+            <section
+              data-profile-settings-dialog
+              className="fixed z-50 w-[240px] rounded-[12px] border border-zinc-200 bg-white shadow-[0px_4px_18.7px_0px_rgba(0,0,0,0.08)]"
+              style={{ top: profileDialogPos.top, left: profileDialogPos.left }}
+              role="dialog"
+              aria-modal="false"
+              aria-labelledby={profileSettingsTitleId}
+            >
+              <div className="border-b border-zinc-200 px-3 py-2">
+                <h2
+                  id={profileSettingsTitleId}
+                  className="text-[12px] font-semibold leading-[1.6] text-zinc-700"
+                >
+                  프로필 설정
+                </h2>
+              </div>
+
+              <div className="px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <input
+                      value={userName}
+                      readOnly
+                      className="h-6 w-full rounded-[8px] border border-zinc-300 bg-white px-2 text-[12px] font-medium text-zinc-700 outline-none"
+                    />
+                    <p className="mt-0.5 truncate text-[11px] font-medium text-zinc-400">
+                      {userEmail}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-3 pb-3 pt-2">
+                <div className="flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    className="h-6 flex-1 rounded-[8px] bg-white text-[12px] font-medium text-zinc-500 hover:bg-zinc-100 active:bg-zinc-200"
+                    onClick={handleProfileDialogCancel}
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    className="h-6 flex-1 rounded-[8px] bg-zinc-800 text-[12px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    저장
+                  </button>
+                </div>
+              </div>
+            </section>,
+            document.body
+          )
+        : null}
+
       {/* ── Context menu (portal) ── */}
       {openMenuProjectId && menuPos
         ? createPortal(
@@ -462,10 +854,22 @@ export const AppShell = ({
                   ref={(el) => {
                     menuItemRefs.current[index] = el;
                   }}
-                  className="block w-full rounded-md px-3 py-1.5 text-left text-xs text-text-base hover:bg-surface-muted"
+                  className={[
+                    'block w-full rounded-md px-3 py-1.5 text-left text-xs',
+                    it.key === 'delete'
+                      ? 'text-red-600 hover:bg-red-50'
+                      : 'text-text-base hover:bg-surface-muted',
+                    it.key === 'delete' && deleteProject.isPending ? 'opacity-50' : ''
+                  ].join(' ')}
+                  disabled={it.key === 'delete' && deleteProject.isPending}
                   onClick={() => {
                     const proj = projects.find((p) => p.id === openMenuProjectId);
-                    if (proj) openProjectModal(it.key, proj);
+                    if (!proj) return;
+                    if (it.key === 'delete') {
+                      void handleProjectDeleteFromMenu(proj);
+                      return;
+                    }
+                    openProjectModal(it.key, proj);
                   }}
                 >
                   {it.label}
@@ -538,6 +942,7 @@ export const AppShell = ({
             sendInvite();
           }}
         >
+          <p className="text-sm text-text-soft">이미 회원가입된 이메일만 초대할 수 있어요.</p>
           <p className="text-sm text-text-soft">이메일은 쉼표로 구분할 수 있어요.</p>
           <label className="mt-3 block" htmlFor="project-invite-emails">
             <span className="mb-1 block text-xs font-medium text-text-soft">이메일</span>
@@ -554,9 +959,6 @@ export const AppShell = ({
               onChange={(e) => setInviteEmails(e.target.value)}
               autoFocus
             />
-            <span className="mt-1 block text-xs font-semibold text-danger">
-              이미 회원가입되어 있어야 함
-            </span>
           </label>
 
           {inviteError ? (
@@ -589,7 +991,6 @@ export const AppShell = ({
         widthClassName="max-w-[680px]"
       >
         <>
-          <p className="text-sm font-medium text-primary">MVP 이후 기능</p>
           <div className="mt-3 overflow-hidden rounded-lg border border-line">
             <div className="grid grid-cols-[1fr_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-xs font-semibold text-text-soft">
               <span>멤버</span>
@@ -627,7 +1028,6 @@ export const AppShell = ({
         widthClassName="max-w-[620px]"
       >
         <>
-          <p className="text-sm text-text-soft">변경 불가, 읽기만 가능</p>
           <label className="mt-3 block">
             <span className="mb-1 block text-xs font-medium text-text-soft">Git Repository</span>
             <input

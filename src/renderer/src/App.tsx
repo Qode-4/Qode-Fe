@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useGetAuthMe } from './api/auth/useAuthAPI';
 import { useGetProjectChats } from './api/auth/useChatsAPI';
 import { useGetProjects } from './api/auth/useProjectsAPI';
+import { authTransitionStorage } from './api/authTransitionStorage';
 import { handleApiError } from './api/axios';
 import { tokenStorage } from './api/tokenStorage';
 import { CreateProjectModal } from './components/feature/CreateProjectModal';
 import { AppShell } from './components/layout/AppShell';
 import { InlineAlert } from './components/ui/InlineAlert';
-import { buildPath, matchPath, navigate } from './lib/hashRouter';
+import { buildPath, matchPath, navigate, resolveNextPath } from './lib/hashRouter';
 import { useHashLocation } from './lib/useHashLocation';
 import { InvitePage } from './pages/InvitePage';
 import { LoginPage } from './pages/LoginPage';
@@ -22,10 +23,14 @@ const App = (): React.JSX.Element => {
   const isAuthRoute =
     matchPath(location.path, '/login').matched || matchPath(location.path, '/signup').matched;
   const isInviteRoute = matchPath(location.path, '/invite/:inviteCode').matched;
+  const authRedirectPath = useMemo(
+    () => resolveNextPath(location.query.next, '/projects'),
+    [location.query.next]
+  );
   const me = useGetAuthMe({ enabled: !isAuthRoute });
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
   const projects = useGetProjects({ search: '', enabled: Boolean(token) });
-  const loadingUserName = (me.data as { name?: string } | undefined)?.name ?? 'Namhee';
+  const loginTransitionUserName = authTransitionStorage.getLoginTransitionUserName();
 
   const projectMatch = matchPath(location.path, '/projects/:projectId');
   const selectedProjectId = projectMatch.matched ? projectMatch.params.projectId : undefined;
@@ -61,6 +66,19 @@ const App = (): React.JSX.Element => {
     }
   }, [token, isAuthRoute, isInviteRoute, location.path]);
 
+  useEffect(() => {
+    if (token && isAuthRoute) {
+      navigate(authRedirectPath, { replace: true });
+    }
+  }, [token, isAuthRoute, authRedirectPath]);
+
+  useEffect(() => {
+    if (!loginTransitionUserName) return;
+    if (!token || me.isSuccess || me.isError) {
+      authTransitionStorage.clearLoginTransitionUserName();
+    }
+  }, [loginTransitionUserName, token, me.isSuccess, me.isError]);
+
   if (matchPath(location.path, '/login').matched) return <LoginPage location={location} />;
   if (matchPath(location.path, '/signup').matched) return <SignupPage location={location} />;
   if (matchPath(location.path, '/invite/:inviteCode').matched)
@@ -74,12 +92,12 @@ const App = (): React.JSX.Element => {
     );
   }
 
-  if (me.isLoading) {
+  if (me.isLoading && loginTransitionUserName) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <h1 className="text-5xl font-semibold tracking-tight text-text-base">
-            어서오세요, {loadingUserName}님!
+            어서오세요, {loginTransitionUserName}님!
           </h1>
           <p className="mt-2 text-sm text-text-subtle">잠시만요, 준비하고 있어요...</p>
           <div className="mx-auto mt-5 h-9 w-9 animate-spin rounded-full border-2 border-line border-t-primary" />
@@ -111,6 +129,7 @@ const App = (): React.JSX.Element => {
 
   return (
     <AppShell
+      me={me.data}
       projects={projects.data?.data ?? []}
       selectedProjectId={selectedProjectId}
       onOpenCreateProject={() => setCreateProjectModalOpen(true)}
@@ -139,6 +158,7 @@ const App = (): React.JSX.Element => {
         <ProjectDetailPage
           location={location}
           activeChatId={activeChatId}
+          meName={me.data?.name}
           createChatModalType={createChatModalType}
           onCloseCreateChatModal={() => setCreateChatModalType(null)}
         />

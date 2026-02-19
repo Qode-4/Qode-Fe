@@ -13,6 +13,7 @@
 import {
   ChatsMeCreateData,
   ChatsMeCreatePayload,
+  ChatsMeDeleteData,
   ChatsMeListData,
   ChatsMeMessagesCreateData,
   ChatsMeMessagesCreatePayload,
@@ -21,10 +22,15 @@ import {
   GithubOauthDeviceFlowsDetailData,
   GithubOauthDeviceStartCreateData,
   GithubOauthReposListData,
+  ProjectsAnalysisListData,
+  ProjectsAnalyzeCreateData,
   ProjectsCreateData,
   ProjectsCreatePayload,
+  ProjectsDeleteData,
   ProjectsDetailData,
   ProjectsListData,
+  ProjectsMembersInviteCreateData,
+  ProjectsMembersInviteCreatePayload,
   ProjectsMembersListData,
   ProjectsSyncCreateData,
   ProjectsSyncJobsDetailData,
@@ -225,6 +231,21 @@ export class Api<
    * No description
    *
    * @tags project
+   * @name ProjectsDelete
+   * @summary Delete project
+   * @request DELETE:/api/projects/{id}
+   * @response `204` `ProjectsDeleteData` Default Response
+   */
+  projectsDelete = (id: string, params: RequestParams = {}) =>
+    this.request<ProjectsDeleteData, any>({
+      path: `/api/projects/${id}`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags project
    * @name ProjectsDetail
    * @summary Get project by id
    * @request GET:/api/projects/{id}
@@ -250,6 +271,28 @@ export class Api<
     this.request<ProjectsMembersListData, any>({
       path: `/api/projects/${id}/members`,
       method: "GET",
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags project
+   * @name ProjectsMembersInviteCreate
+   * @summary Invite project members by emails
+   * @request POST:/api/projects/{id}/members/invite
+   * @response `201` `ProjectsMembersInviteCreateData` Default Response
+   */
+  projectsMembersInviteCreate = (
+    id: string,
+    data: ProjectsMembersInviteCreatePayload,
+    params: RequestParams = {},
+  ) =>
+    this.request<ProjectsMembersInviteCreateData, any>({
+      path: `/api/projects/${id}/members/invite`,
+      method: "POST",
+      body: data,
+      type: ContentType.Json,
       format: "json",
       ...params,
     });
@@ -308,6 +351,38 @@ export class Api<
   /**
    * No description
    *
+   * @tags project-analysis
+   * @name ProjectsAnalyzeCreate
+   * @summary Request project analysis rebuild
+   * @request POST:/api/projects/{id}/analyze
+   * @response `202` `ProjectsAnalyzeCreateData` Default Response
+   */
+  projectsAnalyzeCreate = (id: string, params: RequestParams = {}) =>
+    this.request<ProjectsAnalyzeCreateData, any>({
+      path: `/api/projects/${id}/analyze`,
+      method: "POST",
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags project-analysis
+   * @name ProjectsAnalysisList
+   * @summary Get project analysis
+   * @request GET:/api/projects/{id}/analysis
+   * @response `200` `ProjectsAnalysisListData` Default Response
+   */
+  projectsAnalysisList = (id: string, params: RequestParams = {}) =>
+    this.request<ProjectsAnalysisListData, any>({
+      path: `/api/projects/${id}/analysis`,
+      method: "GET",
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
    * @tags chat
    * @name ChatsMeList
    * @summary List my chats
@@ -318,8 +393,6 @@ export class Api<
     query: {
       /** @format uuid */
       project_id: string;
-      /** @format uuid */
-      user_id: string;
       /**
        * @min 1
        * @max 100
@@ -357,6 +430,21 @@ export class Api<
    * No description
    *
    * @tags chat
+   * @name ChatsMeDelete
+   * @summary Delete personal chat
+   * @request DELETE:/api/chats/me/{id}
+   * @response `204` `ChatsMeDeleteData` No content
+   */
+  chatsMeDelete = (id: string, params: RequestParams = {}) =>
+    this.request<ChatsMeDeleteData, any>({
+      path: `/api/chats/me/${id}`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags chat
    * @name ChatsMeMessagesCreate
    * @summary Send user message and stream assistant response
    * @request POST:/api/chats/me/{id}/messages
@@ -385,9 +473,7 @@ export class Api<
    */
   chatsMeMessagesList = (
     id: string,
-    query: {
-      /** @format uuid */
-      user_id: string;
+    query?: {
       /** @format date-time */
       before_created_at?: string;
       /** @format uuid */
@@ -418,9 +504,7 @@ export class Api<
    */
   chatsMePromptMessagesList = (
     id: string,
-    query: {
-      /** @format uuid */
-      user_id: string;
+    query?: {
       /**
        * @min 1
        * @max 100

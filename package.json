@@ -12,7 +12,7 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "swagger:local": "swagger-typescript-api generate -p http://localhost:3000/swagger/json -r -o ./src/renderer/src/api/generated --modular -d --extract-request-body --extract-response-body --extract-response-error --axios --clean-output",
+    "swagger:local": "swagger-typescript-api generate -p http://ec2-13-210-60-105.ap-southeast-2.compute.amazonaws.com/docs/json -r -o ./src/renderer/src/api/generated --modular -d --extract-request-body --extract-response-body --extract-response-error --axios --clean-output",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "web:dev": "vite --config src/renderer/vite.config.ts",
@@ -35,7 +35,8 @@
     "@tanstack/react-query-devtools": "^5.91.3",
     "@vanilla-extract/css": "^1.18.0",
     "@vanilla-extract/vite-plugin": "^5.1.4",
-    "axios": "^1.13.5"
+    "axios": "^1.13.5",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
