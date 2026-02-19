@@ -40,11 +40,7 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
   if (!token) {
     const next = buildPath(`/invite/${inviteCode}`);
     return (
-      <AuthFrame
-        logoLabel="Logo"
-        title="프로젝트 초대"
-        description="초대를 수락하려면 로그인이 필요합니다."
-      >
+      <AuthFrame title="프로젝트 초대" description="초대를 수락하려면 로그인이 필요합니다.">
         <div className="space-y-4">
           <div className="rounded-xl border border-line bg-surface px-4 py-3 text-sm text-text-subtle">
             초대 코드: <span className="font-semibold text-text-base">{inviteCode}</span>
@@ -59,7 +55,7 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
   }
 
   return (
-    <AuthFrame logoLabel="Logo" title="프로젝트 초대" description={`코드: ${inviteCode}`}>
+    <AuthFrame title="프로젝트 초대" description={`코드: ${inviteCode}`}>
       <div className="space-y-4">
         {info.isLoading ? (
           <div className="text-sm text-text-subtle">Loading invite info...</div>

@@ -1,4 +1,4 @@
-import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../apiClient';
 import type { InviteInfoResponse, InviteJoinResponse } from '../contracts/invite';
@@ -25,9 +25,9 @@ export const useGetInviteInfo = ({
     enabled
   });
 
-export const usePostInviteJoin = (): UseMutationResult<InviteJoinResponse, unknown, string> =>
-  useMutation<InviteJoinResponse, unknown, string>({
-    mutationFn: async (inviteCode) => {
+export const usePostInviteJoin = () =>
+  useMutation({
+    mutationFn: async (inviteCode: string) => {
       const res = await apiClient.request<InviteJoinResponse>({
         path: `/api/invite/${inviteCode}/join`,
         method: 'POST',

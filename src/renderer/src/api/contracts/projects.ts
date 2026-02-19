@@ -1,7 +1,11 @@
-import type { ProjectCreator } from '../generated/data-contracts';
-
 export type ProjectRole = 'OWNER' | 'MEMBER';
 export type SyncStatus = 'idle' | 'queued' | 'syncing' | 'done' | 'failed';
+
+export type ProjectCreator = {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+};
 
 export type ProjectListItem = {
   id: string;
@@ -36,7 +40,7 @@ export type CreateProjectResponse = {
   questionCount: number;
   createdAt: string;
   createdBy: ProjectCreator;
-  role: 'OWNER';
+  role: ProjectRole;
   sync?: {
     syncId: string;
     status: SyncStatus;
@@ -87,7 +91,7 @@ export type ProjectMember = {
   name: string;
   avatarUrl: string | null;
   role: ProjectRole;
-  joinedAt: string;
+  joinedAt: string | null;
 };
 
 export type ProjectMembersResponse = {

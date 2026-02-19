@@ -1,51 +1,70 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import type { ChatItem } from '../../api/contracts/chats';
-import type { ProjectListItem } from '../../api/contracts/projects';
+import type { ChatsMeListData, ProjectsListData } from '../../api/generated/data-contracts';
 import { AppShell } from './AppShell';
 
-const sampleProjects: ProjectListItem[] = [
+const sampleProjects: ProjectsListData['data'] = [
   {
     id: 'project-1',
     name: 'Qode Frontend',
-    myRole: 'OWNER',
-    lastSyncedAt: '2026-02-17T10:00:00Z'
+    description: 'frontend app',
+    gitUrl: 'https://github.com/acme/qode-fe',
+    inviteCode: 'INVITE01',
+    lastSyncedAt: '2026-02-17T10:00:00Z',
+    questionCount: 42,
+    createdAt: '2026-02-17T10:00:00Z',
+    createdBy: {
+      id: 'user-1',
+      name: '나',
+      avatarUrl: null
+    },
+    role: 'OWNER'
   },
   {
     id: 'project-2',
     name: 'Qode Server',
-    myRole: 'MEMBER',
-    lastSyncedAt: '2026-02-16T08:00:00Z'
+    description: 'backend app',
+    gitUrl: 'https://github.com/acme/qode-server',
+    inviteCode: 'INVITE02',
+    lastSyncedAt: '2026-02-16T08:00:00Z',
+    questionCount: 18,
+    createdAt: '2026-02-16T08:00:00Z',
+    createdBy: {
+      id: 'user-2',
+      name: '팀장',
+      avatarUrl: null
+    },
+    role: 'MEMBER'
   }
 ];
 
-const samplePersonalChats: ChatItem[] = [
+const samplePersonalChats: ChatsMeListData['data'] = [
   {
     id: 'personal-1',
     name: '내 작업 메모',
-    type: 'personal',
-    createdBy: { id: 'user-1', name: '나', avatarUrl: null },
-    createdAt: '2026-02-17T10:00:00Z',
-    lastMessageAt: '2026-02-17T10:30:00Z'
+    project_id: 'project-1',
+    created_by: 'user-1',
+    chat_type: 'PERSONAL',
+    created_at: '2026-02-17T10:00:00Z'
   },
   {
     id: 'personal-2',
     name: '버그 정리',
-    type: 'personal',
-    createdBy: { id: 'user-1', name: '나', avatarUrl: null },
-    createdAt: '2026-02-16T10:00:00Z',
-    lastMessageAt: null
+    project_id: 'project-1',
+    created_by: 'user-1',
+    chat_type: 'PERSONAL',
+    created_at: '2026-02-16T10:00:00Z'
   }
 ];
 
-const sampleTeamChats: ChatItem[] = [
+const sampleTeamChats: ChatsMeListData['data'] = [
   {
     id: 'team-1',
     name: 'Sprint Planning',
-    type: 'team',
-    createdBy: { id: 'user-2', name: '팀장', avatarUrl: null },
-    createdAt: '2026-02-17T09:00:00Z',
-    lastMessageAt: '2026-02-17T09:45:00Z'
+    project_id: 'project-1',
+    created_by: 'user-2',
+    chat_type: 'TEAM',
+    created_at: '2026-02-17T09:00:00Z'
   }
 ];
 

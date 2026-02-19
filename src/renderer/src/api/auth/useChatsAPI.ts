@@ -1,18 +1,17 @@
-import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../apiClient';
+import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../capabilities';
 import type {
-  ChatMessagesResponse,
-  ProjectChatsResponse,
   ProjectGuideResponse,
   ShareMessageBody,
   ShareMessageResponse,
   SourceItem
 } from '../contracts/chats';
+import type { ChatsMeMessagesCreatePayload } from '../generated/data-contracts';
 import { ContentType } from '../generated/http-client';
 import { QUERY_KEY } from '../queryKeys';
 import { tokenStorage } from '../tokenStorage';
-import type { ErrorResponse } from '../generated/data-contracts';
+import { getAuthMe } from './useAuthAPI';
 
 type SseStatusPayload = {
   status?: string;
@@ -33,12 +32,35 @@ type SseDonePayload = {
   status?: string;
 };
 
+type TeamChatMessageCreatePayload = {
+  content: string;
+};
+
 export type MessageStreamCallbacks = {
   onStatus?: (payload: SseStatusPayload) => void;
   onChunk?: (payload: SseChunkPayload) => void;
   onSources?: (payload: SseSourcesPayload) => void;
   onDone?: (payload: SseDonePayload) => void;
   onError?: (message: string) => void;
+};
+
+const ensureTeamChatWritable = (): void => {
+  if (!API_CAPABILITIES.teamChatWritable) {
+    throw new Error(TEAM_CHAT_READONLY_TOOLTIP);
+  }
+};
+
+const getCurrentUser = async (
+  queryClient?: QueryClient
+): Promise<Awaited<ReturnType<typeof getAuthMe>>> => {
+  const me = queryClient
+    ? await queryClient.ensureQueryData({
+        queryKey: QUERY_KEY.me,
+        queryFn: getAuthMe
+      })
+    : await getAuthMe();
+
+  return me;
 };
 
 const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void => {
@@ -67,6 +89,7 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void 
 
   const raw = dataParts.join('\n');
   let parsed: unknown = raw;
+
   try {
     parsed = JSON.parse(raw) as unknown;
   } catch {
@@ -104,7 +127,7 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void 
 
 const streamChatMessage = async (params: {
   path: string;
-  content: string;
+  body: ChatsMeMessagesCreatePayload | TeamChatMessageCreatePayload;
   callbacks?: MessageStreamCallbacks;
 }): Promise<void> => {
   const baseURL = String(apiClient.instance.defaults.baseURL ?? '').replace(/\/$/, '');
@@ -117,17 +140,19 @@ const streamChatMessage = async (params: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
-    body: JSON.stringify({ content: params.content })
+    body: JSON.stringify(params.body)
   });
 
   if (!response.ok) {
     let message = `요청에 실패했습니다. (${response.status})`;
+
     try {
       const json = (await response.json()) as { message?: string };
       if (json?.message) message = json.message;
     } catch {
       // noop
     }
+
     throw new Error(message);
   }
 
@@ -147,6 +172,7 @@ const streamChatMessage = async (params: {
     while (boundary !== -1) {
       const block = buffer.slice(0, boundary).trim();
       buffer = buffer.slice(boundary + 2);
+
       if (block) parseSseBlock(block, params.callbacks);
       boundary = buffer.indexOf('\n\n');
     }
@@ -160,38 +186,50 @@ export const useGetProjectChats = (params: {
   projectId: string;
   type?: 'all' | 'personal' | 'team';
   enabled?: boolean;
-}): UseQueryResult<ProjectChatsResponse, unknown> =>
-  useQuery({
+}) => {
+  const qc = useQueryClient();
+
+  return useQuery({
     queryKey: QUERY_KEY.projectChats(params.projectId, params.type),
     queryFn: async () => {
-      const query = params.type ? { type: params.type } : undefined;
-      const res = await apiClient.request<ProjectChatsResponse>({
-        path: `/api/projects/${params.projectId}/chats`,
-        method: 'GET',
-        query,
-        secure: true,
-        format: 'json'
-      });
+      const currentUser = await getCurrentUser(qc);
+      const res = await apiClient.chatsMeList(
+        {
+          project_id: params.projectId,
+          user_id: currentUser.id
+        },
+        { secure: true }
+      );
       return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });
+};
 
-export const usePostProjectChats = (params: {
-  projectId: string;
-}): UseMutationResult<
-  ProjectChatsResponse['chats'][number],
-  ErrorResponse,
-  { name?: string; type: 'personal' | 'team' }
-> => {
+export const usePostProjectChats = (params: { projectId: string }) => {
   const qc = useQueryClient();
-  return useMutation<
-    ProjectChatsResponse['chats'][number],
-    ErrorResponse,
-    { name?: string; type: 'personal' | 'team' }
-  >({
-    mutationFn: async (body) => {
-      const res = await apiClient.request<ProjectChatsResponse['chats'][number]>({
+
+  return useMutation({
+    mutationFn: async (body: { name?: string; type: 'personal' | 'team' }) => {
+      if (body.type === 'team') {
+        ensureTeamChatWritable();
+      }
+
+      if (body.type === 'personal') {
+        const currentUser = await getCurrentUser(qc);
+        const res = await apiClient.chatsMeCreate(
+          {
+            project_id: params.projectId,
+            created_by: currentUser.id,
+            chat_type: 'PERSONAL',
+            name: body.name?.trim() || '새 개인 채팅'
+          },
+          { secure: true }
+        );
+        return res.data;
+      }
+
+      const res = await apiClient.request({
         path: `/api/projects/${params.projectId}/chats`,
         method: 'POST',
         body,
@@ -202,7 +240,7 @@ export const usePostProjectChats = (params: {
       return res.data;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChats(params.projectId, 'all') });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
     }
   });
 };
@@ -211,106 +249,112 @@ export const useGetChatMessages = (params: {
   chatId: string;
   personal?: boolean;
   enabled?: boolean;
-}): UseQueryResult<ChatMessagesResponse, unknown> =>
-  useQuery({
+}) => {
+  const qc = useQueryClient();
+
+  return useQuery({
     queryKey: QUERY_KEY.chatMessages(params.chatId, Boolean(params.personal)),
     queryFn: async () => {
-      if (params.personal) {
-        const res = await apiClient.request<ChatMessagesResponse>({
-          path: `/api/chats/me/${params.chatId}/messages`,
-          method: 'GET',
-          secure: true,
-          format: 'json'
-        });
-        return res.data;
-      }
+      // 일단 지금은 팀 채팅 없으니까 주석처리
+      // if (params.personal) {
+      const currentUser = await getCurrentUser(qc);
+      const res = await apiClient.chatsMeMessagesList(
+        params.chatId,
+        { user_id: currentUser.id },
+        { secure: true }
+      );
+      return res.data;
+      // }
 
-      const res = await apiClient.request<ChatMessagesResponse>({
+      // const res = await apiClient.request({
+      //   path: `/api/chats/${params.chatId}/messages`,
+      //   method: 'GET',
+      //   secure: true,
+      //   format: 'json'
+      // });
+      // return res.data;
+    },
+    enabled: (params.enabled ?? true) && Boolean(params.chatId)
+  });
+};
+
+export const usePostPersonalChatMessageSSE = (params: { projectId: string; chatId: string }) => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      content,
+      callbacks
+    }: {
+      content: string;
+      callbacks?: MessageStreamCallbacks;
+    }) => {
+      const currentUser = await getCurrentUser(qc);
+      return streamChatMessage({
+        path: `/api/chats/me/${params.chatId}/messages`,
+        body: {
+          user_id: currentUser.id,
+          content
+        },
+        callbacks
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
+    }
+  });
+};
+
+export const usePostTeamChatMessageSSE = (params: { projectId: string; chatId: string }) => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      content,
+      callbacks
+    }: {
+      content: string;
+      callbacks?: MessageStreamCallbacks;
+    }) => {
+      ensureTeamChatWritable();
+      return streamChatMessage({
         path: `/api/chats/${params.chatId}/messages`,
-        method: 'GET',
+        body: { content },
+        callbacks
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
+    }
+  });
+};
+
+export const usePostMessageShare = (params: { projectId: string; chatId: string }) => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ messageId, body }: { messageId: string; body?: ShareMessageBody }) => {
+      ensureTeamChatWritable();
+      const res = await apiClient.request<ShareMessageResponse>({
+        path: `/api/messages/${messageId}/share`,
+        method: 'POST',
+        body,
+        type: ContentType.Json,
         secure: true,
         format: 'json'
       });
       return res.data;
     },
-    enabled: (params.enabled ?? true) && Boolean(params.chatId)
-  });
-
-export const usePostPersonalChatMessageSSE = (params: {
-  projectId: string;
-  chatId: string;
-}): UseMutationResult<void, Error, { content: string; callbacks?: MessageStreamCallbacks }> => {
-  const qc = useQueryClient();
-
-  return useMutation<void, Error, { content: string; callbacks?: MessageStreamCallbacks }>({
-    mutationFn: async ({ content, callbacks }) =>
-      streamChatMessage({
-        path: `/api/chats/me/${params.chatId}/messages`,
-        content,
-        callbacks
-      }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, true) });
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChats(params.projectId, 'all') });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
     }
   });
 };
 
-export const usePostTeamChatMessageSSE = (params: {
-  projectId: string;
-  chatId: string;
-}): UseMutationResult<void, Error, { content: string; callbacks?: MessageStreamCallbacks }> => {
-  const qc = useQueryClient();
-
-  return useMutation<void, Error, { content: string; callbacks?: MessageStreamCallbacks }>({
-    mutationFn: async ({ content, callbacks }) =>
-      streamChatMessage({
-        path: `/api/chats/${params.chatId}/messages`,
-        content,
-        callbacks
-      }),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, false) });
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChats(params.projectId, 'all') });
-    }
-  });
-};
-
-export const usePostMessageShare = (params: {
-  projectId: string;
-  chatId: string;
-}): UseMutationResult<
-  ShareMessageResponse,
-  unknown,
-  { messageId: string; body?: ShareMessageBody }
-> => {
-  const qc = useQueryClient();
-  return useMutation<ShareMessageResponse, unknown, { messageId: string; body?: ShareMessageBody }>(
-    {
-      mutationFn: async ({ messageId, body }) => {
-        const res = await apiClient.request<ShareMessageResponse>({
-          path: `/api/messages/${messageId}/share`,
-          method: 'POST',
-          body,
-          type: ContentType.Json,
-          secure: true,
-          format: 'json'
-        });
-        return res.data;
-      },
-      onSuccess: () => {
-        void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, false) });
-        void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, true) });
-        void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChats(params.projectId, 'all') });
-      }
-    }
-  );
-};
-
-export const useGetProjectGuide = (params: {
-  projectId: string;
-  enabled?: boolean;
-}): UseQueryResult<ProjectGuideResponse, unknown> =>
+export const useGetProjectGuide = (params: { projectId: string; enabled?: boolean }) =>
   useQuery({
     queryKey: QUERY_KEY.projectGuide(params.projectId),
     queryFn: async () => {

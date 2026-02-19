@@ -12,16 +12,12 @@
 
 import {
   GetAuthData,
-  GetAuthError,
   LoginCreateData,
-  LoginCreateError,
-  LoginRequest,
+  LoginCreatePayload,
   LogoutCreateData,
   RefreshCreateData,
-  RefreshCreateError,
   SignupCreateData,
-  SignupCreateError,
-  SignupRequest,
+  SignupCreatePayload,
 } from "./data-contracts";
 import { ContentType, HttpClient, RequestParams } from "./http-client";
 
@@ -33,13 +29,12 @@ export class Auth<
    *
    * @tags auth
    * @name SignupCreate
-   * @summary Sign up
+   * @summary Signup
    * @request POST:/auth/signup
-   * @response `201` `SignupCreateData` Signed up
-   * @response `409` `ErrorResponse` Email already exists
+   * @response `201` `SignupCreateData` Default Response
    */
-  signupCreate = (data: SignupRequest, params: RequestParams = {}) =>
-    this.request<SignupCreateData, SignupCreateError>({
+  signupCreate = (data: SignupCreatePayload, params: RequestParams = {}) =>
+    this.request<SignupCreateData, any>({
       path: `/auth/signup`,
       method: "POST",
       body: data,
@@ -54,11 +49,10 @@ export class Auth<
    * @name LoginCreate
    * @summary Login
    * @request POST:/auth/login
-   * @response `200` `LoginCreateData` Logged in
-   * @response `401` `ErrorResponse` Invalid credentials
+   * @response `200` `LoginCreateData` Default Response
    */
-  loginCreate = (data: LoginRequest, params: RequestParams = {}) =>
-    this.request<LoginCreateData, LoginCreateError>({
+  loginCreate = (data: LoginCreatePayload, params: RequestParams = {}) =>
+    this.request<LoginCreateData, any>({
       path: `/auth/login`,
       method: "POST",
       body: data,
@@ -71,13 +65,12 @@ export class Auth<
    *
    * @tags auth
    * @name RefreshCreate
-   * @summary Refresh token
+   * @summary Refresh access token
    * @request POST:/auth/refresh
-   * @response `200` `RefreshCreateData` Refreshed access token
-   * @response `401` `ErrorResponse` Unauthorized
+   * @response `200` `RefreshCreateData` Default Response
    */
   refreshCreate = (params: RequestParams = {}) =>
-    this.request<RefreshCreateData, RefreshCreateError>({
+    this.request<RefreshCreateData, any>({
       path: `/auth/refresh`,
       method: "POST",
       format: "json",
@@ -90,15 +83,12 @@ export class Auth<
    * @name GetAuth
    * @summary Get current user
    * @request GET:/auth/me
-   * @secure
-   * @response `200` `GetAuthData` Current user
-   * @response `401` `ErrorResponse` Unauthorized
+   * @response `200` `GetAuthData` Default Response
    */
   getAuth = (params: RequestParams = {}) =>
-    this.request<GetAuthData, GetAuthError>({
+    this.request<GetAuthData, any>({
       path: `/auth/me`,
       method: "GET",
-      secure: true,
       format: "json",
       ...params,
     });
@@ -109,14 +99,12 @@ export class Auth<
    * @name LogoutCreate
    * @summary Logout
    * @request POST:/auth/logout
-   * @secure
-   * @response `204` `LogoutCreateData` Logged out
+   * @response `204` `LogoutCreateData` No content
    */
   logoutCreate = (params: RequestParams = {}) =>
     this.request<LogoutCreateData, any>({
       path: `/auth/logout`,
       method: "POST",
-      secure: true,
       ...params,
     });
 }

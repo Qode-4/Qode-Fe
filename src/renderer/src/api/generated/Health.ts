@@ -23,7 +23,7 @@ export class Health<
    * @name HealthList
    * @summary Health check
    * @request GET:/health
-   * @response `200` `HealthListData` Service health
+   * @response `200` `HealthListData` Default Response
    */
   healthList = (params: RequestParams = {}) =>
     this.request<HealthListData, any>({

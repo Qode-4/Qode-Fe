@@ -8,6 +8,7 @@ type Props = {
   addAriaLabel?: string;
   addIconName?: IconName;
   addButtonDisabled?: boolean;
+  addButtonTooltip?: string;
   onAddClick?: MouseEventHandler<HTMLButtonElement>;
 };
 
@@ -17,8 +18,19 @@ export const ContentTitle = ({
   addAriaLabel = '추가',
   addIconName = 'Add_round_light',
   addButtonDisabled,
+  addButtonTooltip,
   onAddClick
 }: Props): React.JSX.Element => {
+  const addButton = (
+    <IconButton
+      size="md"
+      name={addIconName}
+      aria-label={addAriaLabel}
+      disabled={addButtonDisabled}
+      onClick={onAddClick}
+    />
+  );
+
   return (
     <div
       className={['inline-flex w-[188px] items-center justify-center gap-2', className ?? ''].join(
@@ -28,13 +40,13 @@ export const ContentTitle = ({
       <p className="min-w-0 flex-1 text-[10px] font-medium leading-none text-text-subtle">
         {title}
       </p>
-      <IconButton
-        size="md"
-        name={addIconName}
-        aria-label={addAriaLabel}
-        disabled={addButtonDisabled}
-        onClick={onAddClick}
-      />
+      {addButtonDisabled && addButtonTooltip ? (
+        <span title={addButtonTooltip} tabIndex={0} aria-label={addButtonTooltip}>
+          {addButton}
+        </span>
+      ) : (
+        addButton
+      )}
     </div>
   );
 };
