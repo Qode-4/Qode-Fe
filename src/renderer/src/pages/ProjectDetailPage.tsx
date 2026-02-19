@@ -138,6 +138,8 @@ export const ProjectDetailPage = ({
   const [streamError, setStreamError] = useState<string | null>(null);
   const [copyToastVisible, setCopyToastVisible] = useState(false);
   const copyToastTimeoutRef = useRef<number | null>(null);
+  const messagesViewportRef = useRef<HTMLDivElement | null>(null);
+  const messagesBottomRef = useRef<HTMLDivElement | null>(null);
 
   const allChats = useMemo(() => chats.data?.data ?? [], [chats.data?.data]);
   const activeChat = useMemo(
@@ -222,6 +224,27 @@ export const ProjectDetailPage = ({
       // noop
     }
   };
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
+    if (messagesBottomRef.current) {
+      messagesBottomRef.current.scrollIntoView({ block: 'end', behavior });
+      return;
+    }
+
+    if (!messagesViewportRef.current) return;
+    messagesViewportRef.current.scrollTo({
+      top: messagesViewportRef.current.scrollHeight,
+      behavior
+    });
+  };
+
+  useEffect(() => {
+    if (!activeChatId) return;
+    const frameId = window.requestAnimationFrame(() => {
+      scrollToBottom('auto');
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [activeChatId, messageItems.length, streamContent, streamStatus]);
 
   const sendMessage = (): void => {
     if (!canSend || !activeChatId) return;
@@ -385,7 +408,7 @@ export const ProjectDetailPage = ({
         ) : null}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+      <div ref={messagesViewportRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         <div className="flex min-h-full flex-col gap-6">
           {messages.isLoading ? (
             <p className="text-[12px] font-medium text-zinc-500">메시지를 불러오는 중...</p>
@@ -516,6 +539,7 @@ export const ProjectDetailPage = ({
               ) : null}
             </article>
           ) : null}
+          <div ref={messagesBottomRef} aria-hidden />
         </div>
       </div>
 
