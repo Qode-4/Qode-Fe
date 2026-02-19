@@ -225,6 +225,27 @@ export const usePostProjectChats = (params: { projectId: string }) => {
   });
 };
 
+export const useDeleteChat = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      chatId
+    }: {
+      projectId: string;
+      chatId: string;
+    }) => {
+      const res = await apiClient.chatsMeDelete(chatId, { secure: true });
+      return res.data;
+    },
+    onSuccess: (_result, variables) => {
+      qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(variables.projectId) });
+      qc.removeQueries({ queryKey: QUERY_KEY.chatMessagesByChat(variables.chatId) });
+    }
+  });
+};
+
 export const useGetChatMessages = (params: {
   chatId: string;
   personal?: boolean;

@@ -12,8 +12,14 @@ import {
   type ReactNode
 } from 'react';
 import { createPortal } from 'react-dom';
-import { useGetProject, useGetProjectMembers } from '../../api/auth/useProjectsAPI';
+import {
+  useDeleteProject,
+  useGetProject,
+  useGetProjectMembers
+} from '../../api/auth/useProjectsAPI';
+import { useDeleteChat } from '../../api/auth/useChatsAPI';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
+import { handleApiError } from '../../api/axios';
 import type {
   ChatsMeListData,
   GetAuthData,
@@ -48,7 +54,7 @@ type Props = {
 
 type ProjectActionKind = 'rename' | 'invite' | 'members' | 'source';
 type ProjectModalState = { kind: ProjectActionKind; projectId: string } | null;
-type ProjectMenuAction = { key: ProjectActionKind; label: string };
+type ProjectMenuAction = { key: ProjectActionKind | 'delete'; label: string };
 type SettingsActionKind = 'profile' | 'logout';
 type SettingsMenuAction = { key: SettingsActionKind; label: string; iconName: IconName };
 type AvatarSize = 'sm' | 'md';
@@ -113,7 +119,8 @@ const projectMenuActions: ProjectMenuAction[] = [
   { key: 'rename', label: '이름 바꾸기' },
   { key: 'invite', label: '멤버 초대하기' },
   { key: 'members', label: '멤버들' },
-  { key: 'source', label: '연결된 소스' }
+  { key: 'source', label: '연결된 소스' },
+  { key: 'delete', label: '삭제' }
 ];
 
 const settingsMenuActions: SettingsMenuAction[] = [
@@ -151,10 +158,14 @@ export const AppShell = ({
     null
   );
   const [projectModal, setProjectModal] = useState<ProjectModalState>(null);
+  const deleteProject = useDeleteProject();
+  const deleteChat = useDeleteChat();
 
   const [renameValue, setRenameValue] = useState('');
   const [renameTouched, setRenameTouched] = useState(false);
   const [renameInfo, setRenameInfo] = useState<string | null>(null);
+  const [projectDeleteError, setProjectDeleteError] = useState<string | null>(null);
+  const [chatDeleteError, setChatDeleteError] = useState<string | null>(null);
 
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -425,6 +436,8 @@ export const AppShell = ({
   ): void => {
     setOpenMenuProjectId(null);
     setProjectModal({ kind, projectId: project.id });
+    setProjectDeleteError(null);
+    setChatDeleteError(null);
     if (kind === 'rename') {
       setRenameValue(project.name);
       setRenameTouched(false);
@@ -443,6 +456,7 @@ export const AppShell = ({
     setRenameTouched(false);
     setInviteError(null);
     setInviteSuccess(null);
+    setProjectDeleteError(null);
   };
 
   const applyProjectRename = (): void => {
@@ -507,6 +521,36 @@ export const AppShell = ({
     setInviteSuccess(`${rows.length}명에게 초대 링크를 전송했어요. (${invitePath})`);
   };
 
+  const handleProjectDeleteFromMenu = async (
+    project: ProjectsListData['data'][number]
+  ): Promise<void> => {
+    setOpenMenuProjectId(null);
+    setProjectDeleteError(null);
+    if (!window.confirm(`"${project.name}" 프로젝트를 삭제할까요?`)) return;
+
+    try {
+      await deleteProject.mutateAsync(project.id);
+      if (selectedProjectId === project.id) {
+        navigate('/projects', { replace: true });
+      }
+    } catch (error) {
+      setProjectDeleteError(handleApiError(error).message);
+    }
+  };
+
+  const handlePersonalChatDelete = async (chat: ChatsMeListData['data'][number]): Promise<void> => {
+    if (!selectedProjectId) return;
+
+    setChatDeleteError(null);
+    if (!window.confirm(`"${chat.name}" 채팅을 삭제할까요?`)) return;
+
+    try {
+      await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
+    } catch (error) {
+      setChatDeleteError(handleApiError(error).message);
+    }
+  };
+
   return (
     <div className="h-full w-full bg-zinc-50">
       <div className="grid h-full grid-cols-[220px_1fr]">
@@ -519,6 +563,13 @@ export const AppShell = ({
           <div className="min-h-0 flex-1 overflow-y-auto">
             <section className="px-4 pt-4">
               <ContentTitle title="프로젝트" className="w-full" onAddClick={onOpenCreateProject} />
+              {projectDeleteError ? (
+                <div className="mt-1">
+                  <InlineAlert tone="danger" title="프로젝트 삭제 실패">
+                    {projectDeleteError}
+                  </InlineAlert>
+                </div>
+              ) : null}
 
               {projects.length === 0 ? (
                 <div className="flex h-40 items-center justify-center text-center text-[12px] font-medium leading-[1.6] text-zinc-700">
@@ -586,25 +637,53 @@ export const AppShell = ({
                 onAddClick={onCreatePersonalChat}
                 addAriaLabel="새 개인 채팅"
               />
+              {chatDeleteError ? (
+                <div className="mt-1">
+                  <InlineAlert tone="danger" title="채팅 삭제 실패">
+                    {chatDeleteError}
+                  </InlineAlert>
+                </div>
+              ) : null}
 
               <nav aria-label="내 채팅 목록" className="mt-0.5">
                 {personalChats.map((chat) => {
                   const isActive = activeChatId === chat.id;
                   return (
-                    <button
-                      key={chat.id}
-                      type="button"
-                      aria-current={isActive ? 'true' : undefined}
-                      className={[
-                        'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left text-[12px] font-medium transition-colors',
-                        isActive
-                          ? 'bg-zinc-700 text-white'
-                          : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
-                      ].join(' ')}
-                      onClick={() => onSelectChat?.(chat.id)}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{chat.name}</span>
-                    </button>
+                    <div key={chat.id} className="group relative">
+                      <button
+                        type="button"
+                        aria-current={isActive ? 'true' : undefined}
+                        className={[
+                          'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left text-[12px] font-medium transition-colors',
+                          isActive
+                            ? 'bg-zinc-700 text-white'
+                            : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
+                        ].join(' ')}
+                        onClick={() => onSelectChat?.(chat.id)}
+                      >
+                        <span className="min-w-0 flex-1 truncate">{chat.name}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        aria-label={`${chat.name} 채팅 삭제`}
+                        className={[
+                          'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 text-[10px] font-medium transition-opacity',
+                          isActive ? 'text-zinc-200 hover:bg-zinc-600' : 'text-zinc-500 hover:bg-zinc-100',
+                          deleteChat.isPending
+                            ? 'pointer-events-none opacity-50'
+                            : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
+                        ].join(' ')}
+                        disabled={deleteChat.isPending}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void handlePersonalChatDelete(chat);
+                        }}
+                      >
+                        삭제
+                      </button>
+                    </div>
                   );
                 })}
               </nav>
@@ -775,10 +854,22 @@ export const AppShell = ({
                   ref={(el) => {
                     menuItemRefs.current[index] = el;
                   }}
-                  className="block w-full rounded-md px-3 py-1.5 text-left text-xs text-text-base hover:bg-surface-muted"
+                  className={[
+                    'block w-full rounded-md px-3 py-1.5 text-left text-xs',
+                    it.key === 'delete'
+                      ? 'text-red-600 hover:bg-red-50'
+                      : 'text-text-base hover:bg-surface-muted',
+                    it.key === 'delete' && deleteProject.isPending ? 'opacity-50' : ''
+                  ].join(' ')}
+                  disabled={it.key === 'delete' && deleteProject.isPending}
                   onClick={() => {
                     const proj = projects.find((p) => p.id === openMenuProjectId);
-                    if (proj) openProjectModal(it.key, proj);
+                    if (!proj) return;
+                    if (it.key === 'delete') {
+                      void handleProjectDeleteFromMenu(proj);
+                      return;
+                    }
+                    openProjectModal(it.key, proj);
                   }}
                 >
                   {it.label}
