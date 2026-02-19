@@ -13,6 +13,7 @@
 import {
   ChatsMeCreateData,
   ChatsMeCreatePayload,
+  ChatsMeDeleteData,
   ChatsMeListData,
   ChatsMeMessagesCreateData,
   ChatsMeMessagesCreatePayload,
@@ -21,10 +22,15 @@ import {
   GithubOauthDeviceFlowsDetailData,
   GithubOauthDeviceStartCreateData,
   GithubOauthReposListData,
+  ProjectsAnalysisListData,
+  ProjectsAnalyzeCreateData,
   ProjectsCreateData,
   ProjectsCreatePayload,
+  ProjectsDeleteData,
   ProjectsDetailData,
   ProjectsListData,
+  ProjectsMembersInviteCreateData,
+  ProjectsMembersInviteCreatePayload,
   ProjectsMembersListData,
   ProjectsSyncCreateData,
   ProjectsSyncJobsDetailData,
@@ -35,11 +41,13 @@ import {
   SampleItemsDetailData,
   SampleItemsListData,
   SampleItemsPartialUpdateData,
-  SampleItemsPartialUpdatePayload
-} from './data-contracts';
-import { ContentType, HttpClient, RequestParams } from './http-client';
+  SampleItemsPartialUpdatePayload,
+} from "./data-contracts";
+import { ContentType, HttpClient, RequestParams } from "./http-client";
 
-export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
+export class Api<
+  SecurityDataType = unknown,
+> extends HttpClient<SecurityDataType> {
   /**
    * No description
    *
@@ -52,9 +60,9 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   sampleItemsList = (params: RequestParams = {}) =>
     this.request<SampleItemsListData, any>({
       path: `/api/sample-items`,
-      method: 'GET',
-      format: 'json',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -65,14 +73,17 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
    * @request POST:/api/sample-items
    * @response `201` `SampleItemsCreateData` Default Response
    */
-  sampleItemsCreate = (data: SampleItemsCreatePayload, params: RequestParams = {}) =>
+  sampleItemsCreate = (
+    data: SampleItemsCreatePayload,
+    params: RequestParams = {},
+  ) =>
     this.request<SampleItemsCreateData, any>({
       path: `/api/sample-items`,
-      method: 'POST',
+      method: "POST",
       body: data,
       type: ContentType.Json,
-      format: 'json',
-      ...params
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -86,9 +97,9 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   sampleItemsDetail = (id: string, params: RequestParams = {}) =>
     this.request<SampleItemsDetailData, any>({
       path: `/api/sample-items/${id}`,
-      method: 'GET',
-      format: 'json',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -102,15 +113,15 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   sampleItemsPartialUpdate = (
     id: string,
     data: SampleItemsPartialUpdatePayload,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     this.request<SampleItemsPartialUpdateData, any>({
       path: `/api/sample-items/${id}`,
-      method: 'PATCH',
+      method: "PATCH",
       body: data,
       type: ContentType.Json,
-      format: 'json',
-      ...params
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -124,8 +135,8 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   sampleItemsDelete = (id: string, params: RequestParams = {}) =>
     this.request<SampleItemsDeleteData, any>({
       path: `/api/sample-items/${id}`,
-      method: 'DELETE',
-      ...params
+      method: "DELETE",
+      ...params,
     });
   /**
    * No description
@@ -139,9 +150,9 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   githubOauthDeviceStartCreate = (params: RequestParams = {}) =>
     this.request<GithubOauthDeviceStartCreateData, any>({
       path: `/api/github/oauth/device/start`,
-      method: 'POST',
-      format: 'json',
-      ...params
+      method: "POST",
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -155,9 +166,9 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   githubOauthDeviceFlowsDetail = (flowId: string, params: RequestParams = {}) =>
     this.request<GithubOauthDeviceFlowsDetailData, any>({
       path: `/api/github/oauth/device/flows/${flowId}`,
-      method: 'GET',
-      format: 'json',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -173,14 +184,14 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
       /** @format uuid */
       flowId: string;
     },
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     this.request<GithubOauthReposListData, any>({
       path: `/api/github/oauth/repos`,
-      method: 'GET',
+      method: "GET",
       query: query,
-      format: 'json',
-      ...params
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -194,9 +205,9 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   projectsList = (params: RequestParams = {}) =>
     this.request<ProjectsListData, any>({
       path: `/api/projects`,
-      method: 'GET',
-      format: 'json',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -210,11 +221,26 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   projectsCreate = (data: ProjectsCreatePayload, params: RequestParams = {}) =>
     this.request<ProjectsCreateData, any>({
       path: `/api/projects`,
-      method: 'POST',
+      method: "POST",
       body: data,
       type: ContentType.Json,
-      format: 'json',
-      ...params
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags project
+   * @name ProjectsDelete
+   * @summary Delete project
+   * @request DELETE:/api/projects/{id}
+   * @response `204` `ProjectsDeleteData` Default Response
+   */
+  projectsDelete = (id: string, params: RequestParams = {}) =>
+    this.request<ProjectsDeleteData, any>({
+      path: `/api/projects/${id}`,
+      method: "DELETE",
+      ...params,
     });
   /**
    * No description
@@ -228,9 +254,9 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   projectsDetail = (id: string, params: RequestParams = {}) =>
     this.request<ProjectsDetailData, any>({
       path: `/api/projects/${id}`,
-      method: 'GET',
-      format: 'json',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -244,9 +270,31 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   projectsMembersList = (id: string, params: RequestParams = {}) =>
     this.request<ProjectsMembersListData, any>({
       path: `/api/projects/${id}/members`,
-      method: 'GET',
-      format: 'json',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags project
+   * @name ProjectsMembersInviteCreate
+   * @summary Invite project members by emails
+   * @request POST:/api/projects/{id}/members/invite
+   * @response `201` `ProjectsMembersInviteCreateData` Default Response
+   */
+  projectsMembersInviteCreate = (
+    id: string,
+    data: ProjectsMembersInviteCreatePayload,
+    params: RequestParams = {},
+  ) =>
+    this.request<ProjectsMembersInviteCreateData, any>({
+      path: `/api/projects/${id}/members/invite`,
+      method: "POST",
+      body: data,
+      type: ContentType.Json,
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -260,9 +308,9 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   projectsSyncCreate = (id: string, params: RequestParams = {}) =>
     this.request<ProjectsSyncCreateData, any>({
       path: `/api/projects/${id}/sync`,
-      method: 'POST',
-      format: 'json',
-      ...params
+      method: "POST",
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -276,9 +324,9 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   projectsSyncStatusList = (projectId: string, params: RequestParams = {}) =>
     this.request<ProjectsSyncStatusListData, any>({
       path: `/api/projects/${projectId}/sync/status`,
-      method: 'GET',
-      format: 'json',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -289,12 +337,48 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
    * @request GET:/api/projects/{id}/sync-jobs/{jobId}
    * @response `200` `ProjectsSyncJobsDetailData` Default Response
    */
-  projectsSyncJobsDetail = (id: string, jobId: string, params: RequestParams = {}) =>
+  projectsSyncJobsDetail = (
+    id: string,
+    jobId: string,
+    params: RequestParams = {},
+  ) =>
     this.request<ProjectsSyncJobsDetailData, any>({
       path: `/api/projects/${id}/sync-jobs/${jobId}`,
-      method: 'GET',
-      format: 'json',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags project-analysis
+   * @name ProjectsAnalyzeCreate
+   * @summary Request project analysis rebuild
+   * @request POST:/api/projects/{id}/analyze
+   * @response `202` `ProjectsAnalyzeCreateData` Default Response
+   */
+  projectsAnalyzeCreate = (id: string, params: RequestParams = {}) =>
+    this.request<ProjectsAnalyzeCreateData, any>({
+      path: `/api/projects/${id}/analyze`,
+      method: "POST",
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags project-analysis
+   * @name ProjectsAnalysisList
+   * @summary Get project analysis
+   * @request GET:/api/projects/{id}/analysis
+   * @response `200` `ProjectsAnalysisListData` Default Response
+   */
+  projectsAnalysisList = (id: string, params: RequestParams = {}) =>
+    this.request<ProjectsAnalysisListData, any>({
+      path: `/api/projects/${id}/analysis`,
+      method: "GET",
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -309,22 +393,20 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
     query: {
       /** @format uuid */
       project_id: string;
-      /** @format uuid */
-      user_id: string;
       /**
        * @min 1
        * @max 100
        */
       limit?: number;
     },
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     this.request<ChatsMeListData, any>({
       path: `/api/chats/me`,
-      method: 'GET',
+      method: "GET",
       query: query,
-      format: 'json',
-      ...params
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -338,11 +420,26 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   chatsMeCreate = (data: ChatsMeCreatePayload, params: RequestParams = {}) =>
     this.request<ChatsMeCreateData, any>({
       path: `/api/chats/me`,
-      method: 'POST',
+      method: "POST",
       body: data,
       type: ContentType.Json,
-      format: 'json',
-      ...params
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags chat
+   * @name ChatsMeDelete
+   * @summary Delete personal chat
+   * @request DELETE:/api/chats/me/{id}
+   * @response `204` `ChatsMeDeleteData` No content
+   */
+  chatsMeDelete = (id: string, params: RequestParams = {}) =>
+    this.request<ChatsMeDeleteData, any>({
+      path: `/api/chats/me/${id}`,
+      method: "DELETE",
+      ...params,
     });
   /**
    * No description
@@ -356,14 +453,14 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   chatsMeMessagesCreate = (
     id: string,
     data: ChatsMeMessagesCreatePayload,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     this.request<ChatsMeMessagesCreateData, any>({
       path: `/api/chats/me/${id}/messages`,
-      method: 'POST',
+      method: "POST",
       body: data,
       type: ContentType.Json,
-      ...params
+      ...params,
     });
   /**
    * No description
@@ -376,9 +473,7 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
    */
   chatsMeMessagesList = (
     id: string,
-    query: {
-      /** @format uuid */
-      user_id: string;
+    query?: {
       /** @format date-time */
       before_created_at?: string;
       /** @format uuid */
@@ -389,14 +484,14 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
        */
       limit?: number;
     },
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     this.request<ChatsMeMessagesListData, any>({
       path: `/api/chats/me/${id}/messages`,
-      method: 'GET',
+      method: "GET",
       query: query,
-      format: 'json',
-      ...params
+      format: "json",
+      ...params,
     });
   /**
    * No description
@@ -409,22 +504,20 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
    */
   chatsMePromptMessagesList = (
     id: string,
-    query: {
-      /** @format uuid */
-      user_id: string;
+    query?: {
       /**
        * @min 1
        * @max 100
        */
       limit?: number;
     },
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     this.request<ChatsMePromptMessagesListData, any>({
       path: `/api/chats/me/${id}/prompt-messages`,
-      method: 'GET',
+      method: "GET",
       query: query,
-      format: 'json',
-      ...params
+      format: "json",
+      ...params,
     });
 }

@@ -10,10 +10,12 @@
  * ---------------------------------------------------------------
  */
 
-import { HealthListData } from './data-contracts';
-import { HttpClient, RequestParams } from './http-client';
+import { HealthListData } from "./data-contracts";
+import { HttpClient, RequestParams } from "./http-client";
 
-export class Health<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
+export class Health<
+  SecurityDataType = unknown,
+> extends HttpClient<SecurityDataType> {
   /**
    * No description
    *
@@ -26,8 +28,8 @@ export class Health<SecurityDataType = unknown> extends HttpClient<SecurityDataT
   healthList = (params: RequestParams = {}) =>
     this.request<HealthListData, any>({
       path: `/health`,
-      method: 'GET',
-      format: 'json',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
     });
 }

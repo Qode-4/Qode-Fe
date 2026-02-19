@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePostAuthLogin } from '../api/auth/useAuthAPI';
+import { authTransitionStorage } from '../api/authTransitionStorage';
 import { handleApiError } from '../api/axios';
 import { tokenStorage } from '../api/tokenStorage';
 import { Link } from '../components/ui/Link';
@@ -75,7 +76,8 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
               login.mutate(
                 { email, password },
                 {
-                  onSuccess: () => {
+                  onSuccess: (data) => {
+                    authTransitionStorage.setLoginTransitionUserName(data.user.name);
                     if (!tokenStorage.getAccessToken()) return;
                     navigate(next);
                   }
