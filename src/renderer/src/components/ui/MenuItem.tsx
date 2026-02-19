@@ -74,7 +74,7 @@ export const MenuItem = ({
         />
       ) : null}
 
-      <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-none">
+      <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-ui-12 font-medium leading-none">
         {label}
       </span>
 
