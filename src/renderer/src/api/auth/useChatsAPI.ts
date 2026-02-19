@@ -12,6 +12,7 @@ import type {
 import type {
   ChatsMeCreateData,
   ChatsMeListData,
+  ChatsMeMessagesCreatePayload,
   ChatsMeMessagesListData
 } from '../generated/data-contracts';
 import { ContentType } from '../generated/http-client';
@@ -42,6 +43,10 @@ type CurrentUser = {
   id: string;
   name: string;
   avatarUrl: string | null;
+};
+
+type TeamChatMessageCreatePayload = {
+  content: string;
 };
 
 export type MessageStreamCallbacks = {
@@ -224,7 +229,7 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void 
 
 const streamChatMessage = async (params: {
   path: string;
-  content: string;
+  body: ChatsMeMessagesCreatePayload | TeamChatMessageCreatePayload;
   callbacks?: MessageStreamCallbacks;
 }): Promise<void> => {
   const baseURL = String(apiClient.instance.defaults.baseURL ?? '').replace(/\/$/, '');
@@ -237,7 +242,7 @@ const streamChatMessage = async (params: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
-    body: JSON.stringify({ content: params.content })
+    body: JSON.stringify(params.body)
   });
 
   if (!response.ok) {
@@ -386,12 +391,17 @@ export const usePostPersonalChatMessageSSE = (params: { projectId: string; chatI
     }: {
       content: string;
       callbacks?: MessageStreamCallbacks;
-    }) =>
-      streamChatMessage({
+    }) => {
+      const currentUser = await getCurrentUser(qc);
+      return streamChatMessage({
         path: `/api/chats/me/${params.chatId}/messages`,
-        content,
+        body: {
+          user_id: currentUser.id,
+          content
+        },
         callbacks
-      }),
+      });
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
       void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
@@ -413,7 +423,7 @@ export const usePostTeamChatMessageSSE = (params: { projectId: string; chatId: s
       ensureTeamChatWritable();
       return streamChatMessage({
         path: `/api/chats/${params.chatId}/messages`,
-        content,
+        body: { content },
         callbacks
       });
     },
