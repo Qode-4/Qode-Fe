@@ -3,7 +3,7 @@ import { usePostAuthLogin } from '../api/auth/useAuthAPI';
 import { handleApiError } from '../api/axios';
 import { tokenStorage } from '../api/tokenStorage';
 import { Link } from '../components/ui/Link';
-import { buildPath, navigate } from '../lib/hashRouter';
+import { buildPath, navigate, resolveNextPath } from '../lib/hashRouter';
 import type { RouteLocation } from '../lib/hashRouter';
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
 const isEmail = (v: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 export const LoginPage = ({ location }: Props): React.JSX.Element => {
-  const next = location.query.next || '/projects';
+  const next = resolveNextPath(location.query.next);
   const login = usePostAuthLogin();
   const passwordRef = useRef<HTMLInputElement>(null);
 

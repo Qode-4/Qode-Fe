@@ -27,7 +27,9 @@ export const healthApiClient = new Health(apiClientConfig);
 const redirectToLogin = (): void => {
   const raw = window.location.hash || '#/';
   const hash = raw.startsWith('#') ? raw.slice(1) : raw;
-  const next = encodeURIComponent(hash || '/');
+  const [path] = hash.split('?');
+  const nextPath = path === '/login' || path === '/signup' ? '/projects' : hash || '/';
+  const next = encodeURIComponent(nextPath);
   window.location.hash = `/login?next=${next}`;
 };
 

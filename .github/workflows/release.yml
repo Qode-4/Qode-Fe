@@ -30,14 +30,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Setup Yarn via Corepack
+        run: |
+          corepack enable
+          corepack prepare yarn@3.6.3 --activate
+          corepack yarn --version
       - name: Install dependencies
-        run: yarn
+        run: corepack yarn install --immutable
       - name: Build macOS package
         run: |
-          yarn electron-vite build
+          corepack yarn electron-vite build
           npx electron-builder --mac --publish never
       - name: Upload macOS artifacts
         uses: softprops/action-gh-release@v2
@@ -55,14 +57,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Setup Yarn via Corepack
+        run: |
+          corepack enable
+          corepack prepare yarn@3.6.3 --activate
+          corepack yarn --version
       - name: Install dependencies
-        run: yarn
+        run: corepack yarn install --immutable
       - name: Build Windows package
         run: |
-          yarn electron-vite build
+          corepack yarn electron-vite build
           npx electron-builder --win --publish never
       - name: Upload Windows artifacts
         uses: softprops/action-gh-release@v2
@@ -80,14 +84,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Setup Yarn via Corepack
+        run: |
+          corepack enable
+          corepack prepare yarn@3.6.3 --activate
+          corepack yarn --version
       - name: Install dependencies
-        run: yarn
+        run: corepack yarn install --immutable
       - name: Build Linux package
         run: |
-          yarn electron-vite build
+          corepack yarn electron-vite build
           npx electron-builder --linux AppImage deb --publish never
       - name: Upload Linux artifacts
         uses: softprops/action-gh-release@v2

@@ -1,30 +1,28 @@
-import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { authApiClient } from '../apiClient';
+import type { LoginCreatePayload, SignupCreatePayload } from '../generated/data-contracts';
 import { QUERY_KEY } from '../queryKeys';
 import { tokenStorage } from '../tokenStorage';
-import type {
-  AuthTokenResponse,
-  LoginRequest,
-  MeResponse,
-  SignupRequest
-} from '../generated/data-contracts';
 
-export const useGetAuthMe = (): UseQueryResult<MeResponse, unknown> => {
+export const getAuthMe = async () => {
+  const res = await authApiClient.getAuth({ secure: true });
+  return res.data;
+};
+
+export const useGetAuthMe = (options?: { enabled?: boolean }) => {
   const token = tokenStorage.getAccessToken();
   return useQuery({
     queryKey: QUERY_KEY.me,
-    queryFn: async () => {
-      const res = await authApiClient.getAuth({ secure: true });
-      return res.data;
-    },
-    enabled: Boolean(token)
+    queryFn: getAuthMe,
+    enabled: Boolean(token) && (options?.enabled ?? true),
+    retry: 0,
+    refetchOnWindowFocus: false
   });
 };
 
-export const usePostAuthSignup = (): UseMutationResult<AuthTokenResponse, unknown, SignupRequest> =>
-  useMutation<AuthTokenResponse, unknown, SignupRequest>({
-    mutationFn: async (body) => {
+export const usePostAuthSignup = () =>
+  useMutation({
+    mutationFn: async (body: SignupCreatePayload) => {
       const res = await authApiClient.signupCreate(body);
       return res.data;
     },
@@ -33,9 +31,9 @@ export const usePostAuthSignup = (): UseMutationResult<AuthTokenResponse, unknow
     }
   });
 
-export const usePostAuthLogin = (): UseMutationResult<AuthTokenResponse, unknown, LoginRequest> =>
-  useMutation<AuthTokenResponse, unknown, LoginRequest>({
-    mutationFn: async (body) => {
+export const usePostAuthLogin = () =>
+  useMutation({
+    mutationFn: async (body: LoginCreatePayload) => {
       const res = await authApiClient.loginCreate(body);
       return res.data;
     },
