@@ -1,31 +1,29 @@
-import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { qodeApiClient } from '../apiClient';
+import { authApiClient } from '../apiClient';
+import type { LoginCreatePayload, SignupCreatePayload } from '../generated/data-contracts';
 import { QUERY_KEY } from '../queryKeys';
 import { tokenStorage } from '../tokenStorage';
-import type {
-  AuthResponse,
-  MeResponse,
-  PostAuthLoginBody,
-  PostAuthSignupBody
-} from '../generated/qode/auth';
 
-export const useGetAuthMe = (): UseQueryResult<MeResponse, unknown> => {
+export const getAuthMe = async () => {
+  const res = await authApiClient.getAuth({ secure: true });
+  return res.data;
+};
+
+export const useGetAuthMe = (options?: { enabled?: boolean }) => {
   const token = tokenStorage.getAccessToken();
   return useQuery({
     queryKey: QUERY_KEY.me,
-    queryFn: async () => {
-      const res = await qodeApiClient.getAuthMe({ secure: true });
-      return res.data;
-    },
-    enabled: Boolean(token)
+    queryFn: getAuthMe,
+    enabled: Boolean(token) && (options?.enabled ?? true),
+    retry: 0,
+    refetchOnWindowFocus: false
   });
 };
 
-export const usePostAuthSignup = (): UseMutationResult<AuthResponse, unknown, PostAuthSignupBody> =>
-  useMutation<AuthResponse, unknown, PostAuthSignupBody>({
-    mutationFn: async (body) => {
-      const res = await qodeApiClient.postAuthSignup(body);
+export const usePostAuthSignup = () =>
+  useMutation({
+    mutationFn: async (body: SignupCreatePayload) => {
+      const res = await authApiClient.signupCreate(body);
       return res.data;
     },
     onSuccess: (data) => {
@@ -33,10 +31,10 @@ export const usePostAuthSignup = (): UseMutationResult<AuthResponse, unknown, Po
     }
   });
 
-export const usePostAuthLogin = (): UseMutationResult<AuthResponse, unknown, PostAuthLoginBody> =>
-  useMutation<AuthResponse, unknown, PostAuthLoginBody>({
-    mutationFn: async (body) => {
-      const res = await qodeApiClient.postAuthLogin(body);
+export const usePostAuthLogin = () =>
+  useMutation({
+    mutationFn: async (body: LoginCreatePayload) => {
+      const res = await authApiClient.loginCreate(body);
       return res.data;
     },
     onSuccess: (data) => {

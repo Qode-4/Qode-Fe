@@ -10,7 +10,6 @@ Qode FE는 팀이 프로젝트 코드를 이해하고 협업할 수 있도록 �
 - 온보딩: 로그인, 회원가입, 초대 수락 플로우
 - 프로젝트 관리: 프로젝트 목록 조회/생성, 프로젝트 상세 화면
 - API 연동: Axios + React Query + OpenAPI 생성 클라이언트
-- 개발 편의: MSW(Mock Service Worker) 기반 로컬 모킹 지원
 
 ## 기술 스택
 
@@ -72,11 +71,9 @@ yarn dev
 
 ```bash
 VITE_API_BASE_URL=http://localhost:3000
-VITE_USE_MSW=true
 ```
 
 - `VITE_API_BASE_URL`: API 서버 주소
-- `VITE_USE_MSW`: 개발 모드 기본값은 `true`이며, `false`로 설정하면 MSW를 끕니다.
 
 ## 주요 명령어
 
@@ -111,7 +108,7 @@ OpenAPI 타입/클라이언트 재생성이 필요하면:
 yarn swagger:local
 ```
 
-실행 전 백엔드가 `http://127.0.0.1:3000/openapi.json`에서 응답해야 합니다.
+실행 전 백엔드가 `http://localhost:3000/swagger/json`에서 응답해야 합니다.
 
 ## 프로젝트 구조
 

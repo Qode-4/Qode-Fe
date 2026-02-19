@@ -11,13 +11,12 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "msw:init": "msw init src/renderer/public --save",
-    "swagger:local": "swagger-typescript-api generate -p http://127.0.0.1:3000/openapi.json -r -o ./src/renderer/src/api/generated --modular -d --extract-request-body --extract-response-body --extract-response-error --axios --clean-output",
+    "swagger:local": "swagger-typescript-api generate -p http://localhost:3000/swagger/json -r -o ./src/renderer/src/api/generated --modular -d --extract-request-body --extract-response-body --extract-response-error --axios --clean-output",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
-    "web:dev": "vite src/renderer",
-    "web:build": "vite build src/renderer",
-    "web:preview": "vite preview src/renderer",
+    "web:dev": "vite --config src/renderer/vite.config.ts",
+    "web:build": "vite build --config src/renderer/vite.config.ts",
+    "web:preview": "vite preview --config src/renderer/vite.config.ts",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
@@ -59,7 +58,6 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
-    "msw": "^2.12.10",
     "postcss": "^8.5.6",
     "prettier": "^3.7.4",
     "react": "^19.2.1",
@@ -68,7 +66,8 @@
     "swagger-typescript-api": "^13.0.3",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
-    "vite": "^7.2.6"
+    "vite": "^7.2.6",
+    "vite-plugin-svgr": "^4.5.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -78,8 +77,5 @@
     "*.{json,css,md}": [
       "prettier --write"
     ]
-  },
-  "msw": {
-    "workerDirectory": "src/renderer/public"
   }
 }

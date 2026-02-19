@@ -20,8 +20,10 @@ const clearAccessToken = (): void => {
 
 const redirectToLogin = (): void => {
   const currentHash = window.location.hash || '#/';
-  const currentPath = currentHash.startsWith('#') ? currentHash.slice(1) : currentHash;
-  const next = encodeURIComponent(currentPath);
+  const hash = currentHash.startsWith('#') ? currentHash.slice(1) : currentHash;
+  const [path] = hash.split('?');
+  const nextPath = path === '/login' || path === '/signup' ? '/projects' : hash || '/';
+  const next = encodeURIComponent(nextPath);
   // Hash 기반 라우팅을 전제로 한다.
   window.location.hash = `/login?next=${next}`;
 };

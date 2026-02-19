@@ -11,8 +11,7 @@ const meta = {
   tags: ['autodocs'],
   args: {
     title: '로그인',
-    description: '팀 워크스페이스에 접속하세요.',
-    logoLabel: 'Qode'
+    description: '팀 워크스페이스에 접속하세요.'
   }
 } satisfies Meta<typeof AuthFrame>;
 

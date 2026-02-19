@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import type { StorybookConfig } from '@storybook/react-vite';
 import { mergeConfig } from 'vite';
+import svgr from 'vite-plugin-svgr';
 
 const config: StorybookConfig = {
   stories: ['../src/renderer/src/components/**/*.stories.@(ts|tsx)'],
@@ -30,7 +31,7 @@ const config: StorybookConfig = {
           jsxImportSource: 'react'
         }
       },
-      plugins: [vanillaExtractPlugin()]
+      plugins: [svgr(), vanillaExtractPlugin()]
     });
   }
 };

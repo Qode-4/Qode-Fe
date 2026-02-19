@@ -11,24 +11,27 @@ import {
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetProject, useGetProjectMembers } from '../../api/auth/useProjectsAPI';
-import { QUERY_KEY } from '../../api/queryKeys';
+import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
 import type {
-  ProjectDetailResponse,
-  ProjectListResponse,
-  ProjectListItem
-} from '../../api/generated/qode/projects';
-import type { ChatItem } from '../../api/generated/qode/chats';
+  ChatsMeListData,
+  ProjectsDetailData,
+  ProjectsListData
+} from '../../api/generated/data-contracts';
+import { QUERY_KEY } from '../../api/queryKeys';
 import { Button } from '../ui/Button';
+import { ContentTitle } from '../ui/ContentTitle';
+import { DrawerHeader } from '../ui/DrawerHeader';
+import { Icon } from '../ui/Icon';
 import { InlineAlert } from '../ui/InlineAlert';
 import { Link } from '../ui/Link';
 import { OverlayModal } from '../ui/OverlayModal';
 
 type Props = {
-  projects: ProjectListItem[];
+  projects: ProjectsListData['data'];
   selectedProjectId?: string;
   onOpenCreateProject?: () => void;
-  personalChats?: ChatItem[];
-  teamChats?: ChatItem[];
+  personalChats?: ChatsMeListData['data'];
+  teamChats?: ChatsMeListData['data'];
   activeChatId?: string;
   onSelectChat?: (chatId: string) => void;
   onCreatePersonalChat?: () => void;
@@ -45,7 +48,7 @@ const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(va
 const getUniqueProjectName = (
   projectId: string,
   requestedName: string,
-  projects: ProjectListItem[]
+  projects: ProjectsListData['data']
 ): string => {
   const base = requestedName.trim();
   if (!base) return '';
@@ -65,43 +68,6 @@ const projectMenuActions: MenuAction[] = [
   { key: 'members', label: '멤버들' },
   { key: 'source', label: '연결된 소스' }
 ];
-
-/* Icon helpers */
-const CodeIcon = (): React.JSX.Element => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-fill-icon" aria-hidden="true">
-    <path
-      d="M4.5 4L2 7l2.5 3M9.5 4L12 7l-2.5 3M8 2.5L6 11.5"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const FileIcon = (): React.JSX.Element => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-fill-icon" aria-hidden="true">
-    <path
-      d="M8 1.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V5L8 1.5Z"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path d="M8 1.5V5h3.5" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-  </svg>
-);
-
-const SettingsIcon = (): React.JSX.Element => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-text-soft" aria-hidden="true">
-    <path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" strokeWidth="1.2" />
-    <path
-      d="M13 8a1.1 1.1 0 0 0-.22-.87l-.7-.82a1 1 0 0 1-.2-.77l.16-1.06a1.1 1.1 0 0 0-.5-.78l-.94-.54a1 1 0 0 1-.5-.63L9.84 1.5a1.1 1.1 0 0 0-.84-.5h-2a1.1 1.1 0 0 0-.84.5L5.9 2.53a1 1 0 0 1-.5.63l-.94.54a1.1 1.1 0 0 0-.5.78l.16 1.06a1 1 0 0 1-.2.77l-.7.82A1.1 1.1 0 0 0 3 8c0 .32.08.62.22.87l.7.82a1 1 0 0 1 .2.77l-.16 1.06c.02.32.2.6.5.78l.94.54c.2.12.4.35.5.63l.26 1.03c.1.28.44.5.84.5h2c.4 0 .74-.22.84-.5l.26-1.03c.1-.28.3-.5.5-.63l.94-.54c.3-.18.48-.46.5-.78l-.16-1.06a1 1 0 0 1 .2-.77l.7-.82c.14-.25.22-.55.22-.87Z"
-      stroke="currentColor"
-      strokeWidth="1.2"
-    />
-  </svg>
-);
 
 export const AppShell = ({
   projects,
@@ -237,7 +203,10 @@ export const AppShell = ({
     }
   };
 
-  const openProjectModal = (kind: ProjectActionKind, project: ProjectListItem): void => {
+  const openProjectModal = (
+    kind: ProjectActionKind,
+    project: ProjectsListData['data'][number]
+  ): void => {
     setOpenMenuProjectId(null);
     setProjectModal({ kind, projectId: project.id });
     if (kind === 'rename') {
@@ -272,19 +241,23 @@ export const AppShell = ({
       uniqueName === trimmed ? null : `중복 이름이 있어 "${uniqueName}" 으로 저장했어요.`
     );
 
-    qc.setQueriesData<ProjectListResponse>({ queryKey: ['projects'] }, (prev) => {
+    qc.setQueriesData<ProjectsListData>({ queryKey: ['projects'] }, (prev) => {
       if (!prev) return prev;
       return {
         ...prev,
-        projects: prev.projects.map((it) =>
-          it.id === modalProject.id ? { ...it, name: uniqueName } : it
-        )
+        data: prev.data.map((it) => (it.id === modalProject.id ? { ...it, name: uniqueName } : it))
       };
     });
 
-    qc.setQueryData<ProjectDetailResponse>(QUERY_KEY.project(modalProject.id), (prev) => {
+    qc.setQueryData<ProjectsDetailData>(QUERY_KEY.project(modalProject.id), (prev) => {
       if (!prev) return prev;
-      return { ...prev, name: uniqueName };
+      return {
+        ...prev,
+        data: {
+          ...prev.data,
+          name: uniqueName
+        }
+      };
     });
 
     window.setTimeout(() => {
@@ -309,7 +282,7 @@ export const AppShell = ({
       return;
     }
 
-    const inviteCode = modalProjectDetail.data?.inviteCode ?? '';
+    const inviteCode = modalProjectDetail.data?.data.inviteCode ?? '';
     const invitePath = inviteCode
       ? `${window.location.origin}/#/invite/${inviteCode}`
       : '초대 코드 없음';
@@ -319,176 +292,153 @@ export const AppShell = ({
   };
 
   return (
-    <div className="h-full w-full bg-app-bg">
+    <div className="h-full w-full bg-zinc-50">
       <div className="grid h-full grid-cols-[220px_1fr]">
-        {/* ── Sidebar ── */}
-        <aside aria-label="사이드바 네비게이션" className="flex min-h-0 flex-col border-r border-line bg-surface">
-          {/* Logo + Settings */}
-          <div className="flex h-11 items-center justify-between px-4">
-            <div className="flex items-center gap-1.5">
-              <div className="flex h-5 w-5 items-center justify-center rounded bg-primary text-[10px] font-bold text-primary-foreground">
-                Q
-              </div>
-              <span className="text-[15px] font-semibold text-text-base">Qode</span>
-            </div>
-            <button type="button" className="p-0.5" aria-label="설정">
-              <SettingsIcon />
-            </button>
-          </div>
+        <aside
+          aria-label="사이드바 네비게이션"
+          className="flex min-h-0 flex-col border-r border-zinc-200 bg-zinc-50"
+        >
+          <DrawerHeader className="w-full" />
 
-          {/* Scrollable sections */}
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {/* ─ 프로젝트 ─ */}
-            <div className="px-3 pt-2">
-              <div className="flex items-center justify-between px-1 pb-1 text-[11px] font-semibold text-text-soft">
-                <span>프로젝트</span>
-                <button
-                  type="button"
-                  className="text-sm leading-none text-text-subtle"
-                  aria-label="새 프로젝트"
-                  onClick={onOpenCreateProject}
-                >
-                  +
-                </button>
-              </div>
+            <section className="px-4 pt-4">
+              <ContentTitle title="프로젝트" className="w-full" onAddClick={onOpenCreateProject} />
 
-              <nav aria-label="프로젝트 목록" className="space-y-px">
-                {projects.length === 0 ? (
-                  <div className="px-2 py-2 text-xs text-text-soft">
-                    새 프로젝트를 추가해보세요.
-                  </div>
-                ) : (
-                  projects.map((p) => (
-                    <div key={p.id} className="group relative">
+              {projects.length === 0 ? (
+                <div className="flex h-40 items-center justify-center text-center text-[12px] font-medium leading-[1.6] text-zinc-700">
+                  새 프로젝트를 추가해보세요!
+                </div>
+              ) : (
+                <nav aria-label="프로젝트 목록" className="mt-0.5">
+                  {projects.map((project) => (
+                    <div key={project.id} className="group relative">
                       <Link
-                        to={`/projects/${p.id}`}
-                        aria-current={selectedProjectId === p.id ? 'page' : undefined}
+                        to={`/projects/${project.id}`}
+                        aria-current={selectedProjectId === project.id ? 'page' : undefined}
                         className={[
-                          'flex h-7 items-center gap-2 rounded-md px-2 text-[13px] no-underline transition-colors',
-                          selectedProjectId === p.id
-                            ? 'bg-primary font-semibold text-primary-foreground'
-                            : 'text-text-base hover:bg-surface-muted'
+                          'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] text-[12px] font-medium no-underline transition-colors hover:no-underline',
+                          selectedProjectId === project.id
+                            ? 'bg-zinc-200 text-slate-900'
+                            : 'text-slate-900 hover:bg-zinc-100'
                         ].join(' ')}
                       >
-                        <CodeIcon />
-                        <span className="truncate">{p.name}</span>
+                        <Icon name="Code_light" size={24} decorative className="text-fill-icon" />
+                        <span className="min-w-0 flex-1 truncate">{project.name}</span>
                       </Link>
 
                       <button
                         type="button"
                         data-project-actions-button
-                        ref={openMenuProjectId === p.id ? menuTriggerRef : undefined}
-                        aria-label={`${p.name} 프로젝트 작업 메뉴`}
+                        ref={openMenuProjectId === project.id ? menuTriggerRef : undefined}
+                        aria-label={`${project.name} 프로젝트 작업 메뉴`}
                         aria-haspopup="menu"
-                        aria-expanded={openMenuProjectId === p.id}
-                        aria-controls={openMenuProjectId === p.id ? projectMenuId : undefined}
+                        aria-expanded={openMenuProjectId === project.id}
+                        aria-controls={openMenuProjectId === project.id ? projectMenuId : undefined}
                         className={[
-                          'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 text-[10px] font-medium text-text-subtle transition-opacity',
-                          'hover:bg-surface-muted',
-                          openMenuProjectId === p.id
+                          'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 text-[10px] font-medium text-zinc-500 transition-opacity',
+                          'hover:bg-zinc-100',
+                          openMenuProjectId === project.id
                             ? 'opacity-100'
                             : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
                         ].join(' ')}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          const btn = e.currentTarget;
+                          const button = e.currentTarget;
                           setOpenMenuProjectId((prev) => {
-                            if (prev === p.id) return null;
-                            menuTriggerRef.current = btn;
-                            requestAnimationFrame(() => updateMenuPos(btn));
-                            return p.id;
+                            if (prev === project.id) return null;
+                            menuTriggerRef.current = button;
+                            requestAnimationFrame(() => updateMenuPos(button));
+                            return project.id;
                           });
                         }}
                       >
                         ···
                       </button>
                     </div>
-                  ))
-                )}
+                  ))}
+                </nav>
+              )}
+            </section>
+
+            <div role="separator" className="mx-2 border-t border-zinc-200" />
+
+            <section className="px-4 py-4">
+              <ContentTitle
+                title="내 채팅"
+                className="w-full"
+                onAddClick={onCreatePersonalChat}
+                addAriaLabel="새 개인 채팅"
+              />
+
+              <nav aria-label="내 채팅 목록" className="mt-0.5">
+                {personalChats.map((chat) => {
+                  const isActive = activeChatId === chat.id;
+                  return (
+                    <button
+                      key={chat.id}
+                      type="button"
+                      aria-current={isActive ? 'true' : undefined}
+                      className={[
+                        'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left text-[12px] font-medium transition-colors',
+                        isActive
+                          ? 'bg-zinc-700 text-white'
+                          : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
+                      ].join(' ')}
+                      onClick={() => onSelectChat?.(chat.id)}
+                    >
+                      <span className="min-w-0 flex-1 truncate">{chat.name}</span>
+                    </button>
+                  );
+                })}
               </nav>
-            </div>
+            </section>
 
-            {/* Divider */}
-            <div role="separator" className="mx-3 my-2 border-t border-line" />
+            <section className="px-4 pb-4">
+              <ContentTitle
+                title="팀 채팅"
+                className="w-full"
+                onAddClick={API_CAPABILITIES.teamChatWritable ? onCreateTeamChat : undefined}
+                addAriaLabel="새 팀 채팅"
+                addButtonDisabled={!API_CAPABILITIES.teamChatWritable}
+                addButtonTooltip={TEAM_CHAT_READONLY_TOOLTIP}
+              />
 
-            {/* ─ 내 채팅 ─ */}
-            <div className="px-3">
-              <div className="flex items-center justify-between px-1 pb-1 text-[11px] font-semibold text-text-soft">
-                <span>내 채팅</span>
-                <button
-                  type="button"
-                  className="text-sm leading-none text-text-subtle"
-                  aria-label="새 개인 채팅"
-                  onClick={onCreatePersonalChat}
-                >
-                  +
-                </button>
-              </div>
-
-              <nav aria-label="내 채팅 목록" className="space-y-px">
-                {personalChats.map((chat) => (
-                  <button
-                    key={chat.id}
-                    type="button"
-                    aria-current={activeChatId === chat.id ? 'true' : undefined}
-                    className={[
-                      'flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-[13px] transition-colors',
-                      activeChatId === chat.id
-                        ? 'bg-primary font-semibold text-primary-foreground'
-                        : 'text-text-base hover:bg-surface-muted'
-                    ].join(' ')}
-                    onClick={() => onSelectChat?.(chat.id)}
-                  >
-                    <FileIcon />
-                    <span className="truncate">{chat.name}</span>
-                  </button>
-                ))}
+              <nav aria-label="팀 채팅 목록" className="mt-0.5">
+                {teamChats.map((chat, index) => {
+                  const isActive = activeChatId === chat.id;
+                  const showUnread = index < 3;
+                  return (
+                    <button
+                      key={chat.id}
+                      type="button"
+                      aria-current={isActive ? 'true' : undefined}
+                      className={[
+                        'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] text-left text-[12px] font-medium transition-colors',
+                        isActive
+                          ? 'bg-zinc-700 text-white'
+                          : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
+                      ].join(' ')}
+                      onClick={() => onSelectChat?.(chat.id)}
+                    >
+                      <span className="min-w-0 flex-1 truncate">{chat.name}</span>
+                      {showUnread ? (
+                        <Icon
+                          name="dot_round_fill"
+                          size="sm"
+                          decorative
+                          className={isActive ? 'text-white' : 'text-fill-icon'}
+                        />
+                      ) : null}
+                    </button>
+                  );
+                })}
               </nav>
-            </div>
-
-            {/* Divider */}
-            <div role="separator" className="mx-3 my-2 border-t border-line" />
-
-            {/* ─ 팀 채팅 ─ */}
-            <div className="px-3 pb-3">
-              <div className="flex items-center justify-between px-1 pb-1 text-[11px] font-semibold text-text-soft">
-                <span>팀 채팅</span>
-                <button
-                  type="button"
-                  className="text-sm leading-none text-text-subtle"
-                  aria-label="새 팀 채팅"
-                  onClick={onCreateTeamChat}
-                >
-                  +
-                </button>
-              </div>
-
-              <nav aria-label="팀 채팅 목록" className="space-y-px">
-                {teamChats.map((chat) => (
-                  <button
-                    key={chat.id}
-                    type="button"
-                    aria-current={activeChatId === chat.id ? 'true' : undefined}
-                    className={[
-                      'flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-[13px] transition-colors',
-                      activeChatId === chat.id
-                        ? 'bg-primary font-semibold text-primary-foreground'
-                        : 'text-text-base hover:bg-surface-muted'
-                    ].join(' ')}
-                    onClick={() => onSelectChat?.(chat.id)}
-                  >
-                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" aria-hidden="true" />
-                    <span className="sr-only">온라인</span>
-                    <span className="truncate">{chat.name}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
+            </section>
           </div>
         </aside>
 
-        <main className="min-h-0 overflow-auto">{children}</main>
+        <main className="min-h-0 overflow-hidden bg-zinc-50 p-2">{children}</main>
       </div>
 
       {/* ── Context menu (portal) ── */}
@@ -650,14 +600,14 @@ export const AppShell = ({
               <div className="px-3 py-3 text-sm text-text-subtle">멤버를 불러오는 중...</div>
             ) : null}
 
-            {modalProjectMembers.data?.members.map((member) => (
+            {modalProjectMembers.data?.data.map((member) => (
               <div
-                key={member.userId}
+                key={member.id}
                 className="grid grid-cols-[1fr_160px] items-center border-b border-line-soft px-3 py-3 last:border-b-0"
               >
                 <div>
                   <div className="text-sm font-semibold text-text-base">{member.name}</div>
-                  <div className="text-sm text-text-subtle">{member.userId}</div>
+                  <div className="text-sm text-text-subtle">{member.id}</div>
                 </div>
                 <div className="flex justify-end">
                   <Button type="button" size="sm" variant="secondary" disabled>
@@ -682,7 +632,7 @@ export const AppShell = ({
             <span className="mb-1 block text-xs font-medium text-text-soft">Git Repository</span>
             <input
               className="h-10 w-full rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
-              value={modalProjectDetail.data?.gitUrl ?? ''}
+              value={modalProjectDetail.data?.data.gitUrl ?? ''}
               readOnly
             />
           </label>

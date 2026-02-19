@@ -1,17 +1,14 @@
 import { Api } from './generated/Api';
+import { Auth } from './generated/Auth';
 import { Health } from './generated/Health';
-import { QodeApi } from './generated/QodeApi';
 import { tokenStorage } from './tokenStorage';
 
-const useMswInDev = import.meta.env.DEV && import.meta.env.VITE_USE_MSW !== 'false';
-const defaultBaseURL = import.meta.env.DEV
-  ? window.location.origin
-  : (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000');
+const defaultBaseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 const apiClientConfig = {
   // swagger-typescript-api generated clients already include `/api` in their paths when applicable.
   // So baseURL should be the server origin.
-  baseURL: useMswInDev ? window.location.origin : defaultBaseURL,
+  baseURL: defaultBaseURL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -24,23 +21,25 @@ const apiClientConfig = {
 } as const;
 
 export const apiClient = new Api(apiClientConfig);
+export const authApiClient = new Auth(apiClientConfig);
 export const healthApiClient = new Health(apiClientConfig);
-export const qodeApiClient = new QodeApi(apiClientConfig);
 
 const redirectToLogin = (): void => {
   const raw = window.location.hash || '#/';
   const hash = raw.startsWith('#') ? raw.slice(1) : raw;
-  const next = encodeURIComponent(hash || '/');
+  const [path] = hash.split('?');
+  const nextPath = path === '/login' || path === '/signup' ? '/projects' : hash || '/';
+  const next = encodeURIComponent(nextPath);
   window.location.hash = `/login?next=${next}`;
 };
 
-qodeApiClient.instance.interceptors.response.use(
-  (res) => res,
-  (error) => {
-    if (error?.response?.status === 401) {
-      tokenStorage.clearAccessToken();
-      redirectToLogin();
-    }
-    return Promise.reject(error);
+const onAuthError = (error: unknown): Promise<never> => {
+  if ((error as { response?: { status?: number } })?.response?.status === 401) {
+    tokenStorage.clearAccessToken();
+    redirectToLogin();
   }
-);
+  return Promise.reject(error);
+};
+
+apiClient.instance.interceptors.response.use((res) => res, onAuthError);
+authApiClient.instance.interceptors.response.use((res) => res, onAuthError);

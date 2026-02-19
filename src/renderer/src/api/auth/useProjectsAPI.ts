@@ -1,43 +1,37 @@
-import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { qodeApiClient } from '../apiClient';
+import { apiClient } from '../apiClient';
+import type { PatchProjectGitBody, PatchProjectGitResponse } from '../contracts/projects';
+import type { ProjectsCreatePayload, ProjectsListData } from '../generated/data-contracts';
+import { ContentType } from '../generated/http-client';
 import { QUERY_KEY } from '../queryKeys';
-import type {
-  CreateProjectBody,
-  CreateProjectResponse,
-  PatchProjectGitBody,
-  PatchProjectGitResponse,
-  ProjectDetailResponse,
-  ProjectListResponse,
-  ProjectMembersResponse,
-  SyncStatusResponse,
-  TriggerSyncResponse
-} from '../generated/qode/projects';
 
-export const useGetProjects = (
-  params: { search?: string; enabled?: boolean } = {}
-): UseQueryResult<ProjectListResponse, unknown> =>
+export const useGetProjects = (params: { search?: string; enabled?: boolean } = {}) =>
   useQuery({
     queryKey: QUERY_KEY.projects(params.search),
     queryFn: async () => {
-      const res = await qodeApiClient.getProjects(
-        params.search ? { search: params.search } : undefined,
-        { secure: true }
-      );
+      const search = params.search?.trim();
+      const res = search
+        ? await apiClient.request<ProjectsListData>({
+            path: '/api/projects',
+            method: 'GET',
+            query: { search },
+            secure: true,
+            format: 'json'
+          })
+        : await apiClient.projectsList({ secure: true });
       return res.data;
     },
-    enabled: params.enabled ?? true
+    enabled: params.enabled ?? true,
+    retry: 0,
+    refetchOnWindowFocus: false
   });
 
-export const usePostProjects = (): UseMutationResult<
-  CreateProjectResponse,
-  unknown,
-  CreateProjectBody
-> => {
+export const usePostProjects = () => {
   const qc = useQueryClient();
-  return useMutation<CreateProjectResponse, unknown, CreateProjectBody>({
-    mutationFn: async (body) => {
-      const res = await qodeApiClient.postProjects(body, { secure: true });
+
+  return useMutation({
+    mutationFn: async (body: ProjectsCreatePayload) => {
+      const res = await apiClient.projectsCreate(body, { secure: true });
       return res.data;
     },
     onSuccess: () => {
@@ -46,26 +40,29 @@ export const usePostProjects = (): UseMutationResult<
   });
 };
 
-export const useGetProject = (params: {
-  projectId: string;
-  enabled?: boolean;
-}): UseQueryResult<ProjectDetailResponse, unknown> =>
+export const useGetProject = (params: { projectId: string; enabled?: boolean }) =>
   useQuery({
     queryKey: QUERY_KEY.project(params.projectId),
     queryFn: async () => {
-      const res = await qodeApiClient.getProject(params.projectId, { secure: true });
+      const res = await apiClient.projectsDetail(params.projectId, { secure: true });
       return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });
 
-export const usePatchProjectGit = (params: {
-  projectId: string;
-}): UseMutationResult<PatchProjectGitResponse, unknown, PatchProjectGitBody> => {
+export const usePatchProjectGit = (params: { projectId: string }) => {
   const qc = useQueryClient();
-  return useMutation<PatchProjectGitResponse, unknown, PatchProjectGitBody>({
-    mutationFn: async (body) => {
-      const res = await qodeApiClient.patchProjectGit(params.projectId, body, { secure: true });
+
+  return useMutation({
+    mutationFn: async (body: PatchProjectGitBody) => {
+      const res = await apiClient.request<PatchProjectGitResponse>({
+        path: `/api/projects/${params.projectId}/git`,
+        method: 'PATCH',
+        body,
+        type: ContentType.Json,
+        secure: true,
+        format: 'json'
+      });
       return res.data;
     },
     onSuccess: () => {
@@ -75,13 +72,12 @@ export const usePatchProjectGit = (params: {
   });
 };
 
-export const usePostProjectSync = (params: {
-  projectId: string;
-}): UseMutationResult<TriggerSyncResponse, unknown, void> => {
+export const usePostProjectSync = (params: { projectId: string }) => {
   const qc = useQueryClient();
-  return useMutation<TriggerSyncResponse, unknown, void>({
+
+  return useMutation({
     mutationFn: async () => {
-      const res = await qodeApiClient.postProjectSync(params.projectId, { secure: true });
+      const res = await apiClient.projectsSyncCreate(params.projectId, { secure: true });
       return res.data;
     },
     onSuccess: () => {
@@ -92,32 +88,26 @@ export const usePostProjectSync = (params: {
   });
 };
 
-export const useGetProjectSyncStatus = (params: {
-  projectId: string;
-  enabled?: boolean;
-}): UseQueryResult<SyncStatusResponse, unknown> =>
+export const useGetProjectSyncStatus = (params: { projectId: string; enabled?: boolean }) =>
   useQuery({
     queryKey: QUERY_KEY.syncStatus(params.projectId),
     queryFn: async () => {
-      const res = await qodeApiClient.getProjectSyncStatus(params.projectId, { secure: true });
+      const res = await apiClient.projectsSyncStatusList(params.projectId, { secure: true });
       return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId),
     refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      if (status === 'syncing') return 1500;
+      const status = query.state.data?.data.status;
+      if (status === 'queued' || status === 'syncing') return 1500;
       return false;
     }
   });
 
-export const useGetProjectMembers = (params: {
-  projectId: string;
-  enabled?: boolean;
-}): UseQueryResult<ProjectMembersResponse, unknown> =>
+export const useGetProjectMembers = (params: { projectId: string; enabled?: boolean }) =>
   useQuery({
     queryKey: QUERY_KEY.projectMembers(params.projectId),
     queryFn: async () => {
-      const res = await qodeApiClient.getProjectMembers(params.projectId, { secure: true });
+      const res = await apiClient.projectsMembersList(params.projectId, { secure: true });
       return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)

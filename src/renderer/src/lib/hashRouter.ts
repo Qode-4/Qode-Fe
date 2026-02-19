@@ -40,6 +40,16 @@ export const buildPath = (path: string, query?: Record<string, string | undefine
   return q ? `${path}?${q}` : path;
 };
 
+export const resolveNextPath = (next: string | undefined, fallback = '/projects'): string => {
+  if (!next || !next.startsWith('/')) return fallback;
+
+  const [path] = next.split('?');
+  if (!path) return fallback;
+
+  if (path === '/login' || path === '/signup') return fallback;
+  return next;
+};
+
 export const matchPath = (
   current: string,
   pattern: string

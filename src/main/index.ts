@@ -1,7 +1,29 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron';
+import { rm } from 'node:fs/promises';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
+
+const cleanupDevServiceWorkerStorage = async (): Promise<void> => {
+  if (!is.dev) return;
+
+  const candidates = [
+    join(app.getPath('sessionData'), 'Service Worker'),
+    join(app.getPath('sessionData'), 'Code Cache', 'Service Worker'),
+    join(app.getPath('userData'), 'Service Worker'),
+    join(app.getPath('userData'), 'Code Cache', 'Service Worker')
+  ];
+
+  await Promise.all(
+    candidates.map(async (path) => {
+      try {
+        await rm(path, { recursive: true, force: true });
+      } catch {
+        // noop
+      }
+    })
+  );
+};
 
 function createWindow(): void {
   // Create the browser window.
@@ -38,7 +60,9 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await cleanupDevServiceWorkerStorage();
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron');
 

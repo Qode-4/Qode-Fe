@@ -1,5 +1,6 @@
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 /*
  * ---------------------------------------------------------------
  * ## THIS FILE WAS GENERATED VIA SWAGGER-TYPESCRIPT-API        ##
@@ -9,23 +10,26 @@
  * ---------------------------------------------------------------
  */
 
-import { GetHealthData, GetHealthError } from './data-contracts';
-import { HttpClient, RequestParams } from './http-client';
+import { HealthListData } from "./data-contracts";
+import { HttpClient, RequestParams } from "./http-client";
 
-export class Health<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
+export class Health<
+  SecurityDataType = unknown,
+> extends HttpClient<SecurityDataType> {
   /**
    * No description
    *
-   * @tags health
-   * @name GetHealth
+   * @tags system
+   * @name HealthList
+   * @summary Health check
    * @request GET:/health
-   * @response `200` `GetHealthData` OK
-   * @response `500` `ApiErrorResponse` Server Error
+   * @response `200` `HealthListData` Default Response
    */
-  getHealth = (params: RequestParams = {}) =>
-    this.request<GetHealthData, GetHealthError>({
+  healthList = (params: RequestParams = {}) =>
+    this.request<HealthListData, any>({
       path: `/health`,
-      method: 'GET',
-      ...params
+      method: "GET",
+      format: "json",
+      ...params,
     });
 }

@@ -16,17 +16,4 @@ const renderApp = (): void => {
   );
 };
 
-const startMockWorker = async (): Promise<void> => {
-  if (!import.meta.env.DEV) return;
-  // DEV 기본값은 MSW ON, 필요하면 VITE_USE_MSW=false 로 끈다.
-  if (import.meta.env.VITE_USE_MSW === 'false') return;
-
-  const { worker } = await import('./mocks/browser');
-  await worker.start({
-    onUnhandledRequest: 'bypass'
-  });
-};
-
-void startMockWorker().then(() => {
-  renderApp();
-});
+renderApp();
