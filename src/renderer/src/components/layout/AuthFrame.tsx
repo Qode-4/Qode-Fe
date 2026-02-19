@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
+import { Logo } from '../ui/Logo';
 
 type Props = {
   title: string;
   description?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
-  logoLabel?: string;
+  logo?: ReactNode;
 };
 
 export const AuthFrame = ({
@@ -13,15 +14,13 @@ export const AuthFrame = ({
   description,
   children,
   footer,
-  logoLabel = 'Logo'
+  logo = <Logo ariaLabel="Qode" className="h-[24px] w-[37px]" />
 }: Props): React.JSX.Element => {
   return (
     <div className="flex h-full items-center justify-center px-4 py-6">
       <div className="w-full max-w-[460px] rounded-2xl border border-line bg-surface-muted px-6 py-7 shadow-[0_8px_32px_rgba(15,23,42,0.06)] sm:px-8 sm:py-8">
         <div className="text-center">
-          <div className="text-2xl font-semibold tracking-tight text-text-base sm:text-[30px]">
-            {logoLabel}
-          </div>
+          <div className="inline-flex items-center justify-center">{logo}</div>
           <h1 className="mt-3 text-4xl font-extrabold tracking-[-0.02em] text-text-base sm:text-[42px]">
             {title}
           </h1>
