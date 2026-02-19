@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   useGetChatMessages,
   useGetProjectChats,
-  useGetProjectGuide,
   usePostMessageShare,
   usePostPersonalChatMessageSSE,
   usePostProjectChats,
@@ -11,19 +10,21 @@ import {
 import {
   useGetProject,
   useGetProjectMembers,
-  useGetProjectSyncStatus
+  useGetProjectSyncStatus,
+  usePostProjectSync
 } from '../api/auth/useProjectsAPI';
 import { handleApiError } from '../api/axios';
-import type { ChatMessage, SourceItem } from '../api/contracts/chats';
-import type { IconName } from '../components/icons/iconTypes';
+import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
+import type { SourceItem } from '../api/contracts/chats';
 import { CreateChatModal } from '../components/feature/CreateChatModal';
+import type { IconName } from '../components/icons/iconTypes';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Chip } from '../components/ui/Chip';
 import { Icon } from '../components/ui/Icon';
 import { IconButton } from '../components/ui/IconButton';
 import { InlineAlert } from '../components/ui/InlineAlert';
-import { matchPath } from '../lib/hashRouter';
 import type { RouteLocation } from '../lib/hashRouter';
+import { matchPath } from '../lib/hashRouter';
 import { useMeStore } from '../stores/useMeStore';
 
 type Props = {
@@ -45,9 +46,26 @@ const formatTimeLabel = (iso: string | null): string => {
   return `${Math.floor(diff / hour)}시간 전`;
 };
 
-const extractSources = (message: ChatMessage): SourceItem[] => {
-  if (message.sources && message.sources.length > 0) return message.sources;
-  return message.originalMessage?.sources ?? [];
+const extractSources = (message: unknown): SourceItem[] => {
+  const target = message as {
+    sources?: SourceItem[] | null;
+    originalMessage?: { sources?: SourceItem[] | null } | null;
+  };
+
+  if (target.sources && target.sources.length > 0) return target.sources;
+  return target.originalMessage?.sources ?? [];
+};
+
+const getMessageId = (message: unknown): string => {
+  return (message as { id: string }).id;
+};
+
+const getMessageRole = (message: unknown): string => {
+  return String((message as { role?: string }).role ?? '');
+};
+
+const getMessageContent = (message: unknown): string => {
+  return String((message as { content?: string }).content ?? '');
 };
 
 const Avatar = ({ name }: { name: string }): React.JSX.Element => {
@@ -62,6 +80,7 @@ type MessageActionButtonProps = {
   iconName: IconName;
   label: string;
   disabled?: boolean;
+  disabledReason?: string;
   onClick?: () => void;
 };
 
@@ -69,9 +88,10 @@ const MessageActionButton = ({
   iconName,
   label,
   disabled,
+  disabledReason,
   onClick
 }: MessageActionButtonProps): React.JSX.Element => {
-  return (
+  const button = (
     <button
       type="button"
       className="inline-flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-[10px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -82,6 +102,16 @@ const MessageActionButton = ({
       <span>{label}</span>
     </button>
   );
+
+  if (disabled && disabledReason) {
+    return (
+      <span title={disabledReason} tabIndex={0} aria-label={disabledReason}>
+        {button}
+      </span>
+    );
+  }
+
+  return button;
 };
 
 export const ProjectDetailPage = ({
@@ -96,8 +126,9 @@ export const ProjectDetailPage = ({
   const project = useGetProject({ projectId, enabled: Boolean(projectId) });
   const meName = useMeStore((state) => state.meName);
   const syncStatus = useGetProjectSyncStatus({ projectId, enabled: Boolean(projectId) });
+  const postProjectSync = usePostProjectSync({ projectId });
   const chats = useGetProjectChats({ projectId, type: 'all', enabled: Boolean(projectId) });
-  const guide = useGetProjectGuide({ projectId, enabled: Boolean(projectId) });
+  // const guide = useGetProjectGuide({ projectId, enabled: Boolean(projectId) });
   const members = useGetProjectMembers({ projectId, enabled: Boolean(projectId) });
 
   const [draft, setDraft] = useState('');
@@ -105,13 +136,17 @@ export const ProjectDetailPage = ({
   const [streamContent, setStreamContent] = useState('');
   const [streamSources, setStreamSources] = useState<SourceItem[]>([]);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [copyToastVisible, setCopyToastVisible] = useState(false);
+  const copyToastTimeoutRef = useRef<number | null>(null);
 
-  const allChats = useMemo(() => chats.data?.chats ?? [], [chats.data?.chats]);
+  const allChats = useMemo(() => chats.data?.data ?? [], [chats.data?.data]);
   const activeChat = useMemo(
     () => allChats.find((chat) => chat.id === activeChatId),
     [allChats, activeChatId]
   );
-  const isPersonalChat = activeChat?.type === 'personal';
+  const isPersonalChat = activeChat?.chat_type === 'PERSONAL';
+  const isTeamChat = activeChat?.chat_type === 'TEAM';
+  const isTeamChatReadOnly = isTeamChat && !API_CAPABILITIES.teamChatWritable;
 
   const messages = useGetChatMessages({
     chatId: activeChatId,
@@ -134,15 +169,55 @@ export const ProjectDetailPage = ({
   const createChat = usePostProjectChats({ projectId });
 
   const isSending = postTeamMessage.isPending || postPersonalMessage.isPending;
-  const canSend = Boolean(activeChatId) && Boolean(draft.trim()) && !isSending;
-  const projectName = project.data?.name ?? '프로젝트';
-  const chatName = activeChat?.name ?? '채팅';
+  const canSend =
+    Boolean(activeChatId) && Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly;
+  const teamReadOnlyReason = TEAM_CHAT_READONLY_TOOLTIP;
+  const syncStatusValue = syncStatus.data?.data.status;
+  const syncStatusLabel = (() => {
+    if (!syncStatusValue) return '동기화 상태 확인 중';
+    if (syncStatusValue === 'queued') return '동기화 대기 중';
+    if (syncStatusValue === 'syncing') return '동기화 중';
+    if (syncStatusValue === 'done') return '동기화됨';
+    if (syncStatusValue === 'failed') return '동기화 실패';
+    return '동기화 상태 확인 중';
+  })();
+  const isSyncInProgress = syncStatusValue === 'queued' || syncStatusValue === 'syncing';
+  const canRequestProjectSync =
+    Boolean(projectId) && !isSyncInProgress && !postProjectSync.isPending;
+
+  const projectName = project.data?.data.name;
+  const chatName = activeChat?.name;
   const myAvatarName = meName || '나';
-  const memberCount = members.data?.members.length ?? 0;
+  const memberCount = members.data?.data.length ?? 0;
+  const messageItems = useMemo(() => {
+    const payload = messages.data;
+    return payload?.data ?? [];
+  }, [messages.data]);
+
+  useEffect(() => {
+    return () => {
+      if (copyToastTimeoutRef.current !== null) {
+        window.clearTimeout(copyToastTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const showCopyToast = (): void => {
+    setCopyToastVisible(true);
+    if (copyToastTimeoutRef.current !== null) {
+      window.clearTimeout(copyToastTimeoutRef.current);
+    }
+
+    copyToastTimeoutRef.current = window.setTimeout(() => {
+      setCopyToastVisible(false);
+      copyToastTimeoutRef.current = null;
+    }, 1500);
+  };
 
   const copyText = async (value: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(value);
+      showCopyToast();
     } catch {
       // noop
     }
@@ -194,6 +269,11 @@ export const ProjectDetailPage = ({
     }
   };
 
+  const requestProjectSync = (): void => {
+    if (!canRequestProjectSync) return;
+    postProjectSync.mutate();
+  };
+
   if (!projectId) {
     return (
       <InlineAlert tone="danger" title="잘못된 경로">
@@ -212,14 +292,35 @@ export const ProjectDetailPage = ({
 
   return (
     <section className="flex h-full min-h-0 flex-col rounded-[16px] border border-zinc-200 bg-white">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-hidden={!copyToastVisible}
+        className={`pointer-events-none fixed right-6 top-6 z-50 rounded-[10px] border border-zinc-200 bg-zinc-900 px-3 py-2 text-[12px] font-medium text-white shadow-lg transition-all duration-200 ${
+          copyToastVisible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
+        }`}
+      >
+        복사되었습니다
+      </div>
+
       <header className="flex h-10 shrink-0 items-center justify-between px-4">
         <div className="flex min-w-0 items-center gap-1">
           <Chip label={projectName} startIcon startIconName="Code_light" />
-          <Chip label="동기화됨" startIcon startIconName="dot_round_fill" />
+          <Chip label={syncStatusLabel} startIcon startIconName="dot_round_fill" />
           <span className="text-[10px] font-medium text-zinc-400">
-            {formatTimeLabel(syncStatus.data?.lastSyncedAt ?? null)}
+            {formatTimeLabel(syncStatus.data?.data.latestJob?.updatedAt ?? null)}
           </span>
-          <IconButton size="md" name="Refresh_light" aria-label="새로고침" />
+          <IconButton
+            size="md"
+            name="Refresh_light"
+            aria-label="프로젝트 동기화 요청"
+            title={canRequestProjectSync ? '프로젝트 동기화 요청' : '동기화 진행 중'}
+            disabled={!canRequestProjectSync}
+            onClick={requestProjectSync}
+            iconClassName={
+              isSyncInProgress || postProjectSync.isPending ? 'animate-spin' : undefined
+            }
+          />
         </div>
 
         <Chip label={`${memberCount} 멤버들`} startIcon startIconName="Group_light" />
@@ -237,6 +338,20 @@ export const ProjectDetailPage = ({
           <div className="mb-2">
             <InlineAlert tone="danger" title="메시지 조회 실패">
               {handleApiError(messages.error).message}
+            </InlineAlert>
+          </div>
+        ) : null}
+        {syncStatus.isError ? (
+          <div className="mb-2">
+            <InlineAlert tone="danger" title="동기화 상태 조회 실패">
+              {handleApiError(syncStatus.error).message}
+            </InlineAlert>
+          </div>
+        ) : null}
+        {postProjectSync.isError ? (
+          <div className="mb-2">
+            <InlineAlert tone="danger" title="프로젝트 동기화 요청 실패">
+              {handleApiError(postProjectSync.error).message}
             </InlineAlert>
           </div>
         ) : null}
@@ -261,6 +376,13 @@ export const ProjectDetailPage = ({
             </InlineAlert>
           </div>
         ) : null}
+        {isTeamChatReadOnly ? (
+          <div className="mb-2">
+            <InlineAlert tone="info" title="팀채팅 읽기 전용">
+              팀채팅은 현재 읽기 전용입니다. 작성 기능은 추후 지원 예정입니다.
+            </InlineAlert>
+          </div>
+        ) : null}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
@@ -269,18 +391,22 @@ export const ProjectDetailPage = ({
             <p className="text-[12px] font-medium text-zinc-500">메시지를 불러오는 중...</p>
           ) : null}
 
-          {!messages.isLoading && (messages.data?.messages.length ?? 0) === 0 ? (
+          {/* {!messages.isLoading && messageItems.length === 0 ? (
             <article className="rounded-[12px] border border-zinc-200 bg-white p-3 text-[12px] leading-[1.6] text-zinc-800">
               {guide.data?.welcomeMessage ?? `${projectName}에 대해 물어보세요!`}
             </article>
-          ) : null}
+          ) : null} */}
 
-          {messages.data?.messages.map((message) => {
-            if (message.role === 'user') {
+          {messageItems.map((message) => {
+            const messageId = getMessageId(message);
+            const messageRole = getMessageRole(message);
+            const messageContent = getMessageContent(message);
+
+            if (messageRole === 'user' || messageRole === 'USER') {
               return (
-                <div key={message.id} className="flex items-start justify-end gap-3">
+                <div key={messageId} className="flex items-start justify-end gap-3">
                   <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-[12px] font-medium text-zinc-800">
-                    {message.content}
+                    {messageContent}
                   </div>
                   <Avatar name={myAvatarName} />
                 </div>
@@ -291,9 +417,9 @@ export const ProjectDetailPage = ({
             const primarySource = sources[0];
 
             return (
-              <article key={message.id} className="rounded-[12px] bg-white">
+              <article key={messageId} className="rounded-[12px] bg-white">
                 <div className="whitespace-pre-wrap text-[12px] leading-[1.6] text-zinc-800">
-                  {message.content}
+                  {messageContent}
                 </div>
 
                 {primarySource ? (
@@ -326,7 +452,7 @@ export const ProjectDetailPage = ({
                     <div className="divide-y divide-zinc-100">
                       {sources.map((source) => (
                         <div
-                          key={`${message.id}-${source.filePath}-${source.startLine ?? 0}`}
+                          key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
                           className="flex items-center justify-between px-3 py-1.5 text-[12px]"
                         >
                           <span className="min-w-0 flex-1 truncate text-zinc-800">
@@ -345,20 +471,28 @@ export const ProjectDetailPage = ({
                   <MessageActionButton
                     iconName="Copy_light"
                     label="복사"
-                    onClick={() => copyText(message.content)}
+                    onClick={() => copyText(messageContent)}
                   />
                   <MessageActionButton
                     iconName="Send_hor_fill"
                     label="팀 채팅에 공유"
-                    disabled={postShare.isPending}
+                    disabled={postShare.isPending || !API_CAPABILITIES.teamChatWritable}
+                    disabledReason={
+                      !API_CAPABILITIES.teamChatWritable ? teamReadOnlyReason : undefined
+                    }
                     onClick={() =>
                       postShare.mutate({
-                        messageId: message.id,
+                        messageId,
                         body: { comment: `${chatName}에서 공유한 답변입니다.` }
                       })
                     }
                   />
-                  <MessageActionButton iconName="Add_round_light" label="새로운 팀 채팅 만들기" />
+                  <MessageActionButton
+                    iconName="Add_round_light"
+                    label="새로운 팀 채팅 만들기"
+                    disabled
+                    disabledReason={teamReadOnlyReason}
+                  />
                 </div>
               </article>
             );
@@ -391,10 +525,14 @@ export const ProjectDetailPage = ({
           placeholder={
             !activeChatId
               ? '채팅을 선택하세요...'
-              : (guide.data?.welcomeMessage ?? '메시지를 입력하세요...')
+              : isTeamChatReadOnly
+                ? '팀채팅은 현재 읽기 전용입니다.'
+                : '메시지를 입력하세요...'
+            //guide.data?.welcomeMessage
           }
-          disabled={!activeChatId}
+          disabled={!activeChatId || isTeamChatReadOnly}
           canSend={canSend}
+          sendDisabledReason={isTeamChatReadOnly ? teamReadOnlyReason : undefined}
           isSending={isSending}
           onChange={setDraft}
           onSend={sendMessage}

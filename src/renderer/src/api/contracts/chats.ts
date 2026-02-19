@@ -45,11 +45,6 @@ export type ChatMessage = {
   originalMessage?: OriginalMessage | null;
 };
 
-export type ChatMessagesResponse = {
-  messages: ChatMessage[];
-  nextCursor: string | null;
-};
-
 export type ShareMessageBody = {
   targetChatId?: string | null;
   comment?: string;

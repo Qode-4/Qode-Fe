@@ -10,54 +10,99 @@
  * ---------------------------------------------------------------
  */
 
-export interface HealthResponse {
-  /** @example true */
+export interface HealthListData {
   ok: boolean;
-  /** @example "qode-server" */
   service: string;
-  storage: "memory" | "postgres";
+  storage: 'postgres' | 'memory';
   /** @format date-time */
   now: string;
 }
 
-export interface ErrorResponse {
-  /** @example 400 */
-  status: number;
-  /** @example false */
+export interface SampleItemsListData {
   ok: boolean;
-  /** @example "BAD_REQUEST" */
-  error: string;
-  message: string;
-  details?: any;
+  data: {
+    /** @format uuid */
+    id: string;
+    title: string;
+    description: string | null;
+    /** @format date-time */
+    createdAt: string;
+    /** @format date-time */
+    updatedAt: string;
+  }[];
 }
 
-export interface AuthUser {
-  /** @format uuid */
-  id: string;
-  /** @format email */
-  email: string;
-  name: string;
-  /** @format uri */
-  avatarUrl: string | null;
+export interface SampleItemsCreatePayload {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  title: string;
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   */
+  description?: string;
 }
 
-export interface AuthTokenResponse {
-  token: string;
-  user: AuthUser;
+export interface SampleItemsCreateData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    title: string;
+    description: string | null;
+    /** @format date-time */
+    createdAt: string;
+    /** @format date-time */
+    updatedAt: string;
+  };
 }
 
-export interface MeResponse {
-  /** @format uuid */
-  id: string;
-  token: string;
-  /** @format email */
-  email: string;
-  name: string;
-  /** @format uri */
-  avatarUrl: string | null;
+export interface SampleItemsDetailData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    title: string;
+    description: string | null;
+    /** @format date-time */
+    createdAt: string;
+    /** @format date-time */
+    updatedAt: string;
+  };
 }
 
-export interface SignupRequest {
+export interface SampleItemsPartialUpdatePayload {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  title?: string;
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   */
+  description?: string;
+}
+
+export interface SampleItemsPartialUpdateData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    title: string;
+    description: string | null;
+    /** @format date-time */
+    createdAt: string;
+    /** @format date-time */
+    updatedAt: string;
+  };
+}
+
+export type SampleItemsDeleteData = any;
+
+export interface SignupCreatePayload {
   /**
    * @format email
    * @maxLength 100
@@ -75,7 +120,19 @@ export interface SignupRequest {
   name: string;
 }
 
-export interface LoginRequest {
+export interface SignupCreateData {
+  token: string;
+  user: {
+    /** @format uuid */
+    id: string;
+    /** @format email */
+    email: string;
+    name: string;
+    avatarUrl: string | null;
+  };
+}
+
+export interface LoginCreatePayload {
   /**
    * @format email
    * @maxLength 100
@@ -88,158 +145,437 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface SampleItem {
-  /** @format uuid */
-  id: string;
-  title: string;
-  description?: string;
-  /** @format date-time */
-  createdAt: string;
-  /** @format date-time */
-  updatedAt: string;
-}
-
-export interface CreateSampleItemRequest {
-  /**
-   * @minLength 1
-   * @maxLength 120
-   */
-  title: string;
-  /**
-   * @minLength 1
-   * @maxLength 1000
-   */
-  description?: string;
-}
-
-export interface UpdateSampleItemRequest {
-  /**
-   * @minLength 1
-   * @maxLength 120
-   */
-  title?: string;
-  /**
-   * @minLength 1
-   * @maxLength 1000
-   */
-  description?: string;
-}
-
-export interface SampleItemListResponse {
-  /** @example true */
-  ok: boolean;
-  data: SampleItem[];
-}
-
-export interface SampleItemSingleResponse {
-  /** @example true */
-  ok: boolean;
-  data: SampleItem;
-}
-
-export interface ProjectCreator {
-  /** @format uuid */
-  id: string;
-  name: string;
-  /** @format uri */
-  avatarUrl: string | null;
-}
-
-export interface Project {
-  /** @format uuid */
-  id: string;
-  name: string;
-  description: string | null;
-  /** @format uri */
-  gitUrl: string | null;
-  inviteCode: string;
-  /** @format date-time */
-  lastSyncedAt: string | null;
-  questionCount: number;
-  /** @format date-time */
-  createdAt: string;
-  createdBy: ProjectCreator;
-  role: "OWNER";
-}
-
-export interface CreateProjectRequest {
-  /**
-   * @minLength 1
-   * @maxLength 120
-   */
-  name: string;
-  /**
-   * @minLength 1
-   * @maxLength 1000
-   */
-  description?: string | null;
-  /** @format uri */
-  gitUrl?: string | null;
-  createdBy: {
+export interface LoginCreateData {
+  token: string;
+  user: {
     /** @format uuid */
     id: string;
-    /**
-     * @minLength 1
-     * @maxLength 80
-     */
+    /** @format email */
+    email: string;
     name: string;
-    /** @format uri */
-    avatarUrl?: string | null;
+    avatarUrl: string | null;
   };
 }
 
-export interface ProjectListResponse {
-  /** @example true */
-  ok: boolean;
-  data: Project[];
+export interface RefreshCreateData {
+  token: string;
+  user: {
+    /** @format uuid */
+    id: string;
+    /** @format email */
+    email: string;
+    name: string;
+    avatarUrl: string | null;
+  };
 }
 
-export interface ProjectSingleResponse {
-  /** @example true */
-  ok: boolean;
-  data: Project;
+export interface GetAuthData {
+  /** @format uuid */
+  id: string;
+  token: string;
+  /** @format email */
+  email: string;
+  name: string;
+  avatarUrl: string | null;
 }
-
-export type HealthListData = HealthResponse;
-
-export type SampleItemsListData = SampleItemListResponse;
-
-export type SampleItemsCreateData = SampleItemSingleResponse;
-
-export type SampleItemsCreateError = ErrorResponse;
-
-export type SampleItemsDetailData = SampleItemSingleResponse;
-
-export type SampleItemsDetailError = ErrorResponse;
-
-export type SampleItemsPartialUpdateData = SampleItemSingleResponse;
-
-export type SampleItemsPartialUpdateError = ErrorResponse;
-
-export type SampleItemsDeleteData = any;
-
-export type SampleItemsDeleteError = ErrorResponse;
-
-export type ProjectsListData = ProjectListResponse;
-
-export type ProjectsCreateData = ProjectSingleResponse;
-
-export type ProjectsCreateError = ErrorResponse;
-
-export type SignupCreateData = AuthTokenResponse;
-
-export type SignupCreateError = ErrorResponse;
-
-export type LoginCreateData = AuthTokenResponse;
-
-export type LoginCreateError = ErrorResponse;
-
-export type RefreshCreateData = AuthTokenResponse;
-
-export type RefreshCreateError = ErrorResponse;
-
-export type GetAuthData = MeResponse;
-
-export type GetAuthError = ErrorResponse;
 
 export type LogoutCreateData = any;
+
+export interface GithubOauthDeviceStartCreateData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    flowId: string;
+    userCode: string;
+    verificationUri: string;
+    verificationUriComplete: string | null;
+    /** @format date-time */
+    expiresAt: string;
+    interval: number;
+  };
+}
+
+export interface GithubOauthDeviceFlowsDetailData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    flowId: string;
+    /** @format uuid */
+    requestedBy: string;
+    deviceCode: string;
+    userCode: string;
+    verificationUri: string;
+    verificationUriComplete: string | null;
+    /** @format date-time */
+    expiresAt: string;
+    intervalSec: number;
+    status: 'auth_pending' | 'authorized' | 'auth_failed' | 'expired';
+    tokenRefId: string | null;
+    error: string | null;
+    /** @format date-time */
+    createdAt: string;
+    /** @format date-time */
+    updatedAt: string;
+  };
+}
+
+export interface GithubOauthReposListData {
+  ok: boolean;
+  data: {
+    id: number;
+    owner: string;
+    name: string;
+    fullName: string;
+    private: boolean;
+    defaultBranch: string;
+    htmlUrl: string;
+    cloneUrl: string;
+  }[];
+}
+
+export interface ProjectsListData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    name: string;
+    description: string | null;
+    gitUrl: string | null;
+    inviteCode: string;
+    lastSyncedAt: string | null;
+    questionCount: number;
+    /** @format date-time */
+    createdAt: string;
+    createdBy: {
+      /** @format uuid */
+      id: string;
+      name: string;
+      avatarUrl: string | null;
+    };
+    role: 'OWNER' | 'MEMBER';
+  }[];
+}
+
+export interface ProjectsCreatePayload {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  name: string;
+  description?: string | null;
+  git?: {
+    provider: 'github_oauth';
+    /** @format uuid */
+    flowId: string;
+    /**
+     * @minLength 1
+     * @maxLength 100
+     */
+    owner: string;
+    /**
+     * @minLength 1
+     * @maxLength 100
+     */
+    repo: string;
+    /**
+     * @minLength 1
+     * @maxLength 100
+     */
+    defaultBranch: string;
+  };
+}
+
+export interface ProjectsCreateData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    name: string;
+    description: string | null;
+    gitUrl: string | null;
+    inviteCode: string;
+    lastSyncedAt: string | null;
+    questionCount: number;
+    /** @format date-time */
+    createdAt: string;
+    createdBy: {
+      /** @format uuid */
+      id: string;
+      name: string;
+      avatarUrl: string | null;
+    };
+    role: 'OWNER' | 'MEMBER';
+    syncJob: {
+      /** @format uuid */
+      id: string;
+      /** @format uuid */
+      projectId: string;
+      /** @format uuid */
+      requestedBy: string;
+      status: 'queued' | 'syncing' | 'done' | 'failed';
+      /**
+       * @min 0
+       * @max 100
+       */
+      progress: number;
+      errorCode:
+        | 'PROJECT_SYNC_PROJECT_NOT_FOUND'
+        | 'PROJECT_SYNC_FORBIDDEN'
+        | 'PROJECT_SYNC_ALREADY_RUNNING'
+        | 'PROJECT_SYNC_REPO_NOT_CONFIGURED'
+        | 'PROJECT_SYNC_JOB_NOT_FOUND'
+        | 'PROJECT_SYNC_OAUTH_REAUTH_REQUIRED'
+        | 'PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND'
+        | 'PROJECT_SYNC_NETWORK_ERROR'
+        | 'PROJECT_SYNC_TIMEOUT'
+        | 'PROJECT_SYNC_STORAGE_ERROR'
+        | 'PROJECT_SYNC_UNKNOWN_ERROR'
+        | null;
+      errorMessage: string | null;
+      syncedCommit: string | null;
+      /** @format date-time */
+      createdAt: string;
+      startedAt: string | null;
+      finishedAt: string | null;
+      /** @format date-time */
+      updatedAt: string;
+    } | null;
+  };
+}
+
+export interface ProjectsDetailData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    name: string;
+    description: string | null;
+    gitUrl: string | null;
+    inviteCode: string;
+    lastSyncedAt: string | null;
+    questionCount: number;
+    /** @format date-time */
+    createdAt: string;
+    createdBy: {
+      /** @format uuid */
+      id: string;
+      name: string;
+      avatarUrl: string | null;
+    };
+    role: 'OWNER' | 'MEMBER';
+  };
+}
+
+export interface ProjectsMembersListData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+    role: 'OWNER' | 'MEMBER';
+    joinedAt: string | null;
+  }[];
+}
+
+export interface ProjectsSyncCreateData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    /** @format uuid */
+    projectId: string;
+    /** @format uuid */
+    requestedBy: string;
+    status: 'queued' | 'syncing' | 'done' | 'failed';
+    /**
+     * @min 0
+     * @max 100
+     */
+    progress: number;
+    errorCode:
+      | 'PROJECT_SYNC_PROJECT_NOT_FOUND'
+      | 'PROJECT_SYNC_FORBIDDEN'
+      | 'PROJECT_SYNC_ALREADY_RUNNING'
+      | 'PROJECT_SYNC_REPO_NOT_CONFIGURED'
+      | 'PROJECT_SYNC_JOB_NOT_FOUND'
+      | 'PROJECT_SYNC_OAUTH_REAUTH_REQUIRED'
+      | 'PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND'
+      | 'PROJECT_SYNC_NETWORK_ERROR'
+      | 'PROJECT_SYNC_TIMEOUT'
+      | 'PROJECT_SYNC_STORAGE_ERROR'
+      | 'PROJECT_SYNC_UNKNOWN_ERROR'
+      | null;
+    errorMessage: string | null;
+    syncedCommit: string | null;
+    /** @format date-time */
+    createdAt: string;
+    startedAt: string | null;
+    finishedAt: string | null;
+    /** @format date-time */
+    updatedAt: string;
+  };
+}
+
+export interface ProjectsSyncStatusListData {
+  ok: boolean;
+  data: {
+    status: 'idle' | 'queued' | 'syncing' | 'done' | 'failed';
+    latestJob: {
+      /** @format uuid */
+      id: string;
+      /** @format uuid */
+      projectId: string;
+      /** @format uuid */
+      requestedBy: string;
+      status: 'queued' | 'syncing' | 'done' | 'failed';
+      /**
+       * @min 0
+       * @max 100
+       */
+      progress: number;
+      errorCode:
+        | 'PROJECT_SYNC_PROJECT_NOT_FOUND'
+        | 'PROJECT_SYNC_FORBIDDEN'
+        | 'PROJECT_SYNC_ALREADY_RUNNING'
+        | 'PROJECT_SYNC_REPO_NOT_CONFIGURED'
+        | 'PROJECT_SYNC_JOB_NOT_FOUND'
+        | 'PROJECT_SYNC_OAUTH_REAUTH_REQUIRED'
+        | 'PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND'
+        | 'PROJECT_SYNC_NETWORK_ERROR'
+        | 'PROJECT_SYNC_TIMEOUT'
+        | 'PROJECT_SYNC_STORAGE_ERROR'
+        | 'PROJECT_SYNC_UNKNOWN_ERROR'
+        | null;
+      errorMessage: string | null;
+      syncedCommit: string | null;
+      /** @format date-time */
+      createdAt: string;
+      startedAt: string | null;
+      finishedAt: string | null;
+      /** @format date-time */
+      updatedAt: string;
+    } | null;
+  };
+}
+
+export interface ProjectsSyncJobsDetailData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    /** @format uuid */
+    projectId: string;
+    /** @format uuid */
+    requestedBy: string;
+    status: 'queued' | 'syncing' | 'done' | 'failed';
+    /**
+     * @min 0
+     * @max 100
+     */
+    progress: number;
+    errorCode:
+      | 'PROJECT_SYNC_PROJECT_NOT_FOUND'
+      | 'PROJECT_SYNC_FORBIDDEN'
+      | 'PROJECT_SYNC_ALREADY_RUNNING'
+      | 'PROJECT_SYNC_REPO_NOT_CONFIGURED'
+      | 'PROJECT_SYNC_JOB_NOT_FOUND'
+      | 'PROJECT_SYNC_OAUTH_REAUTH_REQUIRED'
+      | 'PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND'
+      | 'PROJECT_SYNC_NETWORK_ERROR'
+      | 'PROJECT_SYNC_TIMEOUT'
+      | 'PROJECT_SYNC_STORAGE_ERROR'
+      | 'PROJECT_SYNC_UNKNOWN_ERROR'
+      | null;
+    errorMessage: string | null;
+    syncedCommit: string | null;
+    /** @format date-time */
+    createdAt: string;
+    startedAt: string | null;
+    finishedAt: string | null;
+    /** @format date-time */
+    updatedAt: string;
+  };
+}
+
+export interface ChatsMeListData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    /** @format uuid */
+    project_id: string;
+    /** @format uuid */
+    created_by: string;
+    name: string;
+    chat_type: 'PERSONAL' | 'TEAM';
+    /** @format date-time */
+    created_at: string;
+  }[];
+}
+
+export interface ChatsMeCreatePayload {
+  /** @format uuid */
+  project_id: string;
+  /** @format uuid */
+  created_by: string;
+  chat_type: 'PERSONAL';
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  name: string;
+}
+
+export interface ChatsMeCreateData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    /** @format uuid */
+    project_id: string;
+    /** @format uuid */
+    created_by: string;
+    name: string;
+    chat_type: 'PERSONAL' | 'TEAM';
+    /** @format date-time */
+    created_at: string;
+  };
+}
+
+export interface ChatsMeMessagesCreatePayload {
+  /** @format uuid */
+  user_id: string;
+  /**
+   * @minLength 1
+   * @maxLength 4000
+   */
+  content: string;
+}
+
+/** Server-sent events stream */
+export type ChatsMeMessagesCreateData = string;
+
+export interface ChatsMeMessagesListData {
+  ok: boolean;
+  data: {
+    /** @format uuid */
+    id: string;
+    /** @format uuid */
+    chat_id: string;
+    user_id: string | null;
+    role: 'USER' | 'ASSISTANT' | 'SYSTEM';
+    content: string;
+    status: 'COMPLETE' | 'STREAMING' | 'FAILED';
+    /** @format date-time */
+    created_at: string;
+  }[];
+}
+
+export interface ChatsMePromptMessagesListData {
+  ok: boolean;
+  data: {
+    role: 'USER' | 'ASSISTANT' | 'SYSTEM';
+    content: string;
+  }[];
+}

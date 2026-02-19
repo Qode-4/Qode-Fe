@@ -10,7 +10,9 @@ export const QUERY_KEY = {
   syncStatus: (projectId: string) => ['syncStatus', projectId] as const,
   projectChats: (projectId: string, type: 'all' | 'personal' | 'team' = 'all') =>
     ['projectChats', projectId, type] as const,
+  projectChatsByProject: (projectId: string) => ['projectChats', projectId] as const,
   chatMessages: (chatId: string, personal = false) =>
     ['chatMessages', chatId, personal ? 'personal' : 'team'] as const,
+  chatMessagesByChat: (chatId: string) => ['chatMessages', chatId] as const,
   projectGuide: (projectId: string) => ['projectGuide', projectId] as const
 } as const;

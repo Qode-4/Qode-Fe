@@ -9,12 +9,6 @@ export default defineConfig({
   preload: {},
   renderer: {
     envDir: process.cwd(),
-    server: {
-      proxy: {
-        '/api': 'http://localhost:3000',
-        '/health': 'http://localhost:3000'
-      }
-    },
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src')

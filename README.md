@@ -79,6 +79,7 @@ VITE_API_BASE_URL=http://localhost:3000
 
 ```bash
 yarn dev          # Electron + Vite 개발 서버
+yarn web:build    # 웹 정적 파일 빌드 (src/renderer/dist)
 yarn start        # 빌드 결과 프리뷰
 yarn lint         # ESLint 검사
 yarn typecheck    # TypeScript 타입 검사
@@ -101,6 +102,69 @@ git push origin v1.0.1
 
 - 워크플로 파일: `.github/workflows/release.yml`
 - 릴리즈 확인: GitHub 저장소의 `Releases` 탭
+
+## AWS EC2 웹 배포 (CloudFront 없이)
+
+Electron 설치 파일 배포가 아니라 웹 정적 파일만 EC2에서 서빙하려면 아래 구성을 사용합니다.
+
+1. EC2에 Nginx 설치
+
+```bash
+# Ubuntu
+sudo apt update && sudo apt install -y nginx
+
+# Amazon Linux (ec2-user 환경)
+sudo dnf install -y nginx || sudo yum install -y nginx
+sudo systemctl enable --now nginx
+```
+
+2. 배포 디렉터리 준비 (`ec2-user` 기준)
+
+```bash
+sudo mkdir -p /var/www/qode-web/releases
+sudo chown -R ec2-user:ec2-user /var/www/qode-web
+```
+
+3. Nginx 서버 블록 설정 (`/etc/nginx/conf.d/qode-web.conf`)
+
+```nginx
+server {
+  listen 80;
+  server_name your-domain.com;
+
+  root /var/www/qode-web/current;
+  index index.html;
+
+  location / {
+    try_files $uri /index.html;
+  }
+}
+```
+
+4. Nginx 활성화
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+5. GitHub Actions 시크릿/변수 설정
+
+- 필수 Secrets
+- `EC2_HOST`: EC2 퍼블릭 DNS 또는 IP
+- `EC2_USER`: SSH 사용자 (예: `ec2-user`, `ubuntu`)
+- `EC2_SSH_KEY`: 개인키 전체 내용 (`-----BEGIN ...`)
+- `VITE_API_BASE_URL`: 웹에서 호출할 API 서버 URL
+- 선택 Secrets
+- `EC2_PORT`: SSH 포트 (기본 22)
+- 선택 Variables
+- `EC2_APP_DIR`: 원격 배포 경로 (기본값: `/var/www/qode-web`)
+
+6. 배포 실행
+
+- `main` 브랜치에 push하면 자동 배포
+- 수동 실행은 `Actions > Deploy Web To EC2 > Run workflow`
+- 워크플로 파일: `.github/workflows/web-deploy-ec2.yml`
 
 OpenAPI 타입/클라이언트 재생성이 필요하면:
 
