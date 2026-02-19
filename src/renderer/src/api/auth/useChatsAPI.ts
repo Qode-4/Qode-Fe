@@ -1,4 +1,4 @@
-import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../apiClient';
 import type {
@@ -12,7 +12,6 @@ import type {
 import { ContentType } from '../generated/http-client';
 import { QUERY_KEY } from '../queryKeys';
 import { tokenStorage } from '../tokenStorage';
-import type { ErrorResponse } from '../generated/data-contracts';
 
 type SseStatusPayload = {
   status?: string;
@@ -177,20 +176,10 @@ export const useGetProjectChats = (params: {
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });
 
-export const usePostProjectChats = (params: {
-  projectId: string;
-}): UseMutationResult<
-  ProjectChatsResponse['chats'][number],
-  ErrorResponse,
-  { name?: string; type: 'personal' | 'team' }
-> => {
+export const usePostProjectChats = (params: { projectId: string }) => {
   const qc = useQueryClient();
-  return useMutation<
-    ProjectChatsResponse['chats'][number],
-    ErrorResponse,
-    { name?: string; type: 'personal' | 'team' }
-  >({
-    mutationFn: async (body) => {
+  return useMutation({
+    mutationFn: async (body: { name?: string; type: 'personal' | 'team' }) => {
       const res = await apiClient.request<ProjectChatsResponse['chats'][number]>({
         path: `/api/projects/${params.projectId}/chats`,
         method: 'POST',
@@ -236,14 +225,17 @@ export const useGetChatMessages = (params: {
     enabled: (params.enabled ?? true) && Boolean(params.chatId)
   });
 
-export const usePostPersonalChatMessageSSE = (params: {
-  projectId: string;
-  chatId: string;
-}): UseMutationResult<void, Error, { content: string; callbacks?: MessageStreamCallbacks }> => {
+export const usePostPersonalChatMessageSSE = (params: { projectId: string; chatId: string }) => {
   const qc = useQueryClient();
 
-  return useMutation<void, Error, { content: string; callbacks?: MessageStreamCallbacks }>({
-    mutationFn: async ({ content, callbacks }) =>
+  return useMutation({
+    mutationFn: async ({
+      content,
+      callbacks
+    }: {
+      content: string;
+      callbacks?: MessageStreamCallbacks;
+    }) =>
       streamChatMessage({
         path: `/api/chats/me/${params.chatId}/messages`,
         content,
@@ -256,14 +248,17 @@ export const usePostPersonalChatMessageSSE = (params: {
   });
 };
 
-export const usePostTeamChatMessageSSE = (params: {
-  projectId: string;
-  chatId: string;
-}): UseMutationResult<void, Error, { content: string; callbacks?: MessageStreamCallbacks }> => {
+export const usePostTeamChatMessageSSE = (params: { projectId: string; chatId: string }) => {
   const qc = useQueryClient();
 
-  return useMutation<void, Error, { content: string; callbacks?: MessageStreamCallbacks }>({
-    mutationFn: async ({ content, callbacks }) =>
+  return useMutation({
+    mutationFn: async ({
+      content,
+      callbacks
+    }: {
+      content: string;
+      callbacks?: MessageStreamCallbacks;
+    }) =>
       streamChatMessage({
         path: `/api/chats/${params.chatId}/messages`,
         content,
@@ -276,35 +271,26 @@ export const usePostTeamChatMessageSSE = (params: {
   });
 };
 
-export const usePostMessageShare = (params: {
-  projectId: string;
-  chatId: string;
-}): UseMutationResult<
-  ShareMessageResponse,
-  unknown,
-  { messageId: string; body?: ShareMessageBody }
-> => {
+export const usePostMessageShare = (params: { projectId: string; chatId: string }) => {
   const qc = useQueryClient();
-  return useMutation<ShareMessageResponse, unknown, { messageId: string; body?: ShareMessageBody }>(
-    {
-      mutationFn: async ({ messageId, body }) => {
-        const res = await apiClient.request<ShareMessageResponse>({
-          path: `/api/messages/${messageId}/share`,
-          method: 'POST',
-          body,
-          type: ContentType.Json,
-          secure: true,
-          format: 'json'
-        });
-        return res.data;
-      },
-      onSuccess: () => {
-        void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, false) });
-        void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, true) });
-        void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChats(params.projectId, 'all') });
-      }
+  return useMutation({
+    mutationFn: async ({ messageId, body }: { messageId: string; body?: ShareMessageBody }) => {
+      const res = await apiClient.request<ShareMessageResponse>({
+        path: `/api/messages/${messageId}/share`,
+        method: 'POST',
+        body,
+        type: ContentType.Json,
+        secure: true,
+        format: 'json'
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, false) });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, true) });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChats(params.projectId, 'all') });
     }
-  );
+  });
 };
 
 export const useGetProjectGuide = (params: {

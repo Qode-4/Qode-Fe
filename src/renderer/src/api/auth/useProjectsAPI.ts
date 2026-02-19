@@ -1,4 +1,4 @@
-import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient, authApiClient } from '../apiClient';
 import type {
@@ -156,14 +156,10 @@ export const useGetProjects = (
     enabled: params.enabled ?? true
   });
 
-export const usePostProjects = (): UseMutationResult<
-  CreateProjectResponse,
-  unknown,
-  CreateProjectBody
-> => {
+export const usePostProjects = () => {
   const qc = useQueryClient();
-  return useMutation<CreateProjectResponse, unknown, CreateProjectBody>({
-    mutationFn: async (body) => {
+  return useMutation({
+    mutationFn: async (body: CreateProjectBody) => {
       const meRes = await authApiClient.getAuth({ secure: true });
       const createBody: CreateProjectRequest & { git?: CreateProjectBody['git'] } = {
         name: body.name.trim(),
@@ -219,12 +215,10 @@ export const useGetProject = (params: {
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });
 
-export const usePatchProjectGit = (params: {
-  projectId: string;
-}): UseMutationResult<PatchProjectGitResponse, unknown, PatchProjectGitBody> => {
+export const usePatchProjectGit = (params: { projectId: string }) => {
   const qc = useQueryClient();
-  return useMutation<PatchProjectGitResponse, unknown, PatchProjectGitBody>({
-    mutationFn: async (body) => {
+  return useMutation({
+    mutationFn: async (body: PatchProjectGitBody) => {
       const res = await apiClient.request<PatchProjectGitResponse>({
         path: `/api/projects/${params.projectId}/git`,
         method: 'PATCH',
@@ -242,11 +236,9 @@ export const usePatchProjectGit = (params: {
   });
 };
 
-export const usePostProjectSync = (params: {
-  projectId: string;
-}): UseMutationResult<TriggerSyncResponse, unknown, void> => {
+export const usePostProjectSync = (params: { projectId: string }) => {
   const qc = useQueryClient();
-  return useMutation<TriggerSyncResponse, unknown, void>({
+  return useMutation({
     mutationFn: async () => {
       const res = await apiClient.request<
         TriggerSyncResponse | SyncJobResponse | { data?: TriggerSyncResponse | SyncJobResponse }

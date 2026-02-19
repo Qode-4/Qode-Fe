@@ -1,4 +1,4 @@
-import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../apiClient';
 import type {
@@ -82,12 +82,8 @@ const normalizeRepos = (
   return { repositories };
 };
 
-export const usePostGithubOauthDeviceStart = (): UseMutationResult<
-  GithubOAuthDeviceStartResponse,
-  unknown,
-  void
-> =>
-  useMutation<GithubOAuthDeviceStartResponse, unknown, void>({
+export const usePostGithubOauthDeviceStart = () =>
+  useMutation({
     mutationFn: async () => {
       const res = await apiClient.request<
         GithubOAuthDeviceStartResponse | { data?: GithubOAuthDeviceStartResponse },
