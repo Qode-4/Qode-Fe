@@ -8,6 +8,7 @@ export default defineConfig({
   main: {},
   preload: {},
   renderer: {
+    envDir: process.cwd(),
     server: {
       proxy: {
         '/api': 'http://localhost:3000',

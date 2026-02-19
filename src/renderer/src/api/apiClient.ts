@@ -3,15 +3,12 @@ import { Auth } from './generated/Auth';
 import { Health } from './generated/Health';
 import { tokenStorage } from './tokenStorage';
 
-const useMswInDev = import.meta.env.DEV && import.meta.env.VITE_USE_MSW !== 'false';
-const defaultBaseURL = import.meta.env.DEV
-  ? window.location.origin
-  : (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000');
+const defaultBaseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 const apiClientConfig = {
   // swagger-typescript-api generated clients already include `/api` in their paths when applicable.
   // So baseURL should be the server origin.
-  baseURL: useMswInDev ? window.location.origin : defaultBaseURL,
+  baseURL: defaultBaseURL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
