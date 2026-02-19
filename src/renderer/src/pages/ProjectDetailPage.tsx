@@ -25,11 +25,11 @@ import { IconButton } from '../components/ui/IconButton';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
-import { useMeStore } from '../stores/useMeStore';
 
 type Props = {
   location: RouteLocation;
   activeChatId: string;
+  meName?: string;
   createChatModalType: 'personal' | 'team' | null;
   onCloseCreateChatModal: () => void;
 };
@@ -117,6 +117,7 @@ const MessageActionButton = ({
 export const ProjectDetailPage = ({
   location,
   activeChatId,
+  meName,
   createChatModalType,
   onCloseCreateChatModal
 }: Props): React.JSX.Element => {
@@ -124,7 +125,6 @@ export const ProjectDetailPage = ({
   const projectId = match.matched ? match.params.projectId : '';
 
   const project = useGetProject({ projectId, enabled: Boolean(projectId) });
-  const meName = useMeStore((state) => state.meName);
   const syncStatus = useGetProjectSyncStatus({ projectId, enabled: Boolean(projectId) });
   const postProjectSync = usePostProjectSync({ projectId });
   const chats = useGetProjectChats({ projectId, type: 'all', enabled: Boolean(projectId) });
