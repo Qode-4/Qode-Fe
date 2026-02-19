@@ -4,8 +4,8 @@ import { useGetProjectChats } from './api/auth/useChatsAPI';
 import { useGetProjects } from './api/auth/useProjectsAPI';
 import { handleApiError } from './api/axios';
 import { tokenStorage } from './api/tokenStorage';
-import { AppShell } from './components/layout/AppShell';
 import { CreateProjectModal } from './components/feature/CreateProjectModal';
+import { AppShell } from './components/layout/AppShell';
 import { InlineAlert } from './components/ui/InlineAlert';
 import { buildPath, matchPath, navigate } from './lib/hashRouter';
 import { useHashLocation } from './lib/useHashLocation';
@@ -30,7 +30,6 @@ const App = (): React.JSX.Element => {
   const projectMatch = matchPath(location.path, '/projects/:projectId');
   const selectedProjectId = projectMatch.matched ? projectMatch.params.projectId : undefined;
 
-  // Fetch chats for the selected project (used by both AppShell sidebar and ProjectDetailPage)
   const chats = useGetProjectChats({
     projectId: selectedProjectId ?? '',
     type: 'all',

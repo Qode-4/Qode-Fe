@@ -1,6 +1,5 @@
-import type { UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient, authApiClient } from '../apiClient';
+import { apiClient } from '../apiClient';
 import type {
   CreateProjectBody,
   CreateProjectResponse,
@@ -10,12 +9,19 @@ import type {
   ProjectListItem,
   ProjectListResponse,
   ProjectMembersResponse,
-  SyncJobResponse,
   SyncStatus,
   SyncStatusResponse,
   TriggerSyncResponse
 } from '../contracts/projects';
-import type { CreateProjectRequest, Project, ProjectsListData } from '../generated/data-contracts';
+import type {
+  ProjectsCreateData,
+  ProjectsCreatePayload,
+  ProjectsDetailData,
+  ProjectsListData,
+  ProjectsMembersListData,
+  ProjectsSyncCreateData,
+  ProjectsSyncStatusListData
+} from '../generated/data-contracts';
 import { ContentType } from '../generated/http-client';
 import { QUERY_KEY } from '../queryKeys';
 
@@ -31,7 +37,7 @@ const normalizeSyncStatus = (value: unknown): SyncStatus => {
   return 'idle';
 };
 
-const toProjectListItem = (project: Project): ProjectListItem => ({
+const toProjectListItem = (project: ProjectsListData['data'][number]): ProjectListItem => ({
   id: project.id,
   name: project.name,
   myRole: normalizeRole(project.role),
@@ -41,10 +47,9 @@ const toProjectListItem = (project: Project): ProjectListItem => ({
 const normalizeProjectList = (
   payload: ProjectsListData | ProjectListResponse
 ): ProjectListResponse => {
-  const projectsPayload = payload as ProjectListResponse;
-  if (Array.isArray(projectsPayload.projects)) {
+  if ('projects' in payload && Array.isArray(payload.projects)) {
     return {
-      projects: projectsPayload.projects.map((project) => ({
+      projects: payload.projects.map((project) => ({
         ...project,
         myRole: normalizeRole(project.myRole)
       }))
@@ -52,98 +57,83 @@ const normalizeProjectList = (
   }
 
   const swaggerPayload = payload as ProjectsListData;
-  return { projects: (swaggerPayload.data ?? []).map(toProjectListItem) };
-};
-
-const resolveProjectCreateResponse = (
-  payload:
-    | CreateProjectResponse
-    | {
-        data?: Project;
-        sync?: CreateProjectResponse['sync'];
-        syncJob?: { id?: string; status?: unknown };
-      }
-): CreateProjectResponse => {
-  const wrappedPayload = payload as {
-    data?: Project;
-    sync?: CreateProjectResponse['sync'];
-    syncJob?: { id?: string; status?: unknown };
+  return {
+    projects: (swaggerPayload.data ?? []).map(toProjectListItem)
   };
-  if (wrappedPayload.data) {
-    const syncFromJob =
-      wrappedPayload.syncJob?.id || wrappedPayload.syncJob?.status
-        ? {
-            syncId: wrappedPayload.syncJob?.id ?? '',
-            status: normalizeSyncStatus(wrappedPayload.syncJob?.status)
-          }
-        : undefined;
-    return {
-      ...wrappedPayload.data,
-      role: 'OWNER',
-      ...(wrappedPayload.sync ? { sync: wrappedPayload.sync } : {}),
-      ...(syncFromJob ? { sync: syncFromJob } : {})
-    };
-  }
-
-  return payload as CreateProjectResponse;
 };
 
-const resolveSyncStatusPayload = (
-  payload: SyncStatusResponse | { data?: SyncStatusResponse }
-): SyncStatusResponse => {
-  if (payload && typeof payload === 'object' && 'data' in payload) {
-    const wrapped = payload as { data?: SyncStatusResponse };
-    if (wrapped.data) return wrapped.data;
-  }
-  return payload as SyncStatusResponse;
-};
+const toCreatePayload = (body: CreateProjectBody): ProjectsCreatePayload => ({
+  name: body.name.trim(),
+  description: body.description?.trim() ? body.description.trim() : null,
+  ...(body.git ? { git: body.git } : {})
+});
 
-const resolveTriggerSyncPayload = (
-  payload:
-    | TriggerSyncResponse
-    | SyncJobResponse
-    | {
-        data?: TriggerSyncResponse | SyncJobResponse;
+const toCreateProjectResponse = (payload: ProjectsCreateData): CreateProjectResponse => ({
+  id: payload.data.id,
+  name: payload.data.name,
+  description: payload.data.description,
+  gitUrl: payload.data.gitUrl,
+  inviteCode: payload.data.inviteCode,
+  lastSyncedAt: payload.data.lastSyncedAt,
+  questionCount: payload.data.questionCount,
+  createdAt: payload.data.createdAt,
+  createdBy: payload.data.createdBy,
+  role: normalizeRole(payload.data.role),
+  ...(payload.data.syncJob
+    ? {
+        sync: {
+          syncId: payload.data.syncJob.id,
+          status: normalizeSyncStatus(payload.data.syncJob.status)
+        }
       }
-): TriggerSyncResponse => {
-  const unwrapped =
-    payload && typeof payload === 'object' && 'data' in payload
-      ? ((payload as { data?: TriggerSyncResponse | SyncJobResponse }).data ?? payload)
-      : payload;
-  const job = unwrapped as SyncJobResponse;
-  if ('id' in job && !('syncId' in (unwrapped as TriggerSyncResponse))) {
-    return {
-      syncId: job.id,
-      status: normalizeSyncStatus(job.status),
-      message: 'Sync triggered'
-    };
-  }
-  return unwrapped as TriggerSyncResponse;
-};
+    : {})
+});
 
-const resolveDetailPayload = (
-  payload: ProjectDetailResponse | { data?: ProjectDetailResponse }
-): ProjectDetailResponse => {
-  if (
-    payload &&
-    typeof payload === 'object' &&
-    'data' in payload &&
-    (payload as { data?: ProjectDetailResponse }).data
-  ) {
-    return (payload as { data: ProjectDetailResponse }).data;
-  }
-  return payload as ProjectDetailResponse;
-};
+const toProjectDetailResponse = (payload: ProjectsDetailData): ProjectDetailResponse => ({
+  id: payload.data.id,
+  name: payload.data.name,
+  description: payload.data.description,
+  gitUrl: payload.data.gitUrl,
+  inviteCode: payload.data.inviteCode,
+  createdBy: payload.data.createdBy,
+  lastSyncedAt: payload.data.lastSyncedAt,
+  createdAt: payload.data.createdAt
+});
 
-export const useGetProjects = (
-  params: { search?: string; enabled?: boolean } = {}
-): UseQueryResult<ProjectListResponse, unknown> =>
+const toTriggerSyncResponse = (payload: ProjectsSyncCreateData): TriggerSyncResponse => ({
+  syncId: payload.data.id,
+  status: normalizeSyncStatus(payload.data.status),
+  message: 'Sync triggered'
+});
+
+const toSyncStatusResponse = (payload: ProjectsSyncStatusListData): SyncStatusResponse => ({
+  status: normalizeSyncStatus(payload.data.status),
+  lastSyncedAt: payload.data.latestJob?.updatedAt ?? null,
+  error: payload.data.latestJob?.errorMessage ?? null
+});
+
+const toProjectMembersResponse = (
+  projectId: string,
+  payload: ProjectsMembersListData
+): ProjectMembersResponse => ({
+  projectId,
+  members: (payload.data ?? []).map((member) => ({
+    userId: member.id,
+    id: member.id,
+    name: member.name,
+    avatarUrl: member.avatarUrl ?? null,
+    role: normalizeRole(member.role),
+    joinedAt: member.joinedAt
+  }))
+});
+
+export const useGetProjects = (params: { search?: string; enabled?: boolean } = {}) =>
   useQuery({
     queryKey: QUERY_KEY.projects(params.search),
     queryFn: async () => {
       const search = params.search?.trim();
       const res = search
-        ? await apiClient.request<ProjectsListData | ProjectListResponse>({
+        ? await apiClient.request<ProjectsListData>({
             path: '/api/projects',
             method: 'GET',
             query: { search },
@@ -151,43 +141,20 @@ export const useGetProjects = (
             format: 'json'
           })
         : await apiClient.projectsList({ secure: true });
-      return normalizeProjectList(res.data as ProjectsListData | ProjectListResponse);
+      return normalizeProjectList(res.data);
     },
-    enabled: params.enabled ?? true
+    enabled: params.enabled ?? true,
+    retry: 0,
+    refetchOnWindowFocus: false
   });
 
 export const usePostProjects = () => {
   const qc = useQueryClient();
+
   return useMutation({
     mutationFn: async (body: CreateProjectBody) => {
-      const meRes = await authApiClient.getAuth({ secure: true });
-      const createBody: CreateProjectRequest & { git?: CreateProjectBody['git'] } = {
-        name: body.name.trim(),
-        description: body.description?.trim() ? body.description.trim() : null,
-        gitUrl: body.git ? `https://github.com/${body.git.owner}/${body.git.repo}.git` : null,
-        createdBy: {
-          id: meRes.data.id,
-          name: meRes.data.name,
-          avatarUrl: meRes.data.avatarUrl
-        },
-        ...(body.git ? { git: body.git } : {})
-      };
-
-      const res = await apiClient.request<
-        | CreateProjectResponse
-        | {
-            data?: Project;
-            sync?: CreateProjectResponse['sync'];
-          }
-      >({
-        path: '/api/projects',
-        method: 'POST',
-        body: createBody,
-        type: ContentType.Json,
-        secure: true,
-        format: 'json'
-      });
-      return resolveProjectCreateResponse(res.data);
+      const res = await apiClient.projectsCreate(toCreatePayload(body), { secure: true });
+      return toCreateProjectResponse(res.data);
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['projects'] });
@@ -195,28 +162,19 @@ export const usePostProjects = () => {
   });
 };
 
-export const useGetProject = (params: {
-  projectId: string;
-  enabled?: boolean;
-}): UseQueryResult<ProjectDetailResponse, unknown> =>
+export const useGetProject = (params: { projectId: string; enabled?: boolean }) =>
   useQuery({
     queryKey: QUERY_KEY.project(params.projectId),
     queryFn: async () => {
-      const res = await apiClient.request<ProjectDetailResponse | { data?: ProjectDetailResponse }>(
-        {
-          path: `/api/projects/${params.projectId}`,
-          method: 'GET',
-          secure: true,
-          format: 'json'
-        }
-      );
-      return resolveDetailPayload(res.data);
+      const res = await apiClient.projectsDetail(params.projectId, { secure: true });
+      return toProjectDetailResponse(res.data);
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });
 
 export const usePatchProjectGit = (params: { projectId: string }) => {
   const qc = useQueryClient();
+
   return useMutation({
     mutationFn: async (body: PatchProjectGitBody) => {
       const res = await apiClient.request<PatchProjectGitResponse>({
@@ -238,18 +196,11 @@ export const usePatchProjectGit = (params: { projectId: string }) => {
 
 export const usePostProjectSync = (params: { projectId: string }) => {
   const qc = useQueryClient();
+
   return useMutation({
     mutationFn: async () => {
-      const res = await apiClient.request<
-        TriggerSyncResponse | SyncJobResponse | { data?: TriggerSyncResponse | SyncJobResponse }
-      >({
-        path: `/api/projects/${params.projectId}/sync`,
-        method: 'POST',
-        secure: true,
-        format: 'json'
-      });
-      const normalized = resolveTriggerSyncPayload(res.data);
-      return { ...normalized, status: normalizeSyncStatus(normalized.status) };
+      const res = await apiClient.projectsSyncCreate(params.projectId, { secure: true });
+      return toTriggerSyncResponse(res.data);
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: QUERY_KEY.syncStatus(params.projectId) });
@@ -259,24 +210,12 @@ export const usePostProjectSync = (params: { projectId: string }) => {
   });
 };
 
-export const useGetProjectSyncStatus = (params: {
-  projectId: string;
-  enabled?: boolean;
-}): UseQueryResult<SyncStatusResponse, unknown> =>
+export const useGetProjectSyncStatus = (params: { projectId: string; enabled?: boolean }) =>
   useQuery({
     queryKey: QUERY_KEY.syncStatus(params.projectId),
     queryFn: async () => {
-      const res = await apiClient.request<SyncStatusResponse | { data?: SyncStatusResponse }>({
-        path: `/api/projects/${params.projectId}/sync/status`,
-        method: 'GET',
-        secure: true,
-        format: 'json'
-      });
-      const payload = resolveSyncStatusPayload(res.data);
-      return {
-        ...payload,
-        status: normalizeSyncStatus(payload.status)
-      };
+      const res = await apiClient.projectsSyncStatusList(params.projectId, { secure: true });
+      return toSyncStatusResponse(res.data);
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId),
     refetchInterval: (query) => {
@@ -286,26 +225,12 @@ export const useGetProjectSyncStatus = (params: {
     }
   });
 
-export const useGetProjectMembers = (params: {
-  projectId: string;
-  enabled?: boolean;
-}): UseQueryResult<ProjectMembersResponse, unknown> =>
+export const useGetProjectMembers = (params: { projectId: string; enabled?: boolean }) =>
   useQuery({
     queryKey: QUERY_KEY.projectMembers(params.projectId),
     queryFn: async () => {
-      const res = await apiClient.request<ProjectMembersResponse>({
-        path: `/api/projects/${params.projectId}/members`,
-        method: 'GET',
-        secure: true,
-        format: 'json'
-      });
-      return {
-        ...res.data,
-        members: res.data.members.map((member) => ({
-          ...member,
-          role: normalizeRole(member.role)
-        }))
-      };
+      const res = await apiClient.projectsMembersList(params.projectId, { secure: true });
+      return toProjectMembersResponse(params.projectId, res.data);
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });

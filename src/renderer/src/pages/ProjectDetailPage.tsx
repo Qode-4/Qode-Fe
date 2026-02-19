@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import {
   useGetChatMessages,
   useGetProjectChats,
-  useGetProjectGuide,
   usePostMessageShare,
   usePostPersonalChatMessageSSE,
   usePostProjectChats,
@@ -14,16 +13,17 @@ import {
   useGetProjectSyncStatus
 } from '../api/auth/useProjectsAPI';
 import { handleApiError } from '../api/axios';
+import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
 import type { ChatMessage, SourceItem } from '../api/contracts/chats';
-import type { IconName } from '../components/icons/iconTypes';
 import { CreateChatModal } from '../components/feature/CreateChatModal';
+import type { IconName } from '../components/icons/iconTypes';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Chip } from '../components/ui/Chip';
 import { Icon } from '../components/ui/Icon';
 import { IconButton } from '../components/ui/IconButton';
 import { InlineAlert } from '../components/ui/InlineAlert';
-import { matchPath } from '../lib/hashRouter';
 import type { RouteLocation } from '../lib/hashRouter';
+import { matchPath } from '../lib/hashRouter';
 
 type Props = {
   location: RouteLocation;
@@ -61,6 +61,7 @@ type MessageActionButtonProps = {
   iconName: IconName;
   label: string;
   disabled?: boolean;
+  disabledReason?: string;
   onClick?: () => void;
 };
 
@@ -68,9 +69,10 @@ const MessageActionButton = ({
   iconName,
   label,
   disabled,
+  disabledReason,
   onClick
 }: MessageActionButtonProps): React.JSX.Element => {
-  return (
+  const button = (
     <button
       type="button"
       className="inline-flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-[10px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -81,6 +83,16 @@ const MessageActionButton = ({
       <span>{label}</span>
     </button>
   );
+
+  if (disabled && disabledReason) {
+    return (
+      <span title={disabledReason} tabIndex={0} aria-label={disabledReason}>
+        {button}
+      </span>
+    );
+  }
+
+  return button;
 };
 
 export const ProjectDetailPage = ({
@@ -95,7 +107,7 @@ export const ProjectDetailPage = ({
   const project = useGetProject({ projectId, enabled: Boolean(projectId) });
   const syncStatus = useGetProjectSyncStatus({ projectId, enabled: Boolean(projectId) });
   const chats = useGetProjectChats({ projectId, type: 'all', enabled: Boolean(projectId) });
-  const guide = useGetProjectGuide({ projectId, enabled: Boolean(projectId) });
+  // const guide = useGetProjectGuide({ projectId, enabled: Boolean(projectId) });
   const members = useGetProjectMembers({ projectId, enabled: Boolean(projectId) });
 
   const [draft, setDraft] = useState('');
@@ -110,6 +122,8 @@ export const ProjectDetailPage = ({
     [allChats, activeChatId]
   );
   const isPersonalChat = activeChat?.type === 'personal';
+  const isTeamChat = activeChat?.type === 'team';
+  const isTeamChatReadOnly = isTeamChat && !API_CAPABILITIES.teamChatWritable;
 
   const messages = useGetChatMessages({
     chatId: activeChatId,
@@ -132,10 +146,12 @@ export const ProjectDetailPage = ({
   const createChat = usePostProjectChats({ projectId });
 
   const isSending = postTeamMessage.isPending || postPersonalMessage.isPending;
-  const canSend = Boolean(activeChatId) && Boolean(draft.trim()) && !isSending;
+  const canSend =
+    Boolean(activeChatId) && Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly;
+  const teamReadOnlyReason = TEAM_CHAT_READONLY_TOOLTIP;
 
-  const projectName = project.data?.name ?? '프로젝트';
-  const chatName = activeChat?.name ?? '채팅';
+  const projectName = project.data?.name;
+  const chatName = activeChat?.name;
   const memberCount = members.data?.members.length ?? 0;
 
   const copyText = async (value: string): Promise<void> => {
@@ -259,6 +275,13 @@ export const ProjectDetailPage = ({
             </InlineAlert>
           </div>
         ) : null}
+        {isTeamChatReadOnly ? (
+          <div className="mb-2">
+            <InlineAlert tone="info" title="팀채팅 읽기 전용">
+              팀채팅은 현재 읽기 전용입니다. 작성 기능은 추후 지원 예정입니다.
+            </InlineAlert>
+          </div>
+        ) : null}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
@@ -267,11 +290,11 @@ export const ProjectDetailPage = ({
             <p className="text-[12px] font-medium text-zinc-500">메시지를 불러오는 중...</p>
           ) : null}
 
-          {!messages.isLoading && (messages.data?.messages.length ?? 0) === 0 ? (
+          {/* {!messages.isLoading && (messages.data?.messages.length ?? 0) === 0 ? (
             <article className="rounded-[12px] border border-zinc-200 bg-white p-3 text-[12px] leading-[1.6] text-zinc-800">
               {guide.data?.welcomeMessage ?? `${projectName}에 대해 물어보세요!`}
             </article>
-          ) : null}
+          ) : null} */}
 
           {messages.data?.messages.map((message) => {
             if (message.role === 'user') {
@@ -348,7 +371,10 @@ export const ProjectDetailPage = ({
                   <MessageActionButton
                     iconName="Send_hor_fill"
                     label="팀 채팅에 공유"
-                    disabled={postShare.isPending}
+                    disabled={postShare.isPending || !API_CAPABILITIES.teamChatWritable}
+                    disabledReason={
+                      !API_CAPABILITIES.teamChatWritable ? teamReadOnlyReason : undefined
+                    }
                     onClick={() =>
                       postShare.mutate({
                         messageId: message.id,
@@ -356,7 +382,12 @@ export const ProjectDetailPage = ({
                       })
                     }
                   />
-                  <MessageActionButton iconName="Add_round_light" label="새로운 팀 채팅 만들기" />
+                  <MessageActionButton
+                    iconName="Add_round_light"
+                    label="새로운 팀 채팅 만들기"
+                    disabled
+                    disabledReason={teamReadOnlyReason}
+                  />
                 </div>
               </article>
             );
@@ -389,10 +420,14 @@ export const ProjectDetailPage = ({
           placeholder={
             !activeChatId
               ? '채팅을 선택하세요...'
-              : (guide.data?.welcomeMessage ?? '메시지를 입력하세요...')
+              : isTeamChatReadOnly
+                ? '팀채팅은 현재 읽기 전용입니다.'
+                : '메시지를 입력하세요...'
+            //guide.data?.welcomeMessage
           }
-          disabled={!activeChatId}
+          disabled={!activeChatId || isTeamChatReadOnly}
           canSend={canSend}
+          sendDisabledReason={isTeamChatReadOnly ? teamReadOnlyReason : undefined}
           isSending={isSending}
           onChange={setDraft}
           onSend={sendMessage}

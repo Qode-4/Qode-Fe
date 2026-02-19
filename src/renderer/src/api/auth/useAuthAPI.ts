@@ -12,7 +12,9 @@ export const useGetAuthMe = (options?: { enabled?: boolean }) => {
       const res = await authApiClient.getAuth({ secure: true });
       return res.data;
     },
-    enabled: Boolean(token) && (options?.enabled ?? true)
+    enabled: Boolean(token) && (options?.enabled ?? true),
+    retry: 0,
+    refetchOnWindowFocus: false
   });
 };
 

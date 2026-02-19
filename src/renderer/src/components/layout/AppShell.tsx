@@ -11,6 +11,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetProject, useGetProjectMembers } from '../../api/auth/useProjectsAPI';
+import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
 import type { ChatItem } from '../../api/contracts/chats';
 import type {
   ProjectDetailResponse,
@@ -391,8 +392,10 @@ export const AppShell = ({
               <ContentTitle
                 title="팀 채팅"
                 className="w-full"
-                onAddClick={onCreateTeamChat}
+                onAddClick={API_CAPABILITIES.teamChatWritable ? onCreateTeamChat : undefined}
                 addAriaLabel="새 팀 채팅"
+                addButtonDisabled={!API_CAPABILITIES.teamChatWritable}
+                addButtonTooltip={TEAM_CHAT_READONLY_TOOLTIP}
               />
 
               <nav aria-label="팀 채팅 목록" className="mt-0.5">
