@@ -1,0 +1,88 @@
+name: Deploy Web To EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-web-ec2
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn --frozen-lockfile
+
+      - name: Validate build env
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+        run: |
+          if [ -z "$VITE_API_BASE_URL" ]; then
+            echo "VITE_API_BASE_URL secret is required."
+            exit 1
+          fi
+
+      - name: Build web app
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+        run: yarn web:build
+
+      - name: Archive web build
+        run: tar -czf web-dist.tar.gz -C src/renderer/dist .
+
+      - name: Upload build archive to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT != '' && secrets.EC2_PORT || 22 }}
+          source: web-dist.tar.gz
+          target: /tmp/qode-web/${{ github.sha }}
+
+      - name: Activate release on EC2
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          REMOTE_APP_DIR: ${{ vars.EC2_APP_DIR }}
+          RELEASE_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT != '' && secrets.EC2_PORT || 22 }}
+          envs: REMOTE_APP_DIR,RELEASE_SHA
+          script: |
+            set -eu
+
+            if [ -z "${REMOTE_APP_DIR:-}" ]; then
+              REMOTE_APP_DIR="/var/www/qode-web"
+            fi
+
+            RELEASES_DIR="$REMOTE_APP_DIR/releases"
+            RELEASE_DIR="$RELEASES_DIR/$RELEASE_SHA"
+            CURRENT_LINK="$REMOTE_APP_DIR/current"
+            TMP_DIR="/tmp/qode-web/$RELEASE_SHA"
+
+            mkdir -p "$RELEASE_DIR"
+            tar -xzf "$TMP_DIR/web-dist.tar.gz" -C "$RELEASE_DIR"
+            ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
+
+            ls -1dt "$RELEASES_DIR"/* 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
+
+            rm -rf "$TMP_DIR"
