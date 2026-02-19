@@ -21,27 +21,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Setup Yarn via Corepack
+        run: |
+          corepack enable
+          corepack prepare yarn@3.6.3 --activate
+          corepack yarn --version
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: corepack yarn install --immutable
 
-      - name: Validate build env
+      - name: Prepare build env file
         env:
+          WEB_ENV_FILE: ${{ secrets.WEB_ENV_FILE }}
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         run: |
-          if [ -z "$VITE_API_BASE_URL" ]; then
-            echo "VITE_API_BASE_URL secret is required."
+          if [ -n "${WEB_ENV_FILE:-}" ]; then
+            printf '%s' "$WEB_ENV_FILE" > .env
+          elif [ -n "${VITE_API_BASE_URL:-}" ]; then
+            printf 'VITE_API_BASE_URL=%s\n' "$VITE_API_BASE_URL" > .env
+          else
+            echo "WEB_ENV_FILE (or VITE_API_BASE_URL) secret is required."
             exit 1
           fi
 
       - name: Build web app
-        env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-        run: yarn web:build
+        run: corepack yarn web:build
 
       - name: Archive web build
         run: tar -czf web-dist.tar.gz -C src/renderer/dist .
