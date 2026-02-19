@@ -4,7 +4,7 @@ export type GithubOAuthDeviceStartResponse = {
   flowId: string;
   userCode: string;
   verificationUri: string;
-  verificationUriComplete: string;
+  verificationUriComplete: string | null;
   expiresAt: string;
   interval: number;
 };

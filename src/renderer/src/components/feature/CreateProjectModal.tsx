@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   useGetGithubOauthDeviceFlow,
   useGetGithubOauthRepos,
   usePostGithubOauthDeviceStart
 } from '../../api/auth/useGithubOAuthAPI';
-import { usePostProjects } from '../../api/auth/useProjectsAPI';
+import { useGetProjectSyncStatus, usePostProjects } from '../../api/auth/useProjectsAPI';
 import { handleApiError } from '../../api/axios';
 import type { GithubOAuthDeviceStartResponse } from '../../api/contracts/githubOauth';
 import { navigate } from '../../lib/hashRouter';
@@ -17,29 +17,94 @@ type Props = {
   onClose: () => void;
 };
 
+const OAUTH_FLOW_CACHE_KEY = 'qode.github.oauth.flow';
+const OAUTH_FLOW_CACHE_TTL_MS = 10 * 60 * 1000;
+
+type CachedOauthFlow = {
+  savedAt: number;
+  flow: GithubOAuthDeviceStartResponse;
+};
+
+const saveCachedOauthFlow = (flow: GithubOAuthDeviceStartResponse): void => {
+  try {
+    const payload: CachedOauthFlow = { savedAt: Date.now(), flow };
+    localStorage.setItem(OAUTH_FLOW_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // noop
+  }
+};
+
+const clearCachedOauthFlow = (): void => {
+  try {
+    localStorage.removeItem(OAUTH_FLOW_CACHE_KEY);
+  } catch {
+    // noop
+  }
+};
+
+const readCachedOauthFlow = (): GithubOAuthDeviceStartResponse | null => {
+  try {
+    const raw = localStorage.getItem(OAUTH_FLOW_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedOauthFlow;
+    if (!parsed?.flow?.flowId || !parsed.savedAt) {
+      clearCachedOauthFlow();
+      return null;
+    }
+    if (Date.now() - parsed.savedAt > OAUTH_FLOW_CACHE_TTL_MS) {
+      clearCachedOauthFlow();
+      return null;
+    }
+    return parsed.flow;
+  } catch {
+    return null;
+  }
+};
+
 export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element | null => {
   const create = usePostProjects();
   const startGithubOauth = usePostGithubOauthDeviceStart();
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [oauthFlow, setOauthFlow] = useState<GithubOAuthDeviceStartResponse | null>(null);
   const [selectedRepoFullName, setSelectedRepoFullName] = useState('');
+  const [createdProjectId, setCreatedProjectId] = useState('');
   const [touched, setTouched] = useState({ name: false, repo: false });
 
+  const autoHandledFlowRef = useRef<string | null>(null);
+  const startedFlowRef = useRef<string | null>(null);
+
+  const cachedOauthFlow = useMemo(
+    () => (open && !oauthFlow ? readCachedOauthFlow() : null),
+    [open, oauthFlow]
+  );
+  const activeOauthFlow = oauthFlow ?? cachedOauthFlow;
+
   const oauthStatus = useGetGithubOauthDeviceFlow({
-    flowId: oauthFlow?.flowId ?? '',
-    intervalMs: (oauthFlow?.interval ?? 2) * 1000,
-    enabled: Boolean(oauthFlow?.flowId)
+    flowId: activeOauthFlow?.flowId ?? '',
+    intervalMs: (activeOauthFlow?.interval ?? 2) * 1000,
+    enabled: Boolean(activeOauthFlow?.flowId)
   });
   const repos = useGetGithubOauthRepos({
-    flowId: oauthFlow?.flowId ?? '',
+    flowId: activeOauthFlow?.flowId ?? '',
     enabled: oauthStatus.data?.status === 'authorized'
   });
+  const syncStatus = useGetProjectSyncStatus({
+    projectId: createdProjectId,
+    enabled: Boolean(createdProjectId)
+  });
 
+  const repoItems = useMemo(() => repos.data?.repositories ?? [], [repos.data?.repositories]);
   const selectedRepo = useMemo(
-    () => repos.data?.repositories.find((it) => it.fullName === selectedRepoFullName) ?? null,
-    [repos.data?.repositories, selectedRepoFullName]
+    () => repoItems.find((it) => it.fullName === selectedRepoFullName) ?? null,
+    [repoItems, selectedRepoFullName]
   );
+
+  const hasProjectInfo = Boolean(name.trim());
+  const isAuthorized = oauthStatus.data?.status === 'authorized';
+  const hasRepo = Boolean(selectedRepo);
+  const waitingAuth = Boolean(activeOauthFlow?.flowId) && !isAuthorized;
 
   const nameError = useMemo(() => {
     if (!touched.name) return '';
@@ -49,36 +114,19 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
 
   const repoError = useMemo(() => {
     if (!touched.repo) return '';
-    if (!oauthFlow) return 'GitHub 인증을 시작해주세요.';
-    if (oauthStatus.data?.status !== 'authorized') return 'GitHub 인증이 완료되어야 합니다.';
+    if (!activeOauthFlow) return 'GitHub 인증을 시작해주세요.';
+    if (!isAuthorized) return 'GitHub 인증이 완료되어야 합니다.';
     if (!selectedRepo) return '연결할 저장소를 선택해주세요.';
     return '';
-  }, [oauthFlow, oauthStatus.data?.status, selectedRepo, touched.repo]);
+  }, [activeOauthFlow, isAuthorized, selectedRepo, touched.repo]);
 
   const canSubmit =
-    Boolean(name.trim()) &&
-    Boolean(oauthFlow?.flowId) &&
-    oauthStatus.data?.status === 'authorized' &&
-    Boolean(selectedRepo) &&
+    hasProjectInfo &&
+    Boolean(activeOauthFlow?.flowId) &&
+    isAuthorized &&
+    hasRepo &&
+    !createdProjectId &&
     !create.isPending;
-
-  const closeAndReset = (): void => {
-    setName('');
-    setDescription('');
-    setTouched({ name: false, repo: false });
-    setOauthFlow(null);
-    setSelectedRepoFullName('');
-    onClose();
-  };
-
-  const startOAuth = (): void => {
-    startGithubOauth.mutate(undefined, {
-      onSuccess: (data) => {
-        setOauthFlow(data);
-        setSelectedRepoFullName('');
-      }
-    });
-  };
 
   const oauthStatusLabel = (() => {
     const status = oauthStatus.data?.status;
@@ -90,18 +138,102 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     return status;
   })();
 
+  const syncStatusLabel = (() => {
+    const status = syncStatus.data?.status;
+    if (!status) return '동기화 상태 확인 중';
+    if (status === 'queued') return '대기 중';
+    if (status === 'syncing') return '동기화 중';
+    if (status === 'done') return '완료';
+    if (status === 'failed') return '실패';
+    return status;
+  })();
+
+  const oauthOpenUrl = useMemo(() => {
+    const candidate =
+      activeOauthFlow?.verificationUriComplete ?? activeOauthFlow?.verificationUri ?? '';
+    const value = String(candidate).trim();
+    if (!value || value === 'null' || value === 'undefined') return '';
+    try {
+      const parsed = new URL(value);
+      const host = parsed.hostname.toLowerCase();
+      const isGithubHost = host === 'github.com' || host.endsWith('.github.com');
+      if (!isGithubHost) return '';
+      return parsed.toString();
+    } catch {
+      return '';
+    }
+  }, [activeOauthFlow?.verificationUri, activeOauthFlow?.verificationUriComplete]);
+
+  useEffect(() => {
+    if (!oauthFlow?.flowId) return;
+    if (startedFlowRef.current !== oauthFlow.flowId) return;
+    if (autoHandledFlowRef.current === oauthFlow.flowId) return;
+    autoHandledFlowRef.current = oauthFlow.flowId;
+
+    void (async () => {
+      try {
+        await navigator.clipboard.writeText(oauthFlow.userCode);
+      } catch {
+        // noop
+      }
+      if (!oauthOpenUrl) return;
+      window.open(oauthOpenUrl, '_blank', 'noopener,noreferrer');
+    })();
+  }, [oauthFlow?.flowId, oauthFlow?.userCode, oauthOpenUrl]);
+
+  useEffect(() => {
+    const status = oauthStatus.data?.status;
+    if (!status || !activeOauthFlow?.flowId) return;
+    if (status === 'authorized') {
+      saveCachedOauthFlow(activeOauthFlow);
+      return;
+    }
+    if (status === 'expired' || status === 'auth_failed') {
+      clearCachedOauthFlow();
+    }
+  }, [oauthStatus.data?.status, activeOauthFlow]);
+
+  const stepTone = (ready: boolean): string =>
+    ready
+      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+      : 'border-zinc-300 bg-zinc-100 text-zinc-500';
+
+  const closeAndReset = (): void => {
+    setName('');
+    setDescription('');
+    setTouched({ name: false, repo: false });
+    setOauthFlow(null);
+    setSelectedRepoFullName('');
+    setCreatedProjectId('');
+    autoHandledFlowRef.current = null;
+    startedFlowRef.current = null;
+    onClose();
+  };
+
+  const startOAuth = (): void => {
+    startGithubOauth.mutate(undefined, {
+      onSuccess: (data) => {
+        setOauthFlow(data);
+        setSelectedRepoFullName('');
+        saveCachedOauthFlow(data);
+        startedFlowRef.current = data.flowId;
+      }
+    });
+  };
+
   return (
     <OverlayModal
       open={open}
       onClose={closeAndReset}
       title="새 프로젝트"
-      widthClassName="max-w-[620px]"
+      widthClassName="max-w-[620px] max-h-[90vh] overflow-hidden"
     >
       <form
+        className="flex max-h-[calc(90vh-120px)] flex-col"
         onSubmit={(e) => {
           e.preventDefault();
           setTouched({ name: true, repo: true });
-          if (!canSubmit || !oauthFlow || !selectedRepo) return;
+          if (!canSubmit || !activeOauthFlow || !selectedRepo) return;
 
           create.mutate(
             {
@@ -109,7 +241,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               description: description.trim() ? description.trim() : undefined,
               git: {
                 provider: 'github_oauth',
-                flowId: oauthFlow.flowId,
+                flowId: activeOauthFlow.flowId,
                 owner: selectedRepo.owner,
                 repo: selectedRepo.name,
                 defaultBranch: selectedRepo.defaultBranch
@@ -117,52 +249,70 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             },
             {
               onSuccess: (data) => {
-                closeAndReset();
-                navigate(`/projects/${data.id}`);
+                setCreatedProjectId(data.id);
               }
             }
           );
         }}
       >
-        <div className="mt-4 space-y-3">
-          <label className="block" htmlFor="create-project-name">
-            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
-            <input
-              id="create-project-name"
-              className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                nameError
-                  ? 'border-danger-line focus:border-danger'
-                  : 'border-[#737983] focus:border-primary'
-              ].join(' ')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
-              placeholder="프로젝트 이름"
-              autoFocus
-            />
-            {nameError ? <span className="mt-1 block text-xs text-danger">{nameError}</span> : null}
-          </label>
+        <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+          <section className="rounded-lg border border-line bg-surface p-3">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-text-base">1. 프로젝트 정보</p>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${stepTone(hasProjectInfo)}`}
+              >
+                {hasProjectInfo ? '완료' : '필수 입력'}
+              </span>
+            </div>
 
-          <label className="block" htmlFor="create-project-description">
-            <span className="mb-1 block text-xs font-medium text-text-soft">설명 (선택)</span>
-            <input
-              id="create-project-description"
-              className="h-10 w-full rounded-md border border-[#737983] bg-surface px-3 text-base text-text-base outline-none focus:border-primary"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="프로젝트 설명"
-            />
-          </label>
+            <label className="block" htmlFor="create-project-name">
+              <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
+              <input
+                id="create-project-name"
+                className={[
+                  'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
+                  nameError
+                    ? 'border-danger-line focus:border-danger'
+                    : 'border-[#737983] focus:border-primary'
+                ].join(' ')}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
+                placeholder="예) Qode-Fe"
+                autoFocus
+              />
+              {nameError ? (
+                <span className="mt-1 block text-xs text-danger">{nameError}</span>
+              ) : null}
+            </label>
+
+            <label className="mt-3 block" htmlFor="create-project-description">
+              <span className="mb-1 block text-xs font-medium text-text-soft">설명 (선택)</span>
+              <input
+                id="create-project-description"
+                className="h-10 w-full rounded-md border border-[#737983] bg-surface px-3 text-base text-text-base outline-none focus:border-primary"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="예) 고객 대시보드 개선 프로젝트"
+              />
+            </label>
+          </section>
 
           <section className="rounded-lg border border-line bg-surface-muted p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="mb-3 flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-semibold text-text-base">GitHub 연결</p>
-                <p className="text-xs text-text-soft">
-                  프로젝트 생성 시 저장소 연결과 첫 동기화를 함께 시작합니다.
-                </p>
+                <p className="text-sm font-semibold text-text-base">2. GitHub 인증</p>
+                <p className="text-xs text-text-soft">승인 후 저장소 목록을 불러옵니다.</p>
               </div>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${stepTone(isAuthorized)}`}
+              >
+                {isAuthorized ? '인증 완료' : '대기'}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 variant="secondary"
@@ -170,73 +320,103 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                 onClick={startOAuth}
                 isLoading={startGithubOauth.isPending}
               >
-                {oauthFlow ? '다시 인증' : 'GitHub 로그인/연결'}
+                {activeOauthFlow ? '인증 다시 시작' : 'GitHub 로그인/연결'}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  void oauthStatus.refetch();
+                }}
+                isLoading={oauthStatus.isFetching}
+                disabled={!activeOauthFlow}
+              >
+                인증 상태 확인
               </Button>
             </div>
 
-            {oauthFlow ? (
+            {activeOauthFlow ? (
               <div className="mt-3 rounded-md border border-line bg-surface p-3">
                 <p className="text-xs text-text-soft">
                   인증 코드:{' '}
-                  <span className="font-semibold text-text-base">{oauthFlow.userCode}</span>
+                  <span className="font-semibold text-text-base">{activeOauthFlow.userCode}</span>
                 </p>
-                <p className="mt-1 text-xs text-text-soft">{oauthFlow.verificationUri}</p>
                 <p className="mt-1 text-xs text-text-soft">상태: {oauthStatusLabel}</p>
+                <p className="mt-1 break-all text-xs text-text-soft">
+                  {activeOauthFlow.verificationUri}
+                </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
-                    onClick={() => window.open(oauthFlow.verificationUriComplete, '_blank')}
+                    onClick={() => {
+                      if (!oauthOpenUrl) return;
+                      window.open(oauthOpenUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                    disabled={!oauthOpenUrl}
                   >
                     브라우저 열기
                   </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      void oauthStatus.refetch();
-                    }}
-                    isLoading={oauthStatus.isFetching}
-                  >
-                    인증 상태 확인
-                  </Button>
                 </div>
+                {!oauthOpenUrl ? (
+                  <p className="mt-2 text-xs text-danger">GitHub 인증 URL이 올바르지 않습니다.</p>
+                ) : null}
               </div>
             ) : null}
+          </section>
 
-            {oauthStatus.data?.status === 'authorized' ? (
-              <div className="mt-3 rounded-md border border-line bg-surface p-3">
-                <p className="text-xs font-medium text-text-soft">연결할 저장소 선택</p>
-                {repos.isLoading ? (
-                  <p className="mt-2 text-xs text-text-soft">저장소 목록을 불러오는 중...</p>
-                ) : null}
-
-                {repos.data && repos.data.repositories.length === 0 ? (
-                  <p className="mt-2 text-xs text-danger">연결 가능한 저장소가 없습니다.</p>
-                ) : null}
-
-                {repos.data?.repositories.map((repo) => (
-                  <label
-                    key={repo.fullName}
-                    className="mt-2 flex cursor-pointer items-center gap-2 rounded-md border border-line px-2 py-2 text-sm text-text-base"
-                  >
-                    <input
-                      type="radio"
-                      name="create-project-github-repo"
-                      checked={selectedRepoFullName === repo.fullName}
-                      onChange={() => {
-                        setSelectedRepoFullName(repo.fullName);
-                        setTouched((prev) => ({ ...prev, repo: true }));
-                      }}
-                    />
-                    <span>{repo.fullName}</span>
-                    <span className="ml-auto text-xs text-text-soft">{repo.defaultBranch}</span>
-                  </label>
-                ))}
+          <section
+            className={[
+              'rounded-lg border border-line bg-surface p-3 transition-opacity',
+              isAuthorized ? 'opacity-100' : 'pointer-events-none opacity-60'
+            ].join(' ')}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-text-base">3. 저장소 선택</p>
+                <p className="text-xs text-text-soft">연결할 GitHub 저장소를 1개 선택하세요.</p>
               </div>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${stepTone(hasRepo)}`}
+              >
+                {hasRepo ? '선택 완료' : '미선택'}
+              </span>
+            </div>
+
+            {isAuthorized && repos.isLoading ? (
+              <p className="text-xs text-text-soft">저장소 목록을 불러오는 중...</p>
             ) : null}
+            {isAuthorized && !repos.isLoading && repoItems.length === 0 ? (
+              <p className="text-xs text-danger">연결 가능한 저장소가 없습니다.</p>
+            ) : null}
+            {!isAuthorized ? (
+              <p className="text-xs text-text-soft">
+                GitHub 인증을 완료하면 저장소를 선택할 수 있습니다.
+              </p>
+            ) : null}
+
+            <div className="mt-2 max-h-[220px] overflow-y-auto pr-1">
+              {repoItems.map((repo) => (
+                <label
+                  key={repo.fullName}
+                  className="mt-2 flex cursor-pointer items-center gap-2 rounded-md border border-line px-2 py-2 text-sm text-text-base first:mt-0"
+                >
+                  <input
+                    type="radio"
+                    name="create-project-github-repo"
+                    checked={selectedRepoFullName === repo.fullName}
+                    onChange={() => {
+                      setSelectedRepoFullName(repo.fullName);
+                      setTouched((prev) => ({ ...prev, repo: true }));
+                    }}
+                  />
+                  <span>{repo.fullName}</span>
+                  <span className="ml-auto text-xs text-text-soft">{repo.defaultBranch}</span>
+                </label>
+              ))}
+            </div>
 
             {repoError ? <p className="mt-2 text-xs text-danger">{repoError}</p> : null}
           </section>
@@ -274,12 +454,55 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           </div>
         ) : null}
 
+        {createdProjectId ? (
+          <div className="mt-3 space-y-2">
+            <InlineAlert
+              tone={
+                syncStatus.data?.status === 'failed'
+                  ? 'danger'
+                  : syncStatus.data?.status === 'done'
+                    ? 'success'
+                    : 'info'
+              }
+              title={`초기 동기화 ${syncStatusLabel}`}
+            >
+              프로젝트가 생성되었습니다. ID: {createdProjectId}
+              {syncStatus.data?.error ? ` (${syncStatus.data.error})` : ''}
+            </InlineAlert>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  void syncStatus.refetch();
+                }}
+                isLoading={syncStatus.isFetching}
+              >
+                동기화 상태 새로고침
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  const targetId = createdProjectId;
+                  closeAndReset();
+                  navigate(`/projects/${targetId}`);
+                }}
+              >
+                프로젝트로 이동
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={closeAndReset}>
             취소
           </Button>
           <Button type="submit" size="sm" isLoading={create.isPending} disabled={!canSubmit}>
-            생성
+            {waitingAuth ? 'GitHub 인증 대기' : !hasRepo ? '저장소 선택 필요' : '프로젝트 생성'}
           </Button>
         </div>
       </form>
