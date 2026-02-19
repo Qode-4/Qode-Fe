@@ -4,14 +4,16 @@ import type { LoginCreatePayload, SignupCreatePayload } from '../generated/data-
 import { QUERY_KEY } from '../queryKeys';
 import { tokenStorage } from '../tokenStorage';
 
+export const getAuthMe = async () => {
+  const res = await authApiClient.getAuth({ secure: true });
+  return res.data;
+};
+
 export const useGetAuthMe = (options?: { enabled?: boolean }) => {
   const token = tokenStorage.getAccessToken();
   return useQuery({
     queryKey: QUERY_KEY.me,
-    queryFn: async () => {
-      const res = await authApiClient.getAuth({ secure: true });
-      return res.data;
-    },
+    queryFn: getAuthMe,
     enabled: Boolean(token) && (options?.enabled ?? true),
     retry: 0,
     refetchOnWindowFocus: false

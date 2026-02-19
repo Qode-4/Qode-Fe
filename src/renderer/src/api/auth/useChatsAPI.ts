@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient, authApiClient } from '../apiClient';
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../apiClient';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../capabilities';
 import type {
   ChatMessagesResponse,
@@ -17,6 +17,7 @@ import type {
 import { ContentType } from '../generated/http-client';
 import { QUERY_KEY } from '../queryKeys';
 import { tokenStorage } from '../tokenStorage';
+import { getAuthMe } from './useAuthAPI';
 
 type SseStatusPayload = {
   status?: string;
@@ -73,13 +74,21 @@ const normalizeMessageStatus = (value: unknown): 'complete' | 'streaming' | 'fai
   return 'complete';
 };
 
-const getCurrentUser = async (): Promise<CurrentUser> => {
-  const res = await authApiClient.getAuth({ secure: true });
-  return {
-    id: res.data.id,
-    name: res.data.name ?? 'Unknown',
-    avatarUrl: res.data.avatarUrl ?? null
-  };
+const toCurrentUser = (me: Awaited<ReturnType<typeof getAuthMe>>): CurrentUser => ({
+  id: me.id,
+  name: me.name ?? 'Unknown',
+  avatarUrl: me.avatarUrl ?? null
+});
+
+const getCurrentUser = async (queryClient?: QueryClient): Promise<CurrentUser> => {
+  const me = queryClient
+    ? await queryClient.ensureQueryData({
+        queryKey: QUERY_KEY.me,
+        queryFn: getAuthMe
+      })
+    : await getAuthMe();
+
+  return toCurrentUser(me);
 };
 
 const mapProjectChats = (
@@ -274,11 +283,14 @@ export const useGetProjectChats = (params: {
   projectId: string;
   type?: 'all' | 'personal' | 'team';
   enabled?: boolean;
-}) =>
-  useQuery({
+}) => {
+  const qc = useQueryClient();
+
+  return useQuery({
     queryKey: QUERY_KEY.projectChats(params.projectId, params.type),
     queryFn: async () => {
-      const currentUser = await getCurrentUser();
+      const currentUser = await getCurrentUser(qc);
+      console.log({ currentUser });
       const selectedType = params.type ?? 'all';
       const res = await apiClient.chatsMeList(
         {
@@ -291,6 +303,7 @@ export const useGetProjectChats = (params: {
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });
+};
 
 export const usePostProjectChats = (params: { projectId: string }) => {
   const qc = useQueryClient();
@@ -302,7 +315,7 @@ export const usePostProjectChats = (params: { projectId: string }) => {
       }
 
       if (body.type === 'personal') {
-        const currentUser = await getCurrentUser();
+        const currentUser = await getCurrentUser(qc);
         const res = await apiClient.chatsMeCreate(
           {
             project_id: params.projectId,
@@ -326,7 +339,7 @@ export const usePostProjectChats = (params: { projectId: string }) => {
       return res.data;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChats(params.projectId, 'all') });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
     }
   });
 };
@@ -335,12 +348,14 @@ export const useGetChatMessages = (params: {
   chatId: string;
   personal?: boolean;
   enabled?: boolean;
-}) =>
-  useQuery({
+}) => {
+  const qc = useQueryClient();
+
+  return useQuery({
     queryKey: QUERY_KEY.chatMessages(params.chatId, Boolean(params.personal)),
     queryFn: async () => {
       if (params.personal) {
-        const currentUser = await getCurrentUser();
+        const currentUser = await getCurrentUser(qc);
         const res = await apiClient.chatsMeMessagesList(
           params.chatId,
           { user_id: currentUser.id },
@@ -359,6 +374,7 @@ export const useGetChatMessages = (params: {
     },
     enabled: (params.enabled ?? true) && Boolean(params.chatId)
   });
+};
 
 export const usePostPersonalChatMessageSSE = (params: { projectId: string; chatId: string }) => {
   const qc = useQueryClient();
@@ -377,8 +393,8 @@ export const usePostPersonalChatMessageSSE = (params: { projectId: string; chatI
         callbacks
       }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, true) });
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChats(params.projectId, 'all') });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
     }
   });
 };
@@ -402,8 +418,8 @@ export const usePostTeamChatMessageSSE = (params: { projectId: string; chatId: s
       });
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, false) });
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChats(params.projectId, 'all') });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
     }
   });
 };
@@ -425,9 +441,8 @@ export const usePostMessageShare = (params: { projectId: string; chatId: string 
       return res.data;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, false) });
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessages(params.chatId, true) });
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChats(params.projectId, 'all') });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
     }
   });
 };
