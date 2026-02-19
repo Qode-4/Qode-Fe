@@ -19,14 +19,13 @@ const App = (): React.JSX.Element => {
   const location = useHashLocation();
   const token = tokenStorage.getAccessToken();
 
-  const me = useGetAuthMe();
-  const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
-  const projects = useGetProjects({ search: '', enabled: Boolean(token) });
-  const loadingUserName = (me.data as { name?: string } | undefined)?.name ?? 'Namhee';
-
   const isAuthRoute =
     matchPath(location.path, '/login').matched || matchPath(location.path, '/signup').matched;
   const isInviteRoute = matchPath(location.path, '/invite/:inviteCode').matched;
+  const me = useGetAuthMe({ enabled: !isAuthRoute });
+  const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
+  const projects = useGetProjects({ search: '', enabled: Boolean(token) });
+  const loadingUserName = (me.data as { name?: string } | undefined)?.name ?? 'Namhee';
 
   const projectMatch = matchPath(location.path, '/projects/:projectId');
   const selectedProjectId = projectMatch.matched ? projectMatch.params.projectId : undefined;
