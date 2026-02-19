@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePostAuthLogin } from '../api/auth/useAuthAPI';
 import { handleApiError } from '../api/axios';
 import { tokenStorage } from '../api/tokenStorage';
-import { navigate } from '../lib/hashRouter';
+import { Link } from '../components/ui/Link';
+import { buildPath, navigate } from '../lib/hashRouter';
 import type { RouteLocation } from '../lib/hashRouter';
 
 type Props = {
@@ -172,6 +173,10 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
               </p>
             ) : null}
           </form>
+
+          <p className="mt-5 text-center text-sm text-zinc-600">
+            계정이 없나요? <Link to={buildPath('/signup', { next })}>회원가입하기</Link>
+          </p>
         </div>
       </div>
     </div>

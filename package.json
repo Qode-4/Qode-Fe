@@ -11,7 +11,6 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "msw:init": "msw init src/renderer/public --save",
     "swagger:local": "swagger-typescript-api generate -p http://localhost:3000/swagger/json -r -o ./src/renderer/src/api/generated --modular -d --extract-request-body --extract-response-body --extract-response-error --axios --clean-output",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
@@ -59,7 +58,6 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
-    "msw": "^2.12.10",
     "postcss": "^8.5.6",
     "prettier": "^3.7.4",
     "react": "^19.2.1",
@@ -79,8 +77,5 @@
     "*.{json,css,md}": [
       "prettier --write"
     ]
-  },
-  "msw": {
-    "workerDirectory": "src/renderer/public"
   }
 }

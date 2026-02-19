@@ -43,6 +43,11 @@ export type CreateProjectResponse = {
   };
 };
 
+export type SyncJobResponse = {
+  id: string;
+  status: SyncStatus;
+};
+
 export type ProjectDetailResponse = {
   id: string;
   name: string;

@@ -10,6 +10,7 @@ import type {
   ProjectListItem,
   ProjectListResponse,
   ProjectMembersResponse,
+  SyncJobResponse,
   SyncStatus,
   SyncStatusResponse,
   TriggerSyncResponse
@@ -60,18 +61,64 @@ const resolveProjectCreateResponse = (
     | {
         data?: Project;
         sync?: CreateProjectResponse['sync'];
+        syncJob?: { id?: string; status?: unknown };
       }
 ): CreateProjectResponse => {
-  const wrappedPayload = payload as { data?: Project; sync?: CreateProjectResponse['sync'] };
+  const wrappedPayload = payload as {
+    data?: Project;
+    sync?: CreateProjectResponse['sync'];
+    syncJob?: { id?: string; status?: unknown };
+  };
   if (wrappedPayload.data) {
+    const syncFromJob =
+      wrappedPayload.syncJob?.id || wrappedPayload.syncJob?.status
+        ? {
+            syncId: wrappedPayload.syncJob?.id ?? '',
+            status: normalizeSyncStatus(wrappedPayload.syncJob?.status)
+          }
+        : undefined;
     return {
       ...wrappedPayload.data,
       role: 'OWNER',
-      ...(wrappedPayload.sync ? { sync: wrappedPayload.sync } : {})
+      ...(wrappedPayload.sync ? { sync: wrappedPayload.sync } : {}),
+      ...(syncFromJob ? { sync: syncFromJob } : {})
     };
   }
 
   return payload as CreateProjectResponse;
+};
+
+const resolveSyncStatusPayload = (
+  payload: SyncStatusResponse | { data?: SyncStatusResponse }
+): SyncStatusResponse => {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    const wrapped = payload as { data?: SyncStatusResponse };
+    if (wrapped.data) return wrapped.data;
+  }
+  return payload as SyncStatusResponse;
+};
+
+const resolveTriggerSyncPayload = (
+  payload:
+    | TriggerSyncResponse
+    | SyncJobResponse
+    | {
+        data?: TriggerSyncResponse | SyncJobResponse;
+      }
+): TriggerSyncResponse => {
+  const unwrapped =
+    payload && typeof payload === 'object' && 'data' in payload
+      ? ((payload as { data?: TriggerSyncResponse | SyncJobResponse }).data ?? payload)
+      : payload;
+  const job = unwrapped as SyncJobResponse;
+  if ('id' in job && !('syncId' in (unwrapped as TriggerSyncResponse))) {
+    return {
+      syncId: job.id,
+      status: normalizeSyncStatus(job.status),
+      message: 'Sync triggered'
+    };
+  }
+  return unwrapped as TriggerSyncResponse;
 };
 
 const resolveDetailPayload = (
@@ -201,16 +248,16 @@ export const usePostProjectSync = (params: {
   const qc = useQueryClient();
   return useMutation<TriggerSyncResponse, unknown, void>({
     mutationFn: async () => {
-      const res = await apiClient.request<TriggerSyncResponse>({
+      const res = await apiClient.request<
+        TriggerSyncResponse | SyncJobResponse | { data?: TriggerSyncResponse | SyncJobResponse }
+      >({
         path: `/api/projects/${params.projectId}/sync`,
         method: 'POST',
         secure: true,
         format: 'json'
       });
-      return {
-        ...res.data,
-        status: normalizeSyncStatus(res.data.status)
-      };
+      const normalized = resolveTriggerSyncPayload(res.data);
+      return { ...normalized, status: normalizeSyncStatus(normalized.status) };
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: QUERY_KEY.syncStatus(params.projectId) });
@@ -227,15 +274,16 @@ export const useGetProjectSyncStatus = (params: {
   useQuery({
     queryKey: QUERY_KEY.syncStatus(params.projectId),
     queryFn: async () => {
-      const res = await apiClient.request<SyncStatusResponse>({
+      const res = await apiClient.request<SyncStatusResponse | { data?: SyncStatusResponse }>({
         path: `/api/projects/${params.projectId}/sync/status`,
         method: 'GET',
         secure: true,
         format: 'json'
       });
+      const payload = resolveSyncStatusPayload(res.data);
       return {
-        ...res.data,
-        status: normalizeSyncStatus(res.data.status)
+        ...payload,
+        status: normalizeSyncStatus(payload.status)
       };
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId),
