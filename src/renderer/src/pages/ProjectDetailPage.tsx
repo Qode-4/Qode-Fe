@@ -24,6 +24,7 @@ import { IconButton } from '../components/ui/IconButton';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { matchPath } from '../lib/hashRouter';
 import type { RouteLocation } from '../lib/hashRouter';
+import { useMeStore } from '../stores/useMeStore';
 
 type Props = {
   location: RouteLocation;
@@ -93,6 +94,7 @@ export const ProjectDetailPage = ({
   const projectId = match.matched ? match.params.projectId : '';
 
   const project = useGetProject({ projectId, enabled: Boolean(projectId) });
+  const meName = useMeStore((state) => state.meName);
   const syncStatus = useGetProjectSyncStatus({ projectId, enabled: Boolean(projectId) });
   const chats = useGetProjectChats({ projectId, type: 'all', enabled: Boolean(projectId) });
   const guide = useGetProjectGuide({ projectId, enabled: Boolean(projectId) });
@@ -133,9 +135,9 @@ export const ProjectDetailPage = ({
 
   const isSending = postTeamMessage.isPending || postPersonalMessage.isPending;
   const canSend = Boolean(activeChatId) && Boolean(draft.trim()) && !isSending;
-
   const projectName = project.data?.name ?? '프로젝트';
   const chatName = activeChat?.name ?? '채팅';
+  const myAvatarName = meName || '나';
   const memberCount = members.data?.members.length ?? 0;
 
   const copyText = async (value: string): Promise<void> => {
@@ -280,7 +282,7 @@ export const ProjectDetailPage = ({
                   <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-[12px] font-medium text-zinc-800">
                     {message.content}
                   </div>
-                  <Avatar name="김" />
+                  <Avatar name={myAvatarName} />
                 </div>
               );
             }

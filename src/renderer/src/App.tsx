@@ -14,19 +14,21 @@ import { LoginPage } from './pages/LoginPage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { SignupPage } from './pages/SignupPage';
+import { useMeStore } from './stores/useMeStore';
 
 const App = (): React.JSX.Element => {
   const location = useHashLocation();
   const token = tokenStorage.getAccessToken();
 
-  const me = useGetAuthMe();
-  const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
-  const projects = useGetProjects({ search: '', enabled: Boolean(token) });
-  const loadingUserName = (me.data as { name?: string } | undefined)?.name ?? 'Namhee';
-
   const isAuthRoute =
     matchPath(location.path, '/login').matched || matchPath(location.path, '/signup').matched;
   const isInviteRoute = matchPath(location.path, '/invite/:inviteCode').matched;
+  const me = useGetAuthMe();
+  const setMeName = useMeStore((state) => state.setMeName);
+  const clearMe = useMeStore((state) => state.clearMe);
+  const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
+  const projects = useGetProjects({ search: '', enabled: Boolean(token) });
+  const loadingUserName = (me.data as { name?: string } | undefined)?.name ?? 'Namhee';
 
   const projectMatch = matchPath(location.path, '/projects/:projectId');
   const selectedProjectId = projectMatch.matched ? projectMatch.params.projectId : undefined;
@@ -59,6 +61,16 @@ const App = (): React.JSX.Element => {
       navigate(buildPath('/login', { next: location.path }), { replace: true });
     }
   }, [token, isAuthRoute, isInviteRoute, location.path]);
+
+  useEffect(() => {
+    if (!token) {
+      clearMe();
+      return;
+    }
+    if (me.data?.name) {
+      setMeName(me.data.name);
+    }
+  }, [token, me.data?.name, setMeName, clearMe]);
 
   if (matchPath(location.path, '/login').matched) return <LoginPage location={location} />;
   if (matchPath(location.path, '/signup').matched) return <SignupPage location={location} />;
