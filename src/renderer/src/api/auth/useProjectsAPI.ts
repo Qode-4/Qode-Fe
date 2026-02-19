@@ -40,6 +40,24 @@ export const usePostProjects = () => {
   });
 };
 
+export const useDeleteProject = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (projectId: string) => {
+      const res = await apiClient.projectsDelete(projectId, { secure: true });
+      return res.data;
+    },
+    onSuccess: (_result, projectId) => {
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      qc.removeQueries({ queryKey: QUERY_KEY.project(projectId) });
+      qc.removeQueries({ queryKey: QUERY_KEY.projectMembers(projectId) });
+      qc.removeQueries({ queryKey: QUERY_KEY.syncStatus(projectId) });
+      qc.removeQueries({ queryKey: QUERY_KEY.projectChatsByProject(projectId) });
+    }
+  });
+};
+
 export const useGetProject = (params: { projectId: string; enabled?: boolean }) =>
   useQuery({
     queryKey: QUERY_KEY.project(params.projectId),
