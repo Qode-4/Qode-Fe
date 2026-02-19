@@ -76,6 +76,13 @@ const meta = {
     layout: 'fullscreen'
   },
   args: {
+    me: {
+      id: 'user-1',
+      token: 'sample-token',
+      email: 'namhee@gmail.com',
+      name: '김남희',
+      avatarUrl: null
+    },
     projects: sampleProjects,
     selectedProjectId: 'project-1',
     personalChats: samplePersonalChats,
