@@ -1,5 +1,4 @@
 import { Icon } from './Icon';
-import { IconButton } from './IconButton';
 
 type Props = {
   value: string;
@@ -23,8 +22,8 @@ export const ChatComposer = ({
   isSending,
   className,
   onChange,
-  onSend,
-  onAttach
+  onSend
+  // onAttach
 }: Props): React.JSX.Element => {
   return (
     <div
@@ -47,14 +46,14 @@ export const ChatComposer = ({
         disabled={disabled}
       />
 
-      <div className="mt-3 flex items-center justify-between">
-        <IconButton
+      <div className="mt-3 flex items-center justify-end">
+        {/* <IconButton
           size="lg"
           name="Add_round_light"
           aria-label="첨부"
           onClick={onAttach}
           disabled={disabled}
-        />
+        /> */}
 
         {sendDisabledReason && !canSend ? (
           <span title={sendDisabledReason} tabIndex={0} aria-label={sendDisabledReason}>
