@@ -9,6 +9,7 @@ import { CreateProjectModal } from './components/feature/CreateProjectModal';
 import { AppShell } from './components/layout/AppShell';
 import { InlineAlert } from './components/ui/InlineAlert';
 import { buildPath, matchPath, navigate, resolveNextPath } from './lib/hashRouter';
+import { applyUiFontSize, getStoredUiFontSize } from './lib/uiFontSize';
 import { useHashLocation } from './lib/useHashLocation';
 import { InvitePage } from './pages/InvitePage';
 import { LoginPage } from './pages/LoginPage';
@@ -58,6 +59,10 @@ const App = (): React.JSX.Element => {
 
   useEffect(() => {
     if (!window.location.hash) navigate('/login', { replace: true });
+  }, []);
+
+  useEffect(() => {
+    applyUiFontSize(getStoredUiFontSize());
   }, []);
 
   useEffect(() => {

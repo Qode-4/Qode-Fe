@@ -260,7 +260,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold text-text-base">1. 프로젝트 정보</p>
               <span
-                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${stepTone(hasProjectInfo)}`}
+                className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(hasProjectInfo)}`}
               >
                 {hasProjectInfo ? '완료' : '필수 입력'}
               </span>
@@ -306,7 +306,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                 <p className="text-xs text-text-soft">승인 후 저장소 목록을 불러옵니다.</p>
               </div>
               <span
-                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${stepTone(isAuthorized)}`}
+                className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(isAuthorized)}`}
               >
                 {isAuthorized ? '인증 완료' : '대기'}
               </span>
@@ -381,7 +381,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                 <p className="text-xs text-text-soft">연결할 GitHub 저장소를 1개 선택하세요.</p>
               </div>
               <span
-                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${stepTone(hasRepo)}`}
+                className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(hasRepo)}`}
               >
                 {hasRepo ? '선택 완료' : '미선택'}
               </span>

@@ -24,7 +24,7 @@ export const Chip = ({
       {startIcon ? (
         <Icon name={startIconName} size="sm" decorative className="shrink-0 text-fill-icon" />
       ) : null}
-      <span className="text-[10px] font-medium leading-none text-zinc-800">{label}</span>
+      <span className="text-ui-10 font-medium leading-none text-zinc-800">{label}</span>
     </span>
   );
 };

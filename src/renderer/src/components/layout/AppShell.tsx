@@ -29,6 +29,7 @@ import type {
 import { QUERY_KEY } from '../../api/queryKeys';
 import { tokenStorage } from '../../api/tokenStorage';
 import { navigate } from '../../lib/hashRouter';
+import { getStoredUiFontSize, persistUiFontSize, type UiFontSize } from '../../lib/uiFontSize';
 import type { IconName } from '../icons/iconTypes';
 import { Button } from '../ui/Button';
 import { ContentTitle } from '../ui/ContentTitle';
@@ -58,11 +59,31 @@ type ProjectMenuAction = { key: ProjectActionKind | 'delete'; label: string };
 type SettingsActionKind = 'profile' | 'logout';
 type SettingsMenuAction = { key: SettingsActionKind; label: string; iconName: IconName };
 type AvatarSize = 'sm' | 'md';
+const uiFontSizeOptions: Array<{ key: UiFontSize; label: string }> = [
+  { key: 'default', label: '보통' },
+  { key: 'large', label: '크게' }
+];
 
 const avatarSizeClassMap: Record<AvatarSize, string> = {
-  sm: 'size-7 text-[12px]',
-  md: 'size-10 text-[16px]'
+  sm: 'size-7 text-ui-12',
+  md: 'size-10 text-ui-16'
 };
+
+const drawerTypography = {
+  sectionTitle: 'text-ui-10',
+  emptyState: 'text-ui-12',
+  listItem: 'text-ui-12',
+  listItemAction: 'text-ui-10',
+  settingsName: 'text-ui-12',
+  settingsEmail: 'text-ui-11',
+  settingsMenuItem: 'text-ui-11',
+  profileTitle: 'text-ui-12',
+  profileInput: 'text-ui-12',
+  profileEmail: 'text-ui-11',
+  profileButton: 'text-ui-12',
+  fontSizeLabel: 'text-ui-10',
+  fontSizeOption: 'text-ui-11'
+} as const;
 
 const UserAvatar = ({
   name,
@@ -170,6 +191,7 @@ export const AppShell = ({
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [uiFontSize, setUiFontSize] = useState<UiFontSize>(getStoredUiFontSize);
 
   const modalProject = useMemo(
     () => projects.find((it) => it.id === projectModal?.projectId),
@@ -191,6 +213,10 @@ export const AppShell = ({
     projectId: modalProjectId,
     enabled: Boolean(modalProjectId) && projectModal?.kind === 'members'
   });
+
+  useEffect(() => {
+    persistUiFontSize(uiFontSize);
+  }, [uiFontSize]);
 
   useEffect(() => {
     const onPointerDown = (e: MouseEvent): void => {
@@ -232,7 +258,7 @@ export const AppShell = ({
 
   const updateSettingsMenuPos = useCallback((button: HTMLButtonElement) => {
     const rect = button.getBoundingClientRect();
-    const menuWidth = 174;
+    const menuWidth = 196;
     const left = Math.min(rect.right - 24, window.innerWidth - menuWidth - 8);
     const top = rect.bottom + 2;
     setSettingsMenuPos({ top, left });
@@ -562,7 +588,12 @@ export const AppShell = ({
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <section className="px-4 pt-4">
-              <ContentTitle title="프로젝트" className="w-full" onAddClick={onOpenCreateProject} />
+              <ContentTitle
+                title="프로젝트"
+                className="w-full"
+                titleClassName={drawerTypography.sectionTitle}
+                onAddClick={onOpenCreateProject}
+              />
               {projectDeleteError ? (
                 <div className="mt-1">
                   <InlineAlert tone="danger" title="프로젝트 삭제 실패">
@@ -572,7 +603,12 @@ export const AppShell = ({
               ) : null}
 
               {projects.length === 0 ? (
-                <div className="flex h-40 items-center justify-center text-center text-[12px] font-medium leading-[1.6] text-zinc-700">
+                <div
+                  className={[
+                    'flex h-40 items-center justify-center text-center font-normal leading-[1.6] text-zinc-700',
+                    drawerTypography.emptyState
+                  ].join(' ')}
+                >
                   새 프로젝트를 추가해보세요!
                 </div>
               ) : (
@@ -583,7 +619,8 @@ export const AppShell = ({
                         to={`/projects/${project.id}`}
                         aria-current={selectedProjectId === project.id ? 'page' : undefined}
                         className={[
-                          'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] text-[12px] font-medium no-underline transition-colors hover:no-underline',
+                          'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal no-underline transition-colors hover:no-underline',
+                          drawerTypography.listItem,
                           selectedProjectId === project.id
                             ? 'bg-zinc-200 text-slate-900'
                             : 'text-slate-900 hover:bg-zinc-100'
@@ -602,7 +639,8 @@ export const AppShell = ({
                         aria-expanded={openMenuProjectId === project.id}
                         aria-controls={openMenuProjectId === project.id ? projectMenuId : undefined}
                         className={[
-                          'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 text-[10px] font-medium text-zinc-500 transition-opacity',
+                          'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 font-normal text-zinc-500 transition-opacity',
+                          drawerTypography.listItemAction,
                           'hover:bg-zinc-100',
                           openMenuProjectId === project.id
                             ? 'opacity-100'
@@ -634,6 +672,7 @@ export const AppShell = ({
               <ContentTitle
                 title="내 채팅"
                 className="w-full"
+                titleClassName={drawerTypography.sectionTitle}
                 onAddClick={onCreatePersonalChat}
                 addAriaLabel="새 개인 채팅"
               />
@@ -654,7 +693,8 @@ export const AppShell = ({
                         type="button"
                         aria-current={isActive ? 'true' : undefined}
                         className={[
-                          'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left text-[12px] font-medium transition-colors',
+                          'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
+                          drawerTypography.listItem,
                           isActive
                             ? 'bg-zinc-700 text-white'
                             : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
@@ -668,8 +708,11 @@ export const AppShell = ({
                         type="button"
                         aria-label={`${chat.name} 채팅 삭제`}
                         className={[
-                          'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 text-[10px] font-medium transition-opacity',
-                          isActive ? 'text-zinc-200 hover:bg-zinc-600' : 'text-zinc-500 hover:bg-zinc-100',
+                          'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 font-normal transition-opacity',
+                          drawerTypography.listItemAction,
+                          isActive
+                            ? 'text-zinc-200 hover:bg-zinc-600'
+                            : 'text-zinc-500 hover:bg-zinc-100',
                           deleteChat.isPending
                             ? 'pointer-events-none opacity-50'
                             : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
@@ -693,6 +736,7 @@ export const AppShell = ({
               <ContentTitle
                 title="팀 채팅"
                 className="w-full"
+                titleClassName={drawerTypography.sectionTitle}
                 onAddClick={API_CAPABILITIES.teamChatWritable ? onCreateTeamChat : undefined}
                 addAriaLabel="새 팀 채팅"
                 addButtonDisabled={!API_CAPABILITIES.teamChatWritable}
@@ -709,7 +753,8 @@ export const AppShell = ({
                       type="button"
                       aria-current={isActive ? 'true' : undefined}
                       className={[
-                        'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] text-left text-[12px] font-medium transition-colors',
+                        'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
+                        drawerTypography.listItem,
                         isActive
                           ? 'bg-zinc-700 text-white'
                           : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
@@ -740,7 +785,7 @@ export const AppShell = ({
         ? createPortal(
             <div
               data-settings-menu
-              className="fixed z-50 w-[174px] rounded-[12px] border border-zinc-200 bg-white p-1 shadow-[0px_4px_18.7px_0px_rgba(0,0,0,0.08)]"
+              className="fixed z-50 w-[196px] rounded-[12px] border border-zinc-200 bg-white p-1 shadow-[0px_4px_18.7px_0px_rgba(0,0,0,0.08)]"
               style={{ top: settingsMenuPos.top, left: settingsMenuPos.left }}
               role="menu"
               aria-label="설정 메뉴"
@@ -749,10 +794,60 @@ export const AppShell = ({
               <div className="flex items-center gap-2 p-2">
                 <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" />
                 <div className="min-w-0">
-                  <p className="truncate text-[12px] font-semibold text-zinc-800">{userName}</p>
-                  <p className="truncate text-[11px] text-zinc-400">{userEmail}</p>
+                  <p
+                    className={[
+                      'truncate font-semibold text-zinc-800',
+                      drawerTypography.settingsName
+                    ].join(' ')}
+                  >
+                    {userName}
+                  </p>
+                  <p
+                    className={['truncate text-zinc-400', drawerTypography.settingsEmail].join(' ')}
+                  >
+                    {userEmail}
+                  </p>
                 </div>
               </div>
+
+              <div className="px-2 pb-1">
+                <p
+                  className={[
+                    'px-1 font-normal leading-none text-zinc-500',
+                    drawerTypography.fontSizeLabel
+                  ].join(' ')}
+                >
+                  글씨 크기
+                </p>
+                <div
+                  role="group"
+                  aria-label="사이드바 글씨 크기"
+                  className="mt-1 grid grid-cols-2 gap-1"
+                >
+                  {uiFontSizeOptions.map((it) => {
+                    const selected = uiFontSize === it.key;
+                    return (
+                      <button
+                        key={it.key}
+                        type="button"
+                        aria-pressed={selected}
+                        className={[
+                          'h-6 rounded-[8px] font-normal transition-colors',
+                          drawerTypography.fontSizeOption,
+                          selected
+                            ? 'bg-zinc-800 text-white'
+                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 active:bg-zinc-300'
+                        ].join(' ')}
+                        onClick={() => setUiFontSize(it.key)}
+                      >
+                        {it.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div role="separator" className="mx-1 my-1 border-t border-zinc-100" />
 
               {settingsMenuActions.map((it, index) => (
                 <button
@@ -763,7 +858,10 @@ export const AppShell = ({
                   ref={(el) => {
                     settingsMenuItemRefs.current[index] = el;
                   }}
-                  className="flex h-6 w-full items-center gap-1 rounded-[8px] px-2 py-0.5 text-left text-[11px] font-medium text-zinc-700 hover:bg-zinc-100"
+                  className={[
+                    'flex h-6 w-full items-center gap-1 rounded-[8px] px-2 py-0.5 text-left font-normal text-zinc-700 hover:bg-zinc-100',
+                    drawerTypography.settingsMenuItem
+                  ].join(' ')}
                   onClick={() => handleSettingsAction(it.key)}
                 >
                   <Icon name={it.iconName} size={16} decorative className="text-zinc-700" />
@@ -788,7 +886,10 @@ export const AppShell = ({
               <div className="border-b border-zinc-200 px-3 py-2">
                 <h2
                   id={profileSettingsTitleId}
-                  className="text-[12px] font-semibold leading-[1.6] text-zinc-700"
+                  className={[
+                    'font-semibold leading-[1.6] text-zinc-700',
+                    drawerTypography.profileTitle
+                  ].join(' ')}
                 >
                   프로필 설정
                 </h2>
@@ -801,9 +902,17 @@ export const AppShell = ({
                     <input
                       value={userName}
                       readOnly
-                      className="h-6 w-full rounded-[8px] border border-zinc-300 bg-white px-2 text-[12px] font-medium text-zinc-700 outline-none"
+                      className={[
+                        'h-6 w-full rounded-[8px] border border-zinc-300 bg-white px-2 font-medium text-zinc-700 outline-none',
+                        drawerTypography.profileInput
+                      ].join(' ')}
                     />
-                    <p className="mt-0.5 truncate text-[11px] font-medium text-zinc-400">
+                    <p
+                      className={[
+                        'mt-0.5 truncate font-medium text-zinc-400',
+                        drawerTypography.profileEmail
+                      ].join(' ')}
+                    >
                       {userEmail}
                     </p>
                   </div>
@@ -814,7 +923,10 @@ export const AppShell = ({
                 <div className="flex items-center gap-0.5">
                   <button
                     type="button"
-                    className="h-6 flex-1 rounded-[8px] bg-white text-[12px] font-medium text-zinc-500 hover:bg-zinc-100 active:bg-zinc-200"
+                    className={[
+                      'h-6 flex-1 rounded-[8px] bg-white font-medium text-zinc-500 hover:bg-zinc-100 active:bg-zinc-200',
+                      drawerTypography.profileButton
+                    ].join(' ')}
                     onClick={handleProfileDialogCancel}
                   >
                     취소
@@ -822,7 +934,10 @@ export const AppShell = ({
                   <button
                     type="button"
                     disabled
-                    className="h-6 flex-1 rounded-[8px] bg-zinc-800 text-[12px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={[
+                      'h-6 flex-1 rounded-[8px] bg-zinc-800 font-medium text-white disabled:cursor-not-allowed disabled:opacity-60',
+                      drawerTypography.profileButton
+                    ].join(' ')}
                   >
                     저장
                   </button>

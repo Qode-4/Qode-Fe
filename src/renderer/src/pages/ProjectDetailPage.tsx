@@ -70,7 +70,7 @@ const getMessageContent = (message: unknown): string => {
 
 const Avatar = ({ name }: { name: string }): React.JSX.Element => {
   return (
-    <div className="inline-flex size-6 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-[12px] font-medium text-zinc-500">
+    <div className="inline-flex size-6 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-ui-12 font-medium text-zinc-500">
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -94,7 +94,7 @@ const MessageActionButton = ({
   const button = (
     <button
       type="button"
-      className="inline-flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-[10px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
       disabled={disabled}
       onClick={onClick}
     >
@@ -319,7 +319,7 @@ export const ProjectDetailPage = ({
         role="status"
         aria-live="polite"
         aria-hidden={!copyToastVisible}
-        className={`pointer-events-none fixed right-6 top-6 z-50 rounded-[10px] border border-zinc-200 bg-zinc-900 px-3 py-2 text-[12px] font-medium text-white shadow-lg transition-all duration-200 ${
+        className={`pointer-events-none fixed right-6 top-6 z-50 rounded-[10px] border border-zinc-200 bg-zinc-900 px-3 py-2 text-ui-12 font-medium text-white shadow-lg transition-all duration-200 ${
           copyToastVisible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
         }`}
       >
@@ -330,7 +330,7 @@ export const ProjectDetailPage = ({
         <div className="flex min-w-0 items-center gap-1">
           <Chip label={projectName} startIcon startIconName="Code_light" />
           <Chip label={syncStatusLabel} startIcon startIconName="dot_round_fill" />
-          <span className="text-[10px] font-medium text-zinc-400">
+          <span className="text-ui-10 font-medium text-zinc-400">
             {formatTimeLabel(syncStatus.data?.data.latestJob?.updatedAt ?? null)}
           </span>
           <IconButton
@@ -411,11 +411,11 @@ export const ProjectDetailPage = ({
       <div ref={messagesViewportRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         <div className="flex min-h-full flex-col gap-6">
           {messages.isLoading ? (
-            <p className="text-[12px] font-medium text-zinc-500">메시지를 불러오는 중...</p>
+            <p className="text-ui-12 font-medium text-zinc-500">메시지를 불러오는 중...</p>
           ) : null}
 
           {/* {!messages.isLoading && messageItems.length === 0 ? (
-            <article className="rounded-[12px] border border-zinc-200 bg-white p-3 text-[12px] leading-[1.6] text-zinc-800">
+            <article className="rounded-[12px] border border-zinc-200 bg-white p-3 text-ui-12 leading-[1.6] text-zinc-800">
               {guide.data?.welcomeMessage ?? `${projectName}에 대해 물어보세요!`}
             </article>
           ) : null} */}
@@ -428,7 +428,7 @@ export const ProjectDetailPage = ({
             if (messageRole === 'user' || messageRole === 'USER') {
               return (
                 <div key={messageId} className="flex items-start justify-end gap-3">
-                  <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-[12px] font-medium text-zinc-800">
+                  <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-ui-12 font-medium text-zinc-800">
                     {messageContent}
                   </div>
                   <Avatar name={myAvatarName} />
@@ -441,21 +441,21 @@ export const ProjectDetailPage = ({
 
             return (
               <article key={messageId} className="rounded-[12px] bg-white">
-                <div className="whitespace-pre-wrap text-[12px] leading-[1.6] text-zinc-800">
+                <div className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
                   {messageContent}
                 </div>
 
                 {primarySource ? (
                   <div className="mt-3 rounded-[12px] bg-zinc-100 p-3">
                     <div className="mb-3 flex items-center justify-between">
-                      <p className="text-[10px] font-medium text-zinc-500">Java Script</p>
+                      <p className="text-ui-10 font-medium text-zinc-500">Java Script</p>
                       <MessageActionButton
                         iconName="Copy_light"
                         label="코드복사"
                         onClick={() => copyText(primarySource.snippet)}
                       />
                     </div>
-                    <pre className="m-0 overflow-x-auto whitespace-pre-wrap text-[12px] leading-[1.6] text-zinc-800">
+                    <pre className="m-0 overflow-x-auto whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
                       <code>{primarySource.snippet}</code>
                     </pre>
                   </div>
@@ -463,7 +463,7 @@ export const ProjectDetailPage = ({
 
                 {sources.length > 0 ? (
                   <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
-                    <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-[10px] text-zinc-500">
+                    <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500">
                       <span>참조한 소스 {sources.length}개</span>
                       <button
                         type="button"
@@ -476,12 +476,12 @@ export const ProjectDetailPage = ({
                       {sources.map((source) => (
                         <div
                           key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-                          className="flex items-center justify-between px-3 py-1.5 text-[12px]"
+                          className="flex items-center justify-between px-3 py-1.5 text-ui-12"
                         >
                           <span className="min-w-0 flex-1 truncate text-zinc-800">
                             {source.filePath}
                           </span>
-                          <span className="ml-3 text-[10px] text-zinc-500">
+                          <span className="ml-3 text-ui-10 text-zinc-500">
                             {source.startLine ?? '-'}-{source.endLine ?? '-'}
                           </span>
                         </div>
@@ -526,14 +526,14 @@ export const ProjectDetailPage = ({
               className="rounded-[12px] border border-zinc-200 bg-white p-3"
               aria-live="polite"
             >
-              <p className="mb-1 text-[10px] font-medium text-zinc-500">
+              <p className="mb-1 text-ui-10 font-medium text-zinc-500">
                 Qode AI · {streamStatus || '스트리밍 중'}
               </p>
-              <p className="whitespace-pre-wrap text-[12px] leading-[1.6] text-zinc-800">
+              <p className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
                 {streamContent || '답변을 생성하고 있습니다...'}
               </p>
               {streamSources.length > 0 ? (
-                <p className="mt-2 text-[10px] text-zinc-500">
+                <p className="mt-2 text-ui-10 text-zinc-500">
                   참조 소스 {streamSources.length}개 수집됨
                 </p>
               ) : null}

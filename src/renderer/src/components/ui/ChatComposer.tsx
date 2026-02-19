@@ -34,7 +34,7 @@ export const ChatComposer = ({
     >
       <textarea
         aria-label="메시지 입력"
-        className="block h-[72px] w-full resize-none bg-transparent text-[12px] leading-[1.6] text-zinc-800 outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed"
+        className="block h-[72px] w-full resize-none bg-transparent text-ui-12 leading-[1.6] text-zinc-800 outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}

@@ -44,7 +44,7 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
     <div className="flex h-full items-center justify-center bg-surface-muted px-4">
       <div className="flex w-full max-w-[520px] flex-col items-center gap-8">
         <div className="flex flex-col items-center gap-3 text-center">
-          <h1 className="whitespace-pre-line text-[32px] font-medium leading-[1.4] text-zinc-900">
+          <h1 className="whitespace-pre-line text-ui-32 font-medium leading-[1.4] text-zinc-900">
             코드가 궁금할 때,
             {'\n'}
             큐오드에 물어보세요!

@@ -42,9 +42,45 @@
   --color-danger: #c62828;
   --color-danger-bg: #fff3f3;
   --color-danger-line: #f1b5b5;
+
+  /* Typography tokens */
+  --text-xs: calc(var(--font-size-base) * 0.75);
+  --text-sm: calc(var(--font-size-base) * 0.875);
+  --text-base: calc(var(--font-size-base) * 1);
+  --text-lg: calc(var(--font-size-base) * 1.125);
+  --text-xl: calc(var(--font-size-base) * 1.25);
+  --text-2xl: calc(var(--font-size-base) * 1.5);
+  --text-3xl: calc(var(--font-size-base) * 1.875);
+  --text-4xl: calc(var(--font-size-base) * 2.25);
+  --text-5xl: calc(var(--font-size-base) * 3);
+
+  --text-ui-10: calc(var(--font-size-base) * 0.625);
+  --text-ui-11: calc(var(--font-size-base) * 0.6875);
+  --text-ui-12: calc(var(--font-size-base) * 0.75);
+  --text-ui-13: calc(var(--font-size-base) * 0.8125);
+  --text-ui-14: calc(var(--font-size-base) * 0.875);
+  --text-ui-15: calc(var(--font-size-base) * 0.9375);
+  --text-ui-16: calc(var(--font-size-base) * 1);
+  --text-ui-20: calc(var(--font-size-base) * 1.25);
+  --text-ui-22: calc(var(--font-size-base) * 1.375);
+  --text-ui-32: calc(var(--font-size-base) * 2);
+  --text-ui-42: calc(var(--font-size-base) * 2.625);
+  --text-ui-44: calc(var(--font-size-base) * 2.75);
 }
 
 @layer base {
+  :root {
+    --font-size-base: 1rem;
+  }
+
+  :root[data-font-size='default'] {
+    --font-size-base: 1rem;
+  }
+
+  :root[data-font-size='large'] {
+    --font-size-base: 1.083333rem;
+  }
+
   * {
     box-sizing: border-box;
   }

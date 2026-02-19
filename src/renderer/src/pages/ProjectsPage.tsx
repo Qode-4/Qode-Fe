@@ -17,7 +17,7 @@ export const ProjectsPage = ({ projectCount, onOpenCreateProject }: Props): Reac
     <div className="h-full rounded-[16px] border border-zinc-200 bg-zinc-50 px-3 py-3">
       <section className="flex h-full min-h-[640px] flex-col items-center justify-center rounded-[12px] bg-white text-center">
         <div className="w-full max-w-[406px]">
-          <h1 className="text-[44px] font-medium leading-[1.4] text-zinc-900">
+          <h1 className="text-ui-44 font-medium leading-[1.4] text-zinc-900">
             프로젝트를 추가하고
             <br />
             코드에 질문하세요.
@@ -32,7 +32,7 @@ export const ProjectsPage = ({ projectCount, onOpenCreateProject }: Props): Reac
           <button
             type="button"
             onClick={onOpenCreateProject}
-            className="mt-5 text-[10px] font-medium text-zinc-500 underline-offset-2 hover:underline"
+            className="mt-5 text-ui-10 font-medium text-zinc-500 underline-offset-2 hover:underline"
           >
             새 프로젝트 만들기 ({projectCount})
           </button>
