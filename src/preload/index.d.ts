@@ -1,1 +1,10 @@
+import type { ElectronAPI } from '@electron-toolkit/preload';
+
+declare global {
+  interface Window {
+    electron: ElectronAPI;
+    api: Record<string, unknown>;
+  }
+}
+
 export {};
