@@ -12,12 +12,11 @@ import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetProject, useGetProjectMembers } from '../../api/auth/useProjectsAPI';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
-import type { ChatItem } from '../../api/contracts/chats';
 import type {
-  ProjectDetailResponse,
-  ProjectListItem,
-  ProjectListResponse
-} from '../../api/contracts/projects';
+  ChatsMeListData,
+  ProjectsDetailData,
+  ProjectsListData
+} from '../../api/generated/data-contracts';
 import { QUERY_KEY } from '../../api/queryKeys';
 import { Button } from '../ui/Button';
 import { ContentTitle } from '../ui/ContentTitle';
@@ -28,11 +27,11 @@ import { Link } from '../ui/Link';
 import { OverlayModal } from '../ui/OverlayModal';
 
 type Props = {
-  projects: ProjectListItem[];
+  projects: ProjectsListData['data'];
   selectedProjectId?: string;
   onOpenCreateProject?: () => void;
-  personalChats?: ChatItem[];
-  teamChats?: ChatItem[];
+  personalChats?: ChatsMeListData['data'];
+  teamChats?: ChatsMeListData['data'];
   activeChatId?: string;
   onSelectChat?: (chatId: string) => void;
   onCreatePersonalChat?: () => void;
@@ -49,7 +48,7 @@ const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(va
 const getUniqueProjectName = (
   projectId: string,
   requestedName: string,
-  projects: ProjectListItem[]
+  projects: ProjectsListData['data']
 ): string => {
   const base = requestedName.trim();
   if (!base) return '';
@@ -204,7 +203,10 @@ export const AppShell = ({
     }
   };
 
-  const openProjectModal = (kind: ProjectActionKind, project: ProjectListItem): void => {
+  const openProjectModal = (
+    kind: ProjectActionKind,
+    project: ProjectsListData['data'][number]
+  ): void => {
     setOpenMenuProjectId(null);
     setProjectModal({ kind, projectId: project.id });
     if (kind === 'rename') {
@@ -239,19 +241,23 @@ export const AppShell = ({
       uniqueName === trimmed ? null : `중복 이름이 있어 "${uniqueName}" 으로 저장했어요.`
     );
 
-    qc.setQueriesData<ProjectListResponse>({ queryKey: ['projects'] }, (prev) => {
+    qc.setQueriesData<ProjectsListData>({ queryKey: ['projects'] }, (prev) => {
       if (!prev) return prev;
       return {
         ...prev,
-        projects: prev.projects.map((it) =>
-          it.id === modalProject.id ? { ...it, name: uniqueName } : it
-        )
+        data: prev.data.map((it) => (it.id === modalProject.id ? { ...it, name: uniqueName } : it))
       };
     });
 
-    qc.setQueryData<ProjectDetailResponse>(QUERY_KEY.project(modalProject.id), (prev) => {
+    qc.setQueryData<ProjectsDetailData>(QUERY_KEY.project(modalProject.id), (prev) => {
       if (!prev) return prev;
-      return { ...prev, name: uniqueName };
+      return {
+        ...prev,
+        data: {
+          ...prev.data,
+          name: uniqueName
+        }
+      };
     });
 
     window.setTimeout(() => {
@@ -276,7 +282,7 @@ export const AppShell = ({
       return;
     }
 
-    const inviteCode = modalProjectDetail.data?.inviteCode ?? '';
+    const inviteCode = modalProjectDetail.data?.data.inviteCode ?? '';
     const invitePath = inviteCode
       ? `${window.location.origin}/#/invite/${inviteCode}`
       : '초대 코드 없음';
@@ -594,14 +600,14 @@ export const AppShell = ({
               <div className="px-3 py-3 text-sm text-text-subtle">멤버를 불러오는 중...</div>
             ) : null}
 
-            {modalProjectMembers.data?.members.map((member) => (
+            {modalProjectMembers.data?.data.map((member) => (
               <div
-                key={member.userId}
+                key={member.id}
                 className="grid grid-cols-[1fr_160px] items-center border-b border-line-soft px-3 py-3 last:border-b-0"
               >
                 <div>
                   <div className="text-sm font-semibold text-text-base">{member.name}</div>
-                  <div className="text-sm text-text-subtle">{member.userId}</div>
+                  <div className="text-sm text-text-subtle">{member.id}</div>
                 </div>
                 <div className="flex justify-end">
                   <Button type="button" size="sm" variant="secondary" disabled>
@@ -626,7 +632,7 @@ export const AppShell = ({
             <span className="mb-1 block text-xs font-medium text-text-soft">Git Repository</span>
             <input
               className="h-10 w-full rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
-              value={modalProjectDetail.data?.gitUrl ?? ''}
+              value={modalProjectDetail.data?.data.gitUrl ?? ''}
               readOnly
             />
           </label>

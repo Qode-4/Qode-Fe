@@ -6,7 +6,7 @@ import {
 } from '../../api/auth/useGithubOAuthAPI';
 import { useGetProjectSyncStatus, usePostProjects } from '../../api/auth/useProjectsAPI';
 import { handleApiError } from '../../api/axios';
-import type { GithubOAuthDeviceStartResponse } from '../../api/contracts/githubOauth';
+import type { GithubOauthDeviceStartCreateData } from '../../api/generated/data-contracts';
 import { navigate } from '../../lib/hashRouter';
 import { Button } from '../ui/Button';
 import { InlineAlert } from '../ui/InlineAlert';
@@ -22,10 +22,10 @@ const OAUTH_FLOW_CACHE_TTL_MS = 10 * 60 * 1000;
 
 type CachedOauthFlow = {
   savedAt: number;
-  flow: GithubOAuthDeviceStartResponse;
+  flow: GithubOauthDeviceStartCreateData;
 };
 
-const saveCachedOauthFlow = (flow: GithubOAuthDeviceStartResponse): void => {
+const saveCachedOauthFlow = (flow: GithubOauthDeviceStartCreateData): void => {
   try {
     const payload: CachedOauthFlow = { savedAt: Date.now(), flow };
     localStorage.setItem(OAUTH_FLOW_CACHE_KEY, JSON.stringify(payload));
@@ -42,12 +42,12 @@ const clearCachedOauthFlow = (): void => {
   }
 };
 
-const readCachedOauthFlow = (): GithubOAuthDeviceStartResponse | null => {
+const readCachedOauthFlow = (): GithubOauthDeviceStartCreateData | null => {
   try {
     const raw = localStorage.getItem(OAUTH_FLOW_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CachedOauthFlow;
-    if (!parsed?.flow?.flowId || !parsed.savedAt) {
+    if (!parsed?.flow?.data?.flowId || !parsed.savedAt) {
       clearCachedOauthFlow();
       return null;
     }
@@ -67,7 +67,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [oauthFlow, setOauthFlow] = useState<GithubOAuthDeviceStartResponse | null>(null);
+  const [oauthFlow, setOauthFlow] = useState<GithubOauthDeviceStartCreateData | null>(null);
   const [selectedRepoFullName, setSelectedRepoFullName] = useState('');
   const [createdProjectId, setCreatedProjectId] = useState('');
   const [touched, setTouched] = useState({ name: false, repo: false });
@@ -82,29 +82,29 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
   const activeOauthFlow = oauthFlow ?? cachedOauthFlow;
 
   const oauthStatus = useGetGithubOauthDeviceFlow({
-    flowId: activeOauthFlow?.flowId ?? '',
-    intervalMs: (activeOauthFlow?.interval ?? 2) * 1000,
-    enabled: Boolean(activeOauthFlow?.flowId)
+    flowId: activeOauthFlow?.data.flowId ?? '',
+    intervalMs: (activeOauthFlow?.data.interval ?? 2) * 1000,
+    enabled: Boolean(activeOauthFlow?.data.flowId)
   });
   const repos = useGetGithubOauthRepos({
-    flowId: activeOauthFlow?.flowId ?? '',
-    enabled: oauthStatus.data?.status === 'authorized'
+    flowId: activeOauthFlow?.data.flowId ?? '',
+    enabled: oauthStatus.data?.data.status === 'authorized'
   });
   const syncStatus = useGetProjectSyncStatus({
     projectId: createdProjectId,
     enabled: Boolean(createdProjectId)
   });
 
-  const repoItems = useMemo(() => repos.data?.repositories ?? [], [repos.data?.repositories]);
+  const repoItems = useMemo(() => repos.data?.data ?? [], [repos.data?.data]);
   const selectedRepo = useMemo(
     () => repoItems.find((it) => it.fullName === selectedRepoFullName) ?? null,
     [repoItems, selectedRepoFullName]
   );
 
   const hasProjectInfo = Boolean(name.trim());
-  const isAuthorized = oauthStatus.data?.status === 'authorized';
+  const isAuthorized = oauthStatus.data?.data.status === 'authorized';
   const hasRepo = Boolean(selectedRepo);
-  const waitingAuth = Boolean(activeOauthFlow?.flowId) && !isAuthorized;
+  const waitingAuth = Boolean(activeOauthFlow?.data.flowId) && !isAuthorized;
 
   const nameError = useMemo(() => {
     if (!touched.name) return '';
@@ -122,14 +122,14 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
 
   const canSubmit =
     hasProjectInfo &&
-    Boolean(activeOauthFlow?.flowId) &&
+    Boolean(activeOauthFlow?.data.flowId) &&
     isAuthorized &&
     hasRepo &&
     !createdProjectId &&
     !create.isPending;
 
   const oauthStatusLabel = (() => {
-    const status = oauthStatus.data?.status;
+    const status = oauthStatus.data?.data.status;
     if (!status) return '대기';
     if (status === 'auth_pending') return '인증 대기 중';
     if (status === 'authorized') return '인증 완료';
@@ -139,7 +139,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
   })();
 
   const syncStatusLabel = (() => {
-    const status = syncStatus.data?.status;
+    const status = syncStatus.data?.data.status;
     if (!status) return '동기화 상태 확인 중';
     if (status === 'queued') return '대기 중';
     if (status === 'syncing') return '동기화 중';
@@ -150,7 +150,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
 
   const oauthOpenUrl = useMemo(() => {
     const candidate =
-      activeOauthFlow?.verificationUriComplete ?? activeOauthFlow?.verificationUri ?? '';
+      activeOauthFlow?.data.verificationUriComplete ?? activeOauthFlow?.data.verificationUri ?? '';
     const value = String(candidate).trim();
     if (!value || value === 'null' || value === 'undefined') return '';
     try {
@@ -162,28 +162,28 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     } catch {
       return '';
     }
-  }, [activeOauthFlow?.verificationUri, activeOauthFlow?.verificationUriComplete]);
+  }, [activeOauthFlow?.data.verificationUri, activeOauthFlow?.data.verificationUriComplete]);
 
   useEffect(() => {
-    if (!oauthFlow?.flowId) return;
-    if (startedFlowRef.current !== oauthFlow.flowId) return;
-    if (autoHandledFlowRef.current === oauthFlow.flowId) return;
-    autoHandledFlowRef.current = oauthFlow.flowId;
+    if (!oauthFlow?.data.flowId) return;
+    if (startedFlowRef.current !== oauthFlow.data.flowId) return;
+    if (autoHandledFlowRef.current === oauthFlow.data.flowId) return;
+    autoHandledFlowRef.current = oauthFlow.data.flowId;
 
     void (async () => {
       try {
-        await navigator.clipboard.writeText(oauthFlow.userCode);
+        await navigator.clipboard.writeText(oauthFlow.data.userCode);
       } catch {
         // noop
       }
       if (!oauthOpenUrl) return;
       window.open(oauthOpenUrl, '_blank', 'noopener,noreferrer');
     })();
-  }, [oauthFlow?.flowId, oauthFlow?.userCode, oauthOpenUrl]);
+  }, [oauthFlow?.data.flowId, oauthFlow?.data.userCode, oauthOpenUrl]);
 
   useEffect(() => {
-    const status = oauthStatus.data?.status;
-    if (!status || !activeOauthFlow?.flowId) return;
+    const status = oauthStatus.data?.data.status;
+    if (!status || !activeOauthFlow?.data.flowId) return;
     if (status === 'authorized') {
       saveCachedOauthFlow(activeOauthFlow);
       return;
@@ -191,7 +191,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     if (status === 'expired' || status === 'auth_failed') {
       clearCachedOauthFlow();
     }
-  }, [oauthStatus.data?.status, activeOauthFlow]);
+  }, [oauthStatus.data?.data.status, activeOauthFlow]);
 
   const stepTone = (ready: boolean): string =>
     ready
@@ -216,7 +216,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
         setOauthFlow(data);
         setSelectedRepoFullName('');
         saveCachedOauthFlow(data);
-        startedFlowRef.current = data.flowId;
+        startedFlowRef.current = data.data.flowId;
       }
     });
   };
@@ -241,7 +241,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               description: description.trim() ? description.trim() : undefined,
               git: {
                 provider: 'github_oauth',
-                flowId: activeOauthFlow.flowId,
+                flowId: activeOauthFlow.data.flowId,
                 owner: selectedRepo.owner,
                 repo: selectedRepo.name,
                 defaultBranch: selectedRepo.defaultBranch
@@ -249,7 +249,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             },
             {
               onSuccess: (data) => {
-                setCreatedProjectId(data.id);
+                setCreatedProjectId(data.data.id);
               }
             }
           );
@@ -340,11 +340,13 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               <div className="mt-3 rounded-md border border-line bg-surface p-3">
                 <p className="text-xs text-text-soft">
                   인증 코드:{' '}
-                  <span className="font-semibold text-text-base">{activeOauthFlow.userCode}</span>
+                  <span className="font-semibold text-text-base">
+                    {activeOauthFlow.data.userCode}
+                  </span>
                 </p>
                 <p className="mt-1 text-xs text-text-soft">상태: {oauthStatusLabel}</p>
                 <p className="mt-1 break-all text-xs text-text-soft">
-                  {activeOauthFlow.verificationUri}
+                  {activeOauthFlow.data.verificationUri}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Button
@@ -458,16 +460,18 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           <div className="mt-3 space-y-2">
             <InlineAlert
               tone={
-                syncStatus.data?.status === 'failed'
+                syncStatus.data?.data.status === 'failed'
                   ? 'danger'
-                  : syncStatus.data?.status === 'done'
+                  : syncStatus.data?.data.status === 'done'
                     ? 'success'
                     : 'info'
               }
               title={`초기 동기화 ${syncStatusLabel}`}
             >
               프로젝트가 생성되었습니다. ID: {createdProjectId}
-              {syncStatus.data?.error ? ` (${syncStatus.data.error})` : ''}
+              {syncStatus.data?.data.latestJob?.errorMessage
+                ? ` (${syncStatus.data.data.latestJob.errorMessage})`
+                : ''}
             </InlineAlert>
 
             <div className="flex items-center gap-2">

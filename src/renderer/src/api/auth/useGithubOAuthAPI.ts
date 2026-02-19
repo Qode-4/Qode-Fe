@@ -1,17 +1,12 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../apiClient';
-import type {
-  GithubOAuthDeviceFlowResponse,
-  GithubOAuthDeviceStartResponse,
-  GithubOAuthReposResponse
-} from '../contracts/githubOauth';
 import { QUERY_KEY } from '../queryKeys';
 
 export const usePostGithubOauthDeviceStart = () =>
   useMutation({
-    mutationFn: async (): Promise<GithubOAuthDeviceStartResponse> => {
+    mutationFn: async () => {
       const res = await apiClient.githubOauthDeviceStartCreate({ secure: true });
-      return res.data.data;
+      return res.data;
     }
   });
 
@@ -22,19 +17,13 @@ export const useGetGithubOauthDeviceFlow = (params: {
 }) =>
   useQuery({
     queryKey: QUERY_KEY.githubOauthDeviceFlow(params.flowId),
-    queryFn: async (): Promise<GithubOAuthDeviceFlowResponse> => {
+    queryFn: async () => {
       const res = await apiClient.githubOauthDeviceFlowsDetail(params.flowId, { secure: true });
-      const data = res.data.data;
-      return {
-        flowId: data.flowId,
-        status: data.status,
-        githubUser: null,
-        error: data.error
-      };
+      return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.flowId),
     refetchInterval: (query) => {
-      const status = query.state.data?.status;
+      const status = query.state.data?.data.status;
       if (status === 'auth_pending') {
         return params.intervalMs ?? 1500;
       }
@@ -45,18 +34,9 @@ export const useGetGithubOauthDeviceFlow = (params: {
 export const useGetGithubOauthRepos = (params: { flowId: string; enabled?: boolean }) =>
   useQuery({
     queryKey: QUERY_KEY.githubOauthRepos(params.flowId),
-    queryFn: async (): Promise<GithubOAuthReposResponse> => {
+    queryFn: async () => {
       const res = await apiClient.githubOauthReposList({ flowId: params.flowId }, { secure: true });
-      return {
-        repositories: res.data.data.map((repo) => ({
-          owner: repo.owner,
-          name: repo.name,
-          fullName: repo.fullName,
-          cloneUrl: repo.cloneUrl,
-          defaultBranch: repo.defaultBranch,
-          private: repo.private
-        }))
-      };
+      return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.flowId)
   });

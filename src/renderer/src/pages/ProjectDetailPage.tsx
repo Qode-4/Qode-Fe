@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   useGetChatMessages,
   useGetProjectChats,
@@ -15,7 +15,7 @@ import {
 } from '../api/auth/useProjectsAPI';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
-import type { ChatMessage, SourceItem } from '../api/contracts/chats';
+import type { SourceItem } from '../api/contracts/chats';
 import { CreateChatModal } from '../components/feature/CreateChatModal';
 import type { IconName } from '../components/icons/iconTypes';
 import { ChatComposer } from '../components/ui/ChatComposer';
@@ -45,9 +45,26 @@ const formatTimeLabel = (iso: string | null): string => {
   return `${Math.floor(diff / hour)}시간 전`;
 };
 
-const extractSources = (message: ChatMessage): SourceItem[] => {
-  if (message.sources && message.sources.length > 0) return message.sources;
-  return message.originalMessage?.sources ?? [];
+const extractSources = (message: unknown): SourceItem[] => {
+  const target = message as {
+    sources?: SourceItem[] | null;
+    originalMessage?: { sources?: SourceItem[] | null } | null;
+  };
+
+  if (target.sources && target.sources.length > 0) return target.sources;
+  return target.originalMessage?.sources ?? [];
+};
+
+const getMessageId = (message: unknown): string => {
+  return (message as { id: string }).id;
+};
+
+const getMessageRole = (message: unknown): string => {
+  return String((message as { role?: string }).role ?? '');
+};
+
+const getMessageContent = (message: unknown): string => {
+  return String((message as { content?: string }).content ?? '');
 };
 
 const Avatar = ({ name }: { name: string }): React.JSX.Element => {
@@ -117,14 +134,16 @@ export const ProjectDetailPage = ({
   const [streamContent, setStreamContent] = useState('');
   const [streamSources, setStreamSources] = useState<SourceItem[]>([]);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [copyToastVisible, setCopyToastVisible] = useState(false);
+  const copyToastTimeoutRef = useRef<number | null>(null);
 
-  const allChats = useMemo(() => chats.data?.chats ?? [], [chats.data?.chats]);
+  const allChats = useMemo(() => chats.data?.data ?? [], [chats.data?.data]);
   const activeChat = useMemo(
     () => allChats.find((chat) => chat.id === activeChatId),
     [allChats, activeChatId]
   );
-  const isPersonalChat = activeChat?.type === 'personal';
-  const isTeamChat = activeChat?.type === 'team';
+  const isPersonalChat = activeChat?.chat_type === 'PERSONAL';
+  const isTeamChat = activeChat?.chat_type === 'TEAM';
   const isTeamChatReadOnly = isTeamChat && !API_CAPABILITIES.teamChatWritable;
 
   const messages = useGetChatMessages({
@@ -167,10 +186,35 @@ export const ProjectDetailPage = ({
   const projectName = project.data?.data.name;
   const chatName = activeChat?.name;
   const memberCount = members.data?.data.length ?? 0;
+  const messageItems = useMemo(() => {
+    const payload = messages.data;
+    return payload?.data ?? [];
+  }, [messages.data]);
+
+  useEffect(() => {
+    return () => {
+      if (copyToastTimeoutRef.current !== null) {
+        window.clearTimeout(copyToastTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const showCopyToast = (): void => {
+    setCopyToastVisible(true);
+    if (copyToastTimeoutRef.current !== null) {
+      window.clearTimeout(copyToastTimeoutRef.current);
+    }
+
+    copyToastTimeoutRef.current = window.setTimeout(() => {
+      setCopyToastVisible(false);
+      copyToastTimeoutRef.current = null;
+    }, 1500);
+  };
 
   const copyText = async (value: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(value);
+      showCopyToast();
     } catch {
       // noop
     }
@@ -245,6 +289,17 @@ export const ProjectDetailPage = ({
 
   return (
     <section className="flex h-full min-h-0 flex-col rounded-[16px] border border-zinc-200 bg-white">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-hidden={!copyToastVisible}
+        className={`pointer-events-none fixed right-6 top-6 z-50 rounded-[10px] border border-zinc-200 bg-zinc-900 px-3 py-2 text-[12px] font-medium text-white shadow-lg transition-all duration-200 ${
+          copyToastVisible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
+        }`}
+      >
+        복사되었습니다
+      </div>
+
       <header className="flex h-10 shrink-0 items-center justify-between px-4">
         <div className="flex min-w-0 items-center gap-1">
           <Chip label={projectName} startIcon startIconName="Code_light" />
@@ -333,18 +388,22 @@ export const ProjectDetailPage = ({
             <p className="text-[12px] font-medium text-zinc-500">메시지를 불러오는 중...</p>
           ) : null}
 
-          {/* {!messages.isLoading && (messages.data?.messages.length ?? 0) === 0 ? (
+          {/* {!messages.isLoading && messageItems.length === 0 ? (
             <article className="rounded-[12px] border border-zinc-200 bg-white p-3 text-[12px] leading-[1.6] text-zinc-800">
               {guide.data?.welcomeMessage ?? `${projectName}에 대해 물어보세요!`}
             </article>
           ) : null} */}
 
-          {messages.data?.messages.map((message) => {
-            if (message.role === 'user') {
+          {messageItems.map((message) => {
+            const messageId = getMessageId(message);
+            const messageRole = getMessageRole(message);
+            const messageContent = getMessageContent(message);
+
+            if (messageRole === 'user' || messageRole === 'USER') {
               return (
-                <div key={message.id} className="flex items-start justify-end gap-3">
+                <div key={messageId} className="flex items-start justify-end gap-3">
                   <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-[12px] font-medium text-zinc-800">
-                    {message.content}
+                    {messageContent}
                   </div>
                   <Avatar name="김" />
                 </div>
@@ -355,9 +414,9 @@ export const ProjectDetailPage = ({
             const primarySource = sources[0];
 
             return (
-              <article key={message.id} className="rounded-[12px] bg-white">
+              <article key={messageId} className="rounded-[12px] bg-white">
                 <div className="whitespace-pre-wrap text-[12px] leading-[1.6] text-zinc-800">
-                  {message.content}
+                  {messageContent}
                 </div>
 
                 {primarySource ? (
@@ -390,7 +449,7 @@ export const ProjectDetailPage = ({
                     <div className="divide-y divide-zinc-100">
                       {sources.map((source) => (
                         <div
-                          key={`${message.id}-${source.filePath}-${source.startLine ?? 0}`}
+                          key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
                           className="flex items-center justify-between px-3 py-1.5 text-[12px]"
                         >
                           <span className="min-w-0 flex-1 truncate text-zinc-800">
@@ -409,7 +468,7 @@ export const ProjectDetailPage = ({
                   <MessageActionButton
                     iconName="Copy_light"
                     label="복사"
-                    onClick={() => copyText(message.content)}
+                    onClick={() => copyText(messageContent)}
                   />
                   <MessageActionButton
                     iconName="Send_hor_fill"
@@ -420,7 +479,7 @@ export const ProjectDetailPage = ({
                     }
                     onClick={() =>
                       postShare.mutate({
-                        messageId: message.id,
+                        messageId,
                         body: { comment: `${chatName}에서 공유한 답변입니다.` }
                       })
                     }

@@ -2,19 +2,12 @@ import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tansta
 import { apiClient } from '../apiClient';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../capabilities';
 import type {
-  ChatMessagesResponse,
-  ProjectChatsResponse,
   ProjectGuideResponse,
   ShareMessageBody,
   ShareMessageResponse,
   SourceItem
 } from '../contracts/chats';
-import type {
-  ChatsMeCreateData,
-  ChatsMeListData,
-  ChatsMeMessagesCreatePayload,
-  ChatsMeMessagesListData
-} from '../generated/data-contracts';
+import type { ChatsMeMessagesCreatePayload } from '../generated/data-contracts';
 import { ContentType } from '../generated/http-client';
 import { QUERY_KEY } from '../queryKeys';
 import { tokenStorage } from '../tokenStorage';
@@ -39,12 +32,6 @@ type SseDonePayload = {
   status?: string;
 };
 
-type CurrentUser = {
-  id: string;
-  name: string;
-  avatarUrl: string | null;
-};
-
 type TeamChatMessageCreatePayload = {
   content: string;
 };
@@ -63,29 +50,9 @@ const ensureTeamChatWritable = (): void => {
   }
 };
 
-const normalizeChatType = (value: unknown): 'personal' | 'team' => {
-  if (value === 'TEAM' || value === 'team') return 'team';
-  return 'personal';
-};
-
-const normalizeMessageRole = (value: unknown): 'user' | 'assistant' => {
-  if (value === 'USER' || value === 'user') return 'user';
-  return 'assistant';
-};
-
-const normalizeMessageStatus = (value: unknown): 'complete' | 'streaming' | 'failed' => {
-  if (value === 'STREAMING' || value === 'streaming') return 'streaming';
-  if (value === 'FAILED' || value === 'failed') return 'failed';
-  return 'complete';
-};
-
-const toCurrentUser = (me: Awaited<ReturnType<typeof getAuthMe>>): CurrentUser => ({
-  id: me.id,
-  name: me.name ?? 'Unknown',
-  avatarUrl: me.avatarUrl ?? null
-});
-
-const getCurrentUser = async (queryClient?: QueryClient): Promise<CurrentUser> => {
+const getCurrentUser = async (
+  queryClient?: QueryClient
+): Promise<Awaited<ReturnType<typeof getAuthMe>>> => {
   const me = queryClient
     ? await queryClient.ensureQueryData({
         queryKey: QUERY_KEY.me,
@@ -93,76 +60,7 @@ const getCurrentUser = async (queryClient?: QueryClient): Promise<CurrentUser> =
       })
     : await getAuthMe();
 
-  return toCurrentUser(me);
-};
-
-const mapProjectChats = (
-  payload: ChatsMeListData,
-  currentUser: CurrentUser,
-  type: 'all' | 'personal' | 'team'
-): ProjectChatsResponse => {
-  const chats = (payload.data ?? [])
-    .map((chat) => ({
-      id: chat.id,
-      name: chat.name,
-      type: normalizeChatType(chat.chat_type),
-      createdBy: {
-        id: chat.created_by,
-        name: chat.created_by === currentUser.id ? currentUser.name : 'Member',
-        avatarUrl: chat.created_by === currentUser.id ? currentUser.avatarUrl : null
-      },
-      createdAt: chat.created_at,
-      lastMessageAt: null
-    }))
-    .filter((chat) => {
-      if (type === 'all') return true;
-      return chat.type === type;
-    });
-
-  return { chats };
-};
-
-const mapCreatedChat = (
-  payload: ChatsMeCreateData,
-  currentUser: CurrentUser
-): ProjectChatsResponse['chats'][number] => {
-  return {
-    id: payload.data.id,
-    name: payload.data.name,
-    type: normalizeChatType(payload.data.chat_type),
-    createdBy: {
-      id: payload.data.created_by,
-      name: payload.data.created_by === currentUser.id ? currentUser.name : 'Member',
-      avatarUrl: payload.data.created_by === currentUser.id ? currentUser.avatarUrl : null
-    },
-    createdAt: payload.data.created_at,
-    lastMessageAt: null
-  };
-};
-
-const mapChatMessages = (
-  payload: ChatsMeMessagesListData,
-  currentUser: CurrentUser
-): ChatMessagesResponse => {
-  return {
-    messages: (payload.data ?? []).map((message) => ({
-      id: message.id,
-      role: normalizeMessageRole(message.role),
-      content: message.content,
-      createdAt: message.created_at,
-      user: message.user_id
-        ? {
-            id: message.user_id,
-            name: message.user_id === currentUser.id ? currentUser.name : 'Member',
-            avatarUrl: message.user_id === currentUser.id ? currentUser.avatarUrl : null
-          }
-        : null,
-      status: normalizeMessageStatus(message.status),
-      sources: null,
-      originalMessage: null
-    })),
-    nextCursor: null
-  };
+  return me;
 };
 
 const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void => {
@@ -295,8 +193,6 @@ export const useGetProjectChats = (params: {
     queryKey: QUERY_KEY.projectChats(params.projectId, params.type),
     queryFn: async () => {
       const currentUser = await getCurrentUser(qc);
-      console.log({ currentUser });
-      const selectedType = params.type ?? 'all';
       const res = await apiClient.chatsMeList(
         {
           project_id: params.projectId,
@@ -304,7 +200,7 @@ export const useGetProjectChats = (params: {
         },
         { secure: true }
       );
-      return mapProjectChats(res.data, currentUser, selectedType);
+      return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });
@@ -330,10 +226,10 @@ export const usePostProjectChats = (params: { projectId: string }) => {
           },
           { secure: true }
         );
-        return mapCreatedChat(res.data, currentUser);
+        return res.data;
       }
 
-      const res = await apiClient.request<ProjectChatsResponse['chats'][number]>({
+      const res = await apiClient.request({
         path: `/api/projects/${params.projectId}/chats`,
         method: 'POST',
         body,
@@ -359,23 +255,24 @@ export const useGetChatMessages = (params: {
   return useQuery({
     queryKey: QUERY_KEY.chatMessages(params.chatId, Boolean(params.personal)),
     queryFn: async () => {
-      if (params.personal) {
-        const currentUser = await getCurrentUser(qc);
-        const res = await apiClient.chatsMeMessagesList(
-          params.chatId,
-          { user_id: currentUser.id },
-          { secure: true }
-        );
-        return mapChatMessages(res.data, currentUser);
-      }
-
-      const res = await apiClient.request<ChatMessagesResponse>({
-        path: `/api/chats/${params.chatId}/messages`,
-        method: 'GET',
-        secure: true,
-        format: 'json'
-      });
+      // 일단 지금은 팀 채팅 없으니까 주석처리
+      // if (params.personal) {
+      const currentUser = await getCurrentUser(qc);
+      const res = await apiClient.chatsMeMessagesList(
+        params.chatId,
+        { user_id: currentUser.id },
+        { secure: true }
+      );
       return res.data;
+      // }
+
+      // const res = await apiClient.request({
+      //   path: `/api/chats/${params.chatId}/messages`,
+      //   method: 'GET',
+      //   secure: true,
+      //   format: 'json'
+      // });
+      // return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.chatId)
   });

@@ -35,16 +35,19 @@ const App = (): React.JSX.Element => {
     type: 'all',
     enabled: Boolean(selectedProjectId)
   });
-  const allChats = useMemo(() => chats.data?.chats ?? [], [chats.data?.chats]);
-  const personalChats = useMemo(() => allChats.filter((it) => it.type === 'personal'), [allChats]);
-  const teamChats = useMemo(() => allChats.filter((it) => it.type === 'team'), [allChats]);
+  const allChats = useMemo(() => chats.data?.data ?? [], [chats.data?.data]);
+  const personalChats = useMemo(
+    () => allChats.filter((it) => it.chat_type === 'PERSONAL'),
+    [allChats]
+  );
+  const teamChats = useMemo(() => allChats.filter((it) => it.chat_type === 'TEAM'), [allChats]);
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [createChatModalType, setCreateChatModalType] = useState<'personal' | 'team' | null>(null);
 
   const activeChatId = useMemo(() => {
     if (selectedChatId && allChats.some((it) => it.id === selectedChatId)) return selectedChatId;
-    const team = allChats.find((it) => it.type === 'team');
+    const team = allChats.find((it) => it.chat_type === 'TEAM');
     return (team ?? allChats[0])?.id ?? '';
   }, [selectedChatId, allChats]);
 
@@ -108,7 +111,7 @@ const App = (): React.JSX.Element => {
 
   return (
     <AppShell
-      projects={projects.data?.projects ?? []}
+      projects={projects.data?.data ?? []}
       selectedProjectId={selectedProjectId}
       onOpenCreateProject={() => setCreateProjectModalOpen(true)}
       personalChats={personalChats}
@@ -128,7 +131,7 @@ const App = (): React.JSX.Element => {
 
       {matchPath(location.path, '/projects').matched ? (
         <ProjectsPage
-          projectCount={projects.data?.projects.length ?? 0}
+          projectCount={projects.data?.data.length ?? 0}
           onOpenCreateProject={() => setCreateProjectModalOpen(true)}
         />
       ) : null}
