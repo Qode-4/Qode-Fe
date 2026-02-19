@@ -229,13 +229,7 @@ export const useDeleteChat = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      projectId,
-      chatId
-    }: {
-      projectId: string;
-      chatId: string;
-    }) => {
+    mutationFn: async ({ chatId }: { projectId: string; chatId: string }) => {
       const res = await apiClient.chatsMeDelete(chatId, { secure: true });
       return res.data;
     },
