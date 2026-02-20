@@ -27,6 +27,13 @@ type Props = {
   onCloseCreateChatModal: () => void;
 };
 
+type PendingUserMessage = {
+  clientId: string;
+  chatId: string;
+  content: string;
+  failed: boolean;
+};
+
 const extractSources = (message: unknown): SourceItem[] => {
   const target = message as {
     sources?: SourceItem[] | null;
@@ -47,6 +54,14 @@ const getMessageRole = (message: unknown): string => {
 
 const getMessageContent = (message: unknown): string => {
   return String((message as { content?: string }).content ?? '');
+};
+
+const isLocalFailedMessage = (message: unknown): boolean => {
+  return Boolean((message as { __localFailed?: boolean }).__localFailed);
+};
+
+const isUserMessageRole = (role: string): boolean => {
+  return role === 'user' || role === 'USER';
 };
 
 const Avatar = ({ name }: { name: string }): React.JSX.Element => {
@@ -113,6 +128,7 @@ export const ProjectDetailPage = ({
   const [streamContent, setStreamContent] = useState('');
   const [streamSources, setStreamSources] = useState<SourceItem[]>([]);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [pendingUserMessage, setPendingUserMessage] = useState<PendingUserMessage | null>(null);
   const [copyToastVisible, setCopyToastVisible] = useState(false);
   const copyToastTimeoutRef = useRef<number | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
@@ -158,6 +174,20 @@ export const ProjectDetailPage = ({
     const payload = messages.data;
     return payload?.data ?? [];
   }, [messages.data]);
+  const displayMessageItems = useMemo(() => {
+    if (!pendingUserMessage) return messageItems;
+    if (pendingUserMessage.chatId !== activeChatId) return messageItems;
+
+    return [
+      ...messageItems,
+      {
+        id: pendingUserMessage.clientId,
+        role: 'USER',
+        content: pendingUserMessage.content,
+        __localFailed: pendingUserMessage.failed
+      }
+    ];
+  }, [activeChatId, messageItems, pendingUserMessage]);
 
   useEffect(() => {
     return () => {
@@ -207,13 +237,21 @@ export const ProjectDetailPage = ({
       scrollToBottom('auto');
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, [activeChatId, messageItems.length, streamContent, streamStatus]);
+  }, [activeChatId, displayMessageItems.length, streamContent, streamStatus]);
 
   const sendMessage = (): void => {
     if (!canSend || !activeChatId) return;
 
     const content = draft.trim();
+    const pendingMessage: PendingUserMessage = {
+      clientId: `pending-user-${Date.now()}`,
+      chatId: activeChatId,
+      content,
+      failed: false
+    };
+
     setDraft('');
+    setPendingUserMessage(pendingMessage);
     setStreamStatus('요청 중...');
     setStreamContent('');
     setStreamSources([]);
@@ -235,15 +273,23 @@ export const ProjectDetailPage = ({
       },
       onError: (message: string) => {
         setStreamError(message);
+        setPendingUserMessage((prev) => {
+          if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
+          return { ...prev, failed: true };
+        });
       }
     };
 
     const settled = {
-      onSettled: () => {
+      onSettled: (_data: unknown, error: unknown) => {
         window.setTimeout(() => {
           setStreamStatus('');
           setStreamContent('');
           setStreamSources([]);
+          setPendingUserMessage((prev) => {
+            if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
+            return error ? prev : null;
+          });
         }, 500);
       }
     };
@@ -337,16 +383,22 @@ export const ProjectDetailPage = ({
               <p className="text-ui-12 font-medium text-zinc-500">메시지를 불러오는 중...</p>
             ) : null}
 
-            {messageItems.map((message) => {
+            {displayMessageItems.map((message) => {
               const messageId = getMessageId(message);
               const messageRole = getMessageRole(message);
               const messageContent = getMessageContent(message);
+              const isLocalFailed = isLocalFailedMessage(message);
 
-              if (messageRole === 'user' || messageRole === 'USER') {
+              if (isUserMessageRole(messageRole)) {
                 return (
-                  <div key={messageId} className="flex items-start justify-end gap-3">
-                    <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-ui-12 font-medium text-zinc-800">
-                      {messageContent}
+                  <div key={messageId} className="flex items-end justify-end gap-3">
+                    <div className="flex flex-col items-end">
+                      <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-ui-12 font-medium text-zinc-800">
+                        {messageContent}
+                      </div>
+                      {isLocalFailed ? (
+                        <p className="mt-1 text-ui-10 font-medium text-red-500">전송 실패</p>
+                      ) : null}
                     </div>
                     <Avatar name={myAvatarName} />
                   </div>
