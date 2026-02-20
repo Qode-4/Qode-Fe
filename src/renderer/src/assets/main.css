@@ -119,4 +119,28 @@
     font-family:
       'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   }
+
+  /* Global scrollbar: 6px thumb + 2px inset on both sides, transparent track, radius 8px */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-zinc-200) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-zinc-400);
+    border: 2px solid transparent;
+    background-clip: content-box;
+    border-radius: 8px;
+  }
 }
