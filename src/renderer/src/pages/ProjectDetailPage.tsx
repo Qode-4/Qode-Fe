@@ -414,8 +414,8 @@ export const ProjectDetailPage = ({
                       onClick={() => copyText(messageContent)}
                     />
                     <MessageActionButton
-                      iconName="Send_hor_fill"
-                      label="팀 채팅에 공유"
+                      iconName="shared"
+                      label="팀 공유"
                       disabled={postShare.isPending || !API_CAPABILITIES.teamChatWritable}
                       disabledReason={
                         !API_CAPABILITIES.teamChatWritable ? teamReadOnlyReason : undefined
@@ -428,8 +428,8 @@ export const ProjectDetailPage = ({
                       }
                     />
                     <MessageActionButton
-                      iconName="Add_round_light"
-                      label="새로운 팀 채팅 만들기"
+                      iconName="create_box"
+                      label="팀 채팅 생성"
                       disabled
                       disabledReason={teamReadOnlyReason}
                     />

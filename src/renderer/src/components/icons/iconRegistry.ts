@@ -8,6 +8,8 @@ import Send_hor_fill from './raw/Send_hor_fill.svg?react';
 import Setting_line_light from './raw/Setting_line_light.svg?react';
 import User_light from './raw/User_light.svg?react';
 import dot_round_fill from './raw/dot_round_fill.svg?react';
+import create_box from './raw/plus-box.svg?react';
+import shared from './raw/shared-icon.svg?react';
 
 export const ICON_REGISTRY = {
   Add_round_light,
@@ -19,7 +21,9 @@ export const ICON_REGISTRY = {
   Send_hor_fill,
   Setting_line_light,
   User_light,
-  dot_round_fill
+  dot_round_fill,
+  create_box,
+  shared
 } as const;
 
 export const ICON_NAMES = Object.keys(ICON_REGISTRY) as Array<keyof typeof ICON_REGISTRY>;
