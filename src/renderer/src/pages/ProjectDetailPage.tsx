@@ -75,7 +75,7 @@ const MessageActionButton = ({
   const button = (
     <button
       type="button"
-      className="inline-flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
       disabled={disabled}
       onClick={onClick}
     >
@@ -357,7 +357,7 @@ export const ProjectDetailPage = ({
               const primarySource = sources[0];
 
               return (
-                <article key={messageId} className="rounded-[12px] bg-white">
+                <article key={messageId} className="rounded-[12px] bg-white p-3">
                   <div className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
                     {messageContent}
                   </div>
@@ -414,8 +414,8 @@ export const ProjectDetailPage = ({
                       onClick={() => copyText(messageContent)}
                     />
                     <MessageActionButton
-                      iconName="Send_hor_fill"
-                      label="팀 채팅에 공유"
+                      iconName="shared"
+                      label="팀 공유"
                       disabled={postShare.isPending || !API_CAPABILITIES.teamChatWritable}
                       disabledReason={
                         !API_CAPABILITIES.teamChatWritable ? teamReadOnlyReason : undefined
@@ -428,8 +428,8 @@ export const ProjectDetailPage = ({
                       }
                     />
                     <MessageActionButton
-                      iconName="Add_round_light"
-                      label="새로운 팀 채팅 만들기"
+                      iconName="create_box"
+                      label="팀 채팅 생성"
                       disabled
                       disabledReason={teamReadOnlyReason}
                     />
@@ -461,7 +461,7 @@ export const ProjectDetailPage = ({
         </div>
       </div>
 
-      <footer className="shrink-0 px-3 pb-3">
+      <footer className="shrink-0 px-3 pb-3 flex justify-center">
         <ChatComposer
           value={draft}
           placeholder={
