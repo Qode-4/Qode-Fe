@@ -107,7 +107,7 @@ export const OverlayModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/25 p-6 pt-14"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/25"
       onMouseDown={(e) => {
         if (e.currentTarget === e.target) onCloseRef.current();
       }}
