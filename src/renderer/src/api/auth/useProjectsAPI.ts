@@ -130,3 +130,21 @@ export const useGetProjectMembers = (params: { projectId: string; enabled?: bool
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });
+
+export const usePostProjectMembersInvite = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: { projectId: string; emails: string[] }) => {
+      const res = await apiClient.projectsMembersInviteCreate(
+        params.projectId,
+        { emails: params.emails },
+        { secure: true }
+      );
+      return res.data;
+    },
+    onSuccess: (_data, params) => {
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectMembers(params.projectId) });
+    }
+  });
+};
