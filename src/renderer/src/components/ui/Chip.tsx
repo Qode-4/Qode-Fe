@@ -31,7 +31,7 @@ export const Chip = ({
           className={['shrink-0', startIconClassName].join(' ')}
         />
       ) : null}
-      <span className="text-ui-10 font-medium leading-none text-zinc-800">{label}</span>
+      <span className="text-[12px] font-medium leading-none text-zinc-800">{label}</span>
     </span>
   );
 };

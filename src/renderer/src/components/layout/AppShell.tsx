@@ -17,7 +17,9 @@ import { useDeleteChat } from '../../api/auth/useChatsAPI';
 import {
   useDeleteProject,
   useGetProject,
-  useGetProjectMembers
+  useGetProjectMembers,
+  useGetProjectSyncStatus,
+  usePostProjectSync
 } from '../../api/auth/useProjectsAPI';
 import { handleApiError } from '../../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
@@ -33,9 +35,11 @@ import overflowIcon from '../../assets/overflow-icon.png';
 import { navigate } from '../../lib/hashRouter';
 import type { IconName } from '../icons/iconTypes';
 import { Button } from '../ui/Button';
+import { Chip } from '../ui/Chip';
 import { ContentTitle } from '../ui/ContentTitle';
 import { DrawerHeader } from '../ui/DrawerHeader';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { InlineAlert } from '../ui/InlineAlert';
 import { Link } from '../ui/Link';
 import { OverlayModal } from '../ui/OverlayModal';
@@ -152,6 +156,18 @@ const settingsMenuActions: SettingsMenuAction[] = [
   { key: 'logout', label: '로그아웃', iconName: 'Code_light' }
 ];
 
+const formatTimeLabel = (iso: string | null): string => {
+  if (!iso) return '시간 정보 없음';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '시간 정보 없음';
+  const diff = Math.max(0, Date.now() - date.getTime());
+  const minute = 60_000;
+  const hour = 60 * minute;
+  if (diff < minute) return '방금 전';
+  if (diff < hour) return `${Math.floor(diff / minute)}분 전`;
+  return `${Math.floor(diff / hour)}시간 전`;
+};
+
 export const AppShell = ({
   me,
   projects,
@@ -181,6 +197,7 @@ export const AppShell = ({
   const deleteProject = useDeleteProject();
   const deleteChat = useDeleteChat();
   const postAuthLogout = usePostAuthLogout();
+  const postProjectSync = usePostProjectSync({ projectId: selectedProjectId ?? '' });
 
   const [renameValue, setRenameValue] = useState('');
   const [renameTouched, setRenameTouched] = useState(false);
@@ -201,6 +218,10 @@ export const AppShell = ({
   const userAvatarUrl = me?.avatarUrl ?? null;
   const modalProjectId = modalProject?.id ?? '';
   const projectMenuId = openMenuProjectId ? `project-actions-menu-${openMenuProjectId}` : undefined;
+  const selectedProject = useMemo(
+    () => projects.find((it) => it.id === selectedProjectId),
+    [projects, selectedProjectId]
+  );
 
   const modalProjectDetail = useGetProject({
     projectId: modalProjectId,
@@ -212,6 +233,28 @@ export const AppShell = ({
     projectId: modalProjectId,
     enabled: Boolean(modalProjectId) && projectModal?.kind === 'members'
   });
+  const selectedProjectMembers = useGetProjectMembers({
+    projectId: selectedProjectId ?? '',
+    enabled: Boolean(selectedProjectId)
+  });
+  const selectedProjectSyncStatus = useGetProjectSyncStatus({
+    projectId: selectedProjectId ?? '',
+    enabled: Boolean(selectedProjectId)
+  });
+  const selectedProjectSyncStatusValue = selectedProjectSyncStatus.data?.data.status;
+  const selectedProjectSyncStatusLabel = (() => {
+    if (!selectedProjectSyncStatusValue) return '동기화 상태 확인 중';
+    if (selectedProjectSyncStatusValue === 'queued') return '동기화 대기 중';
+    if (selectedProjectSyncStatusValue === 'syncing') return '동기화 중';
+    if (selectedProjectSyncStatusValue === 'done') return '동기화됨';
+    if (selectedProjectSyncStatusValue === 'failed') return '동기화 실패';
+    return '동기화 상태 확인 중';
+  })();
+  const isSyncInProgress =
+    selectedProjectSyncStatusValue === 'queued' || selectedProjectSyncStatusValue === 'syncing';
+  const canRequestProjectSync =
+    Boolean(selectedProjectId) && !isSyncInProgress && !postProjectSync.isPending;
+  const selectedProjectMemberCount = selectedProjectMembers.data?.data.length ?? 0;
 
   useEffect(() => {
     const onPointerDown = (e: MouseEvent): void => {
@@ -600,13 +643,15 @@ export const AppShell = ({
     }
   };
 
+  const requestProjectSync = (): void => {
+    if (!canRequestProjectSync) return;
+    postProjectSync.mutate();
+  };
+
   return (
     <div className="h-full w-full bg-zinc-50">
       <div className="grid h-full grid-cols-[240px_1fr]">
-        <aside
-          aria-label="사이드바 네비게이션"
-          className="flex min-h-0 flex-col border-r border-zinc-200 bg-zinc-50"
-        >
+        <aside aria-label="사이드바 네비게이션" className="flex min-h-0 flex-col  bg-zinc-50">
           <DrawerHeader className="w-full" />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <section className="px-4 pt-4">
@@ -823,7 +868,64 @@ export const AppShell = ({
           </div>
         </aside>
 
-        <main className="min-h-0 overflow-hidden bg-zinc-50 p-2">{children}</main>
+        <main className="flex min-h-0 flex-col overflow-hidden bg-zinc-50 p-2">
+          {selectedProjectId ? (
+            <header className="flex h-10 shrink-0 items-center justify-between px-4">
+              <div className="flex min-w-0 items-center gap-1">
+                <Chip
+                  label={selectedProject?.name ?? '프로젝트'}
+                  startIcon
+                  startIconName="Code_light"
+                />
+                <Chip
+                  label={selectedProjectSyncStatusLabel}
+                  startIcon
+                  startIconName="dot_round_fill"
+                  startIconClassName={
+                    selectedProjectSyncStatusValue === 'done' ? 'text-green-400' : 'text-fill-icon'
+                  }
+                />
+                <span className="text-ui-10 font-medium text-zinc-400">
+                  {formatTimeLabel(
+                    selectedProjectSyncStatus.data?.data.latestJob?.updatedAt ?? null
+                  )}
+                </span>
+                <IconButton
+                  size="md"
+                  name="Refresh_light"
+                  aria-label="프로젝트 동기화 요청"
+                  title={canRequestProjectSync ? '프로젝트 동기화 요청' : '동기화 진행 중'}
+                  disabled={!canRequestProjectSync}
+                  onClick={requestProjectSync}
+                  iconClassName={
+                    isSyncInProgress || postProjectSync.isPending ? 'animate-spin' : undefined
+                  }
+                />
+              </div>
+
+              <Chip
+                label={`${selectedProjectMemberCount} 멤버들`}
+                startIcon
+                startIconName="Group_light"
+              />
+            </header>
+          ) : null}
+          {selectedProjectId && selectedProjectSyncStatus.isError ? (
+            <div className="px-4 pb-2" role="alert" aria-live="assertive">
+              <InlineAlert tone="danger" title="동기화 상태 조회 실패">
+                {handleApiError(selectedProjectSyncStatus.error).message}
+              </InlineAlert>
+            </div>
+          ) : null}
+          {selectedProjectId && postProjectSync.isError ? (
+            <div className="px-4 pb-2" role="alert" aria-live="assertive">
+              <InlineAlert tone="danger" title="프로젝트 동기화 요청 실패">
+                {handleApiError(postProjectSync.error).message}
+              </InlineAlert>
+            </div>
+          ) : null}
+          <div className="min-h-0 flex-1">{children}</div>
+        </main>
       </div>
 
       {openSettingsMenu && settingsMenuPos
