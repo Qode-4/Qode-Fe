@@ -378,7 +378,7 @@ export const ProjectDetailPage = ({
           ref={messagesViewportRef}
           className="h-full overflow-y-auto px-3 pb-3 flex justify-center"
         >
-          <div className="flex min-h-full flex-col gap-6 max-w-145.5">
+          <div className="flex min-h-full flex-col gap-6 max-w-145.5 w-full">
             {messages.isLoading ? (
               <p className="text-ui-12 font-medium text-zinc-500">메시지를 불러오는 중...</p>
             ) : null}
