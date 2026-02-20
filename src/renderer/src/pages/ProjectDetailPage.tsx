@@ -329,7 +329,12 @@ export const ProjectDetailPage = ({
       <header className="flex h-10 shrink-0 items-center justify-between px-4">
         <div className="flex min-w-0 items-center gap-1">
           <Chip label={projectName} startIcon startIconName="Code_light" />
-          <Chip label={syncStatusLabel} startIcon startIconName="dot_round_fill" />
+          <Chip
+            label={syncStatusLabel}
+            startIcon
+            startIconName="dot_round_fill"
+            startIconClassName={syncStatusValue === 'done' ? 'text-green-400' : 'text-fill-icon'}
+          />
           <span className="text-ui-10 font-medium text-zinc-400">
             {formatTimeLabel(syncStatus.data?.data.latestJob?.updatedAt ?? null)}
           </span>

@@ -6,13 +6,15 @@ type Props = {
   label?: string;
   startIcon?: boolean;
   startIconName?: IconName;
+  startIconClassName?: string;
 };
 
 export const Chip = ({
   className,
   label = 'Label',
   startIcon = true,
-  startIconName = 'Code_light'
+  startIconName = 'Code_light',
+  startIconClassName = 'text-fill-icon'
 }: Props): React.JSX.Element => {
   return (
     <span
@@ -22,7 +24,12 @@ export const Chip = ({
       ].join(' ')}
     >
       {startIcon ? (
-        <Icon name={startIconName} size="sm" decorative className="shrink-0 text-fill-icon" />
+        <Icon
+          name={startIconName}
+          size="sm"
+          decorative
+          className={['shrink-0', startIconClassName].join(' ')}
+        />
       ) : null}
       <span className="text-ui-10 font-medium leading-none text-zinc-800">{label}</span>
     </span>
