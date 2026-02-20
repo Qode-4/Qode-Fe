@@ -461,7 +461,7 @@ export const ProjectDetailPage = ({
         </div>
       </div>
 
-      <footer className="shrink-0 px-3 pb-3">
+      <footer className="shrink-0 px-3 pb-3 flex justify-center">
         <ChatComposer
           value={draft}
           placeholder={
