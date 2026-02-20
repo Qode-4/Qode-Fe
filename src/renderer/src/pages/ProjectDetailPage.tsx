@@ -75,7 +75,7 @@ const MessageActionButton = ({
   const button = (
     <button
       type="button"
-      className="inline-flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
       disabled={disabled}
       onClick={onClick}
     >
@@ -357,7 +357,7 @@ export const ProjectDetailPage = ({
               const primarySource = sources[0];
 
               return (
-                <article key={messageId} className="rounded-[12px] bg-white">
+                <article key={messageId} className="rounded-[12px] bg-white p-3">
                   <div className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
                     {messageContent}
                   </div>
