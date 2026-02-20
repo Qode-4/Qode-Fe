@@ -1,6 +1,5 @@
 import type { MouseEventHandler, ReactNode } from 'react';
 import type { IconName } from '../icons/iconTypes';
-import { IconButton } from './IconButton';
 import { Logo } from './Logo';
 
 type Props = {
@@ -11,13 +10,7 @@ type Props = {
   onSettingsClick?: MouseEventHandler<HTMLButtonElement>;
 };
 
-export const DrawerHeader = ({
-  className,
-  logo,
-  settingsIconName = 'Setting_line_light',
-  settingsAriaLabel = '설정',
-  onSettingsClick
-}: Props): React.JSX.Element => {
+export const DrawerHeader = ({ className, logo }: Props): React.JSX.Element => {
   return (
     <header
       className={[
@@ -26,13 +19,6 @@ export const DrawerHeader = ({
       ].join(' ')}
     >
       <span className="shrink-0">{logo ?? <Logo ariaLabel="Qode" />}</span>
-      <IconButton
-        size="md"
-        name={settingsIconName}
-        aria-label={settingsAriaLabel}
-        data-settings-trigger
-        onClick={onSettingsClick}
-      />
     </header>
   );
 };
