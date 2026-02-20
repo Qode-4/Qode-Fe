@@ -19,6 +19,7 @@ import {
   useGetProject,
   useGetProjectMembers,
   useGetProjectSyncStatus,
+  usePostProjectMembersInvite,
   usePostProjectSync
 } from '../../api/auth/useProjectsAPI';
 import { handleApiError } from '../../api/axios';
@@ -198,6 +199,7 @@ export const AppShell = ({
   const deleteChat = useDeleteChat();
   const postAuthLogout = usePostAuthLogout();
   const postProjectSync = usePostProjectSync({ projectId: selectedProjectId ?? '' });
+  const postProjectMembersInvite = usePostProjectMembersInvite();
 
   const [renameValue, setRenameValue] = useState('');
   const [renameTouched, setRenameTouched] = useState(false);
@@ -225,9 +227,7 @@ export const AppShell = ({
 
   const modalProjectDetail = useGetProject({
     projectId: modalProjectId,
-    enabled:
-      Boolean(modalProjectId) &&
-      (projectModal?.kind === 'invite' || projectModal?.kind === 'source')
+    enabled: Boolean(modalProjectId) && projectModal?.kind === 'source'
   });
   const modalProjectMembers = useGetProjectMembers({
     projectId: modalProjectId,
@@ -587,7 +587,7 @@ export const AppShell = ({
     }, 250);
   };
 
-  const sendInvite = (): void => {
+  const sendInvite = async (): Promise<void> => {
     const rows = inviteEmails
       .split(',')
       .map((it) => it.trim())
@@ -604,13 +604,24 @@ export const AppShell = ({
       return;
     }
 
-    const inviteCode = modalProjectDetail.data?.data.inviteCode ?? '';
-    const invitePath = inviteCode
-      ? `${window.location.origin}/#/invite/${inviteCode}`
-      : '초대 코드 없음';
-
     setInviteError(null);
-    setInviteSuccess(`${rows.length}명에게 초대 링크를 전송했어요. (${invitePath})`);
+    setInviteSuccess(null);
+
+    if (!modalProjectId) {
+      setInviteError('프로젝트 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      await postProjectMembersInvite.mutateAsync({
+        projectId: modalProjectId,
+        emails: rows
+      });
+      setInviteEmails('');
+      setInviteSuccess(`${rows.length}명에게 초대 요청을 보냈어요.`);
+    } catch (error) {
+      setInviteError(handleApiError(error).message);
+    }
   };
 
   const handleProjectDeleteFromMenu = async (
@@ -1164,7 +1175,7 @@ export const AppShell = ({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            sendInvite();
+            void sendInvite();
           }}
         >
           <p className="text-sm text-text-soft">이미 회원가입된 이메일만 초대할 수 있어요.</p>
@@ -1182,6 +1193,7 @@ export const AppShell = ({
               placeholder="email@example.com, member@example.com"
               value={inviteEmails}
               onChange={(e) => setInviteEmails(e.target.value)}
+              disabled={postProjectMembersInvite.isPending}
               autoFocus
             />
           </label>
@@ -1202,8 +1214,8 @@ export const AppShell = ({
             <Button type="button" variant="secondary" size="sm" onClick={closeProjectModal}>
               취소
             </Button>
-            <Button type="submit" size="sm">
-              초대 보내기
+            <Button type="submit" size="sm" disabled={postProjectMembersInvite.isPending}>
+              {postProjectMembersInvite.isPending ? '전송 중...' : '초대 보내기'}
             </Button>
           </div>
         </form>
