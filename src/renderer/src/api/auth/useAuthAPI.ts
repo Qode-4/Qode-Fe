@@ -41,3 +41,11 @@ export const usePostAuthLogin = () =>
       tokenStorage.setAccessToken(data.token);
     }
   });
+
+export const usePostAuthLogout = () =>
+  useMutation({
+    mutationFn: async () => {
+      const res = await authApiClient.logoutCreate({ secure: true });
+      return res.data;
+    }
+  });

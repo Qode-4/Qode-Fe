@@ -12,14 +12,15 @@ import {
   type ReactNode
 } from 'react';
 import { createPortal } from 'react-dom';
+import { usePostAuthLogout } from '../../api/auth/useAuthAPI';
+import { useDeleteChat } from '../../api/auth/useChatsAPI';
 import {
   useDeleteProject,
   useGetProject,
   useGetProjectMembers
 } from '../../api/auth/useProjectsAPI';
-import { useDeleteChat } from '../../api/auth/useChatsAPI';
-import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
 import { handleApiError } from '../../api/axios';
+import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
 import type {
   ChatsMeListData,
   GetAuthData,
@@ -28,8 +29,8 @@ import type {
 } from '../../api/generated/data-contracts';
 import { QUERY_KEY } from '../../api/queryKeys';
 import { tokenStorage } from '../../api/tokenStorage';
+import overflowIcon from '../../assets/overflow-icon.png';
 import { navigate } from '../../lib/hashRouter';
-import { getStoredUiFontSize, persistUiFontSize, type UiFontSize } from '../../lib/uiFontSize';
 import type { IconName } from '../icons/iconTypes';
 import { Button } from '../ui/Button';
 import { ContentTitle } from '../ui/ContentTitle';
@@ -59,10 +60,12 @@ type ProjectMenuAction = { key: ProjectActionKind | 'delete'; label: string };
 type SettingsActionKind = 'profile' | 'logout';
 type SettingsMenuAction = { key: SettingsActionKind; label: string; iconName: IconName };
 type AvatarSize = 'sm' | 'md';
-const uiFontSizeOptions: Array<{ key: UiFontSize; label: string }> = [
-  { key: 'default', label: '보통' },
-  { key: 'large', label: '크게' }
-];
+
+const VIEWPORT_MARGIN = 8;
+const SETTINGS_MENU_WIDTH = 196;
+const PROFILE_DIALOG_WIDTH = 240;
+const FLOATING_PANEL_BOTTOM = 20;
+const PROFILE_DIALOG_GAP = 17;
 
 const avatarSizeClassMap: Record<AvatarSize, string> = {
   sm: 'size-7 text-ui-12',
@@ -169,18 +172,15 @@ export const AppShell = ({
   const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [openSettingsMenu, setOpenSettingsMenu] = useState(false);
-  const [settingsMenuPos, setSettingsMenuPos] = useState<{ top: number; left: number } | null>(
-    null
-  );
+  const [settingsMenuPos, setSettingsMenuPos] = useState<{ left: number } | null>(null);
   const settingsMenuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const [profileDialogPos, setProfileDialogPos] = useState<{ top: number; left: number } | null>(
-    null
-  );
+  const [profileDialogPos, setProfileDialogPos] = useState<{ left: number } | null>(null);
   const [projectModal, setProjectModal] = useState<ProjectModalState>(null);
   const deleteProject = useDeleteProject();
   const deleteChat = useDeleteChat();
+  const postAuthLogout = usePostAuthLogout();
 
   const [renameValue, setRenameValue] = useState('');
   const [renameTouched, setRenameTouched] = useState(false);
@@ -191,7 +191,6 @@ export const AppShell = ({
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
-  const [uiFontSize, setUiFontSize] = useState<UiFontSize>(getStoredUiFontSize);
 
   const modalProject = useMemo(
     () => projects.find((it) => it.id === projectModal?.projectId),
@@ -213,10 +212,6 @@ export const AppShell = ({
     projectId: modalProjectId,
     enabled: Boolean(modalProjectId) && projectModal?.kind === 'members'
   });
-
-  useEffect(() => {
-    persistUiFontSize(uiFontSize);
-  }, [uiFontSize]);
 
   useEffect(() => {
     const onPointerDown = (e: MouseEvent): void => {
@@ -258,19 +253,35 @@ export const AppShell = ({
 
   const updateSettingsMenuPos = useCallback((button: HTMLButtonElement) => {
     const rect = button.getBoundingClientRect();
-    const menuWidth = 196;
-    const left = Math.min(rect.right - 24, window.innerWidth - menuWidth - 8);
-    const top = rect.bottom + 2;
-    setSettingsMenuPos({ top, left });
+    const nextToTriggerLeft = rect.right + 8;
+    const left = Math.max(
+      VIEWPORT_MARGIN,
+      Math.min(nextToTriggerLeft, window.innerWidth - SETTINGS_MENU_WIDTH - VIEWPORT_MARGIN)
+    );
+    setSettingsMenuPos({ left });
   }, []);
 
-  const updateProfileDialogPos = useCallback((button: HTMLButtonElement) => {
-    const rect = button.getBoundingClientRect();
-    const dialogWidth = 240;
-    const left = Math.min(rect.right + 150, window.innerWidth - dialogWidth - 8);
-    const top = rect.bottom + 50;
-    setProfileDialogPos({ top, left });
-  }, []);
+  const updateProfileDialogPos = useCallback(
+    (button: HTMLButtonElement) => {
+      const fallbackSettingsLeft = Math.max(
+        VIEWPORT_MARGIN,
+        Math.min(
+          button.getBoundingClientRect().right + 8,
+          window.innerWidth - SETTINGS_MENU_WIDTH - VIEWPORT_MARGIN
+        )
+      );
+      const baseLeft = settingsMenuPos?.left ?? fallbackSettingsLeft;
+      const left = Math.max(
+        VIEWPORT_MARGIN,
+        Math.min(
+          baseLeft + SETTINGS_MENU_WIDTH + PROFILE_DIALOG_GAP,
+          window.innerWidth - PROFILE_DIALOG_WIDTH - VIEWPORT_MARGIN
+        )
+      );
+      setProfileDialogPos({ left });
+    },
+    [settingsMenuPos?.left]
+  );
 
   // Recalculate position when menu opens
   useLayoutEffect(() => {
@@ -432,19 +443,31 @@ export const AppShell = ({
   };
 
   const handleSettingsTriggerClick = (e: ReactMouseEvent<HTMLButtonElement>): void => {
+    e.preventDefault();
+    e.stopPropagation();
     const trigger = e.currentTarget;
     settingsTriggerRef.current = trigger;
     setProfileDialogOpen(false);
-    updateSettingsMenuPos(trigger);
-    setOpenSettingsMenu(true);
+    setOpenSettingsMenu((prev) => {
+      if (prev) return false;
+      requestAnimationFrame(() => updateSettingsMenuPos(trigger));
+      return true;
+    });
   };
 
-  const handleSettingsAction = (action: SettingsActionKind): void => {
+  const handleSettingsAction = async (action: SettingsActionKind): Promise<void> => {
     if (action === 'profile') {
       if (settingsTriggerRef.current) updateProfileDialogPos(settingsTriggerRef.current);
       setProfileDialogOpen(true);
       return;
     }
+
+    try {
+      await postAuthLogout.mutateAsync();
+    } catch {
+      // 서버 로그아웃 실패와 무관하게 클라이언트 세션은 정리한다.
+    }
+
     setOpenSettingsMenu(false);
     tokenStorage.clearAccessToken();
     qc.clear();
@@ -579,13 +602,12 @@ export const AppShell = ({
 
   return (
     <div className="h-full w-full bg-zinc-50">
-      <div className="grid h-full grid-cols-[220px_1fr]">
+      <div className="grid h-full grid-cols-[240px_1fr]">
         <aside
           aria-label="사이드바 네비게이션"
           className="flex min-h-0 flex-col border-r border-zinc-200 bg-zinc-50"
         >
-          <DrawerHeader className="w-full" onSettingsClick={handleSettingsTriggerClick} />
-
+          <DrawerHeader className="w-full" />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <section className="px-4 pt-4">
               <ContentTitle
@@ -776,6 +798,29 @@ export const AppShell = ({
               </nav>
             </section>
           </div>
+          <div className="px-2">
+            <div
+              className="mt-auto flex items-center gap-2 border-t border-zinc-200 p-4"
+              aria-label="프로필"
+            >
+              <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" />
+              <div className="min-w-0 flex-1 gap-0.5">
+                <p className="truncate font-semibold text-zinc-800 text-[14px]">{userName}</p>
+                <p className={['truncate text-zinc-400', drawerTypography.settingsEmail].join(' ')}>
+                  {userEmail}
+                </p>
+              </div>
+              <button
+                type="button"
+                data-settings-trigger
+                aria-label="더보기"
+                onClick={handleSettingsTriggerClick}
+                className="p-2"
+              >
+                <img src={overflowIcon} alt="더보기-아이콘" className="w-6" />
+              </button>
+            </div>
+          </div>
         </aside>
 
         <main className="min-h-0 overflow-hidden bg-zinc-50 p-2">{children}</main>
@@ -786,7 +831,7 @@ export const AppShell = ({
             <div
               data-settings-menu
               className="fixed z-50 w-[196px] rounded-[12px] border border-zinc-200 bg-white p-1 shadow-[0px_4px_18.7px_0px_rgba(0,0,0,0.08)]"
-              style={{ top: settingsMenuPos.top, left: settingsMenuPos.left }}
+              style={{ bottom: FLOATING_PANEL_BOTTOM, left: settingsMenuPos.left }}
               role="menu"
               aria-label="설정 메뉴"
               onKeyDown={handleSettingsMenuKeyDown}
@@ -807,43 +852,6 @@ export const AppShell = ({
                   >
                     {userEmail}
                   </p>
-                </div>
-              </div>
-
-              <div className="px-2 pb-1">
-                <p
-                  className={[
-                    'px-1 font-normal leading-none text-zinc-500',
-                    drawerTypography.fontSizeLabel
-                  ].join(' ')}
-                >
-                  글씨 크기
-                </p>
-                <div
-                  role="group"
-                  aria-label="사이드바 글씨 크기"
-                  className="mt-1 grid grid-cols-2 gap-1"
-                >
-                  {uiFontSizeOptions.map((it) => {
-                    const selected = uiFontSize === it.key;
-                    return (
-                      <button
-                        key={it.key}
-                        type="button"
-                        aria-pressed={selected}
-                        className={[
-                          'h-6 rounded-[8px] font-normal transition-colors',
-                          drawerTypography.fontSizeOption,
-                          selected
-                            ? 'bg-zinc-800 text-white'
-                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 active:bg-zinc-300'
-                        ].join(' ')}
-                        onClick={() => setUiFontSize(it.key)}
-                      >
-                        {it.label}
-                      </button>
-                    );
-                  })}
                 </div>
               </div>
 
@@ -878,7 +886,7 @@ export const AppShell = ({
             <section
               data-profile-settings-dialog
               className="fixed z-50 w-[240px] rounded-[12px] border border-zinc-200 bg-white shadow-[0px_4px_18.7px_0px_rgba(0,0,0,0.08)]"
-              style={{ top: profileDialogPos.top, left: profileDialogPos.left }}
+              style={{ bottom: FLOATING_PANEL_BOTTOM, left: profileDialogPos.left }}
               role="dialog"
               aria-modal="false"
               aria-labelledby={profileSettingsTitleId}
