@@ -16,6 +16,7 @@ import { LoginPage } from './pages/LoginPage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { SignupPage } from './pages/SignupPage';
+import { StoragePage } from './pages/StoragePage';
 
 const App = (): React.JSX.Element => {
   const location = useHashLocation();
@@ -34,7 +35,12 @@ const App = (): React.JSX.Element => {
   const loginTransitionUserName = authTransitionStorage.getLoginTransitionUserName();
 
   const projectMatch = matchPath(location.path, '/projects/:projectId');
-  const selectedProjectId = projectMatch.matched ? projectMatch.params.projectId : undefined;
+  const storageMatch = matchPath(location.path, '/projects/:projectId/storage');
+  const selectedProjectId = projectMatch.matched
+    ? projectMatch.params.projectId
+    : storageMatch.matched
+      ? storageMatch.params.projectId
+      : undefined;
 
   const chats = useGetProjectChats({
     projectId: selectedProjectId ?? '',
@@ -168,7 +174,12 @@ const App = (): React.JSX.Element => {
           onCloseCreateChatModal={() => setCreateChatModalType(null)}
         />
       ) : null}
-      {!matchPath(location.path, '/projects').matched && !projectMatch.matched ? (
+      {storageMatch.matched ? (
+        <StoragePage projectId={storageMatch.params.projectId} />
+      ) : null}
+      {!matchPath(location.path, '/projects').matched &&
+      !projectMatch.matched &&
+      !storageMatch.matched ? (
         <div className="rounded-xl border border-line bg-surface p-6">
           <h1 className="text-2xl font-semibold text-text-base">Not Found</h1>
           <p className="mt-2 text-sm text-text-subtle">{location.path}</p>
