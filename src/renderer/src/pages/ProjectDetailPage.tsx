@@ -13,6 +13,7 @@ import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilitie
 import type { SourceItem } from '../api/contracts/chats';
 import { CreateChatModal } from '../components/feature/CreateChatModal';
 import type { IconName } from '../components/icons/iconTypes';
+import { ProjectTabs } from '../components/layout/ProjectTabs';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
@@ -318,7 +319,9 @@ export const ProjectDetailPage = ({
   }
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-[16px] border border-zinc-200 bg-white">
+    <div className="flex h-full min-h-0 flex-col">
+      <ProjectTabs projectId={projectId} current="detail" />
+      <section className="mt-3 flex min-h-0 flex-1 flex-col rounded-[16px] border border-zinc-200 bg-white">
       <div
         role="status"
         aria-live="polite"
@@ -551,6 +554,7 @@ export const ProjectDetailPage = ({
           );
         }}
       />
-    </section>
+      </section>
+    </div>
   );
 };
