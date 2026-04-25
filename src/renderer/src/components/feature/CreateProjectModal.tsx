@@ -7,6 +7,11 @@ import {
 import { useGetProjectSyncStatus, usePostProjects } from '../../api/auth/useProjectsAPI';
 import { handleApiError } from '../../api/axios';
 import type { GithubOauthDeviceStartCreateData } from '../../api/generated/data-contracts';
+import {
+  clearCachedOauthFlow,
+  readCachedOauthFlow,
+  saveCachedOauthFlow
+} from '../../lib/githubOauthFlowCache';
 import { navigate } from '../../lib/hashRouter';
 import { Button } from '../ui/Button';
 import { InlineAlert } from '../ui/InlineAlert';
@@ -15,50 +20,6 @@ import { OverlayModal } from '../ui/OverlayModal';
 type Props = {
   open: boolean;
   onClose: () => void;
-};
-
-const OAUTH_FLOW_CACHE_KEY = 'qode.github.oauth.flow';
-const OAUTH_FLOW_CACHE_TTL_MS = 10 * 60 * 1000;
-
-type CachedOauthFlow = {
-  savedAt: number;
-  flow: GithubOauthDeviceStartCreateData;
-};
-
-const saveCachedOauthFlow = (flow: GithubOauthDeviceStartCreateData): void => {
-  try {
-    const payload: CachedOauthFlow = { savedAt: Date.now(), flow };
-    localStorage.setItem(OAUTH_FLOW_CACHE_KEY, JSON.stringify(payload));
-  } catch {
-    // noop
-  }
-};
-
-const clearCachedOauthFlow = (): void => {
-  try {
-    localStorage.removeItem(OAUTH_FLOW_CACHE_KEY);
-  } catch {
-    // noop
-  }
-};
-
-const readCachedOauthFlow = (): GithubOauthDeviceStartCreateData | null => {
-  try {
-    const raw = localStorage.getItem(OAUTH_FLOW_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as CachedOauthFlow;
-    if (!parsed?.flow?.data?.flowId || !parsed.savedAt) {
-      clearCachedOauthFlow();
-      return null;
-    }
-    if (Date.now() - parsed.savedAt > OAUTH_FLOW_CACHE_TTL_MS) {
-      clearCachedOauthFlow();
-      return null;
-    }
-    return parsed.flow;
-  } catch {
-    return null;
-  }
 };
 
 export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element | null => {
