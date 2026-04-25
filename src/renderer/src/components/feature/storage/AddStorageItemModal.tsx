@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { usePostStorageItem } from '../../../api/auth/useStorageItemsAPI';
 import { handleApiError } from '../../../api/axios';
-import type { CreateStorageItemBody, StorageItemType } from '../../../api/contracts/storageItems';
+import type { CreateStorageItemBody } from '../../../api/contracts/storageItems';
+
+type SimpleAddType = 'figma' | 'figjam';
 import { parseStorageUrl } from '../../../lib/parseStorageUrl';
 import { Button } from '../../ui/Button';
 import { InlineAlert } from '../../ui/InlineAlert';
@@ -10,24 +12,21 @@ import { OverlayModal } from '../../ui/OverlayModal';
 type Props = {
   open: boolean;
   projectId: string;
-  type: StorageItemType | null;
+  type: SimpleAddType | null;
   onClose: () => void;
 };
 
-const TITLE_MAP: Record<StorageItemType, string> = {
-  github_repo: 'GitHub 레포 추가',
+const TITLE_MAP: Record<SimpleAddType, string> = {
   figma: 'Figma 디자인 추가',
   figjam: 'FigJam 보드 추가'
 };
 
-const URL_PLACEHOLDER: Record<StorageItemType, string> = {
-  github_repo: 'https://github.com/owner/repo',
+const URL_PLACEHOLDER: Record<SimpleAddType, string> = {
   figma: 'https://www.figma.com/design/xxxxx/...',
   figjam: 'https://www.figma.com/board/xxxxx/...'
 };
 
-const URL_HINT: Record<StorageItemType, string> = {
-  github_repo: 'GitHub 레포 URL',
+const URL_HINT: Record<SimpleAddType, string> = {
   figma: 'Figma design URL',
   figjam: 'FigJam board URL'
 };
@@ -103,15 +102,13 @@ export const AddStorageItemModal = ({
             autoFocus
           />
           {urlError ? <span className="mt-1 block text-xs text-danger">{urlError}</span> : null}
-          {parsed ? (
+          {parsed && parsed.type !== 'github_repo' ? (
             <span className="mt-1 block text-xs text-text-subtle">
-              {parsed.type === 'github_repo'
-                ? `감지됨: ${parsed.metadata.owner}/${parsed.metadata.repo}`
-                : parsed.type === 'figma'
-                  ? `감지됨: fileKey=${parsed.metadata.fileKey}${
-                      parsed.metadata.nodeId ? `, nodeId=${parsed.metadata.nodeId}` : ''
-                    }`
-                  : `감지됨: fileKey=${parsed.metadata.fileKey}`}
+              {parsed.type === 'figma'
+                ? `감지됨: fileKey=${parsed.metadata.fileKey}${
+                    parsed.metadata.nodeId ? `, nodeId=${parsed.metadata.nodeId}` : ''
+                  }`
+                : `감지됨: fileKey=${parsed.metadata.fileKey}`}
             </span>
           ) : null}
         </label>

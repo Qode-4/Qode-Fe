@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useDeleteStorageItem, useGetStorageItems } from '../api/auth/useStorageItemsAPI';
 import { handleApiError } from '../api/axios';
-import type { StorageItem, StorageItemType } from '../api/contracts/storageItems';
+import type { StorageItem } from '../api/contracts/storageItems';
+import { AddGithubRepoModal } from '../components/feature/storage/AddGithubRepoModal';
 import { AddStorageItemModal } from '../components/feature/storage/AddStorageItemModal';
 import { EditStorageItemTitleModal } from '../components/feature/storage/EditStorageItemTitleModal';
 import { StorageItemsTable } from '../components/feature/storage/StorageItemsTable';
 import { ProjectTabs } from '../components/layout/ProjectTabs';
 import { Button } from '../components/ui/Button';
 import { InlineAlert } from '../components/ui/InlineAlert';
+
+type SimpleAddType = 'figma' | 'figjam';
 
 type Props = {
   projectId: string;
@@ -17,7 +20,8 @@ export const StoragePage = ({ projectId }: Props): React.JSX.Element => {
   const items = useGetStorageItems({ projectId });
   const deleteItem = useDeleteStorageItem({ projectId });
 
-  const [addType, setAddType] = useState<StorageItemType | null>(null);
+  const [simpleAddType, setSimpleAddType] = useState<SimpleAddType | null>(null);
+  const [githubAddOpen, setGithubAddOpen] = useState(false);
   const [editItem, setEditItem] = useState<StorageItem | null>(null);
 
   const onDelete = (item: StorageItem): void => {
@@ -34,13 +38,13 @@ export const StoragePage = ({ projectId }: Props): React.JSX.Element => {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-text-base">저장소</h1>
         <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => setAddType('github_repo')}>
+          <Button size="sm" variant="secondary" onClick={() => setGithubAddOpen(true)}>
             + GitHub 레포
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => setAddType('figma')}>
+          <Button size="sm" variant="secondary" onClick={() => setSimpleAddType('figma')}>
             + Figma
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => setAddType('figjam')}>
+          <Button size="sm" variant="secondary" onClick={() => setSimpleAddType('figjam')}>
             + FigJam
           </Button>
         </div>
@@ -76,11 +80,16 @@ export const StoragePage = ({ projectId }: Props): React.JSX.Element => {
         <StorageItemsTable items={data} onEdit={setEditItem} onDelete={onDelete} />
       )}
 
-      <AddStorageItemModal
-        open={addType !== null}
+      <AddGithubRepoModal
+        open={githubAddOpen}
         projectId={projectId}
-        type={addType}
-        onClose={() => setAddType(null)}
+        onClose={() => setGithubAddOpen(false)}
+      />
+      <AddStorageItemModal
+        open={simpleAddType !== null}
+        projectId={projectId}
+        type={simpleAddType}
+        onClose={() => setSimpleAddType(null)}
       />
       <EditStorageItemTitleModal
         open={editItem !== null}
