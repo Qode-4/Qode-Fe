@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import {
-  useDeleteStorageItem,
-  useGetStorageItems
-} from '../api/auth/useStorageItemsAPI';
+import { useDeleteStorageItem, useGetStorageItems } from '../api/auth/useStorageItemsAPI';
 import { handleApiError } from '../api/axios';
 import type { StorageItem, StorageItemType } from '../api/contracts/storageItems';
 import { AddStorageItemModal } from '../components/feature/storage/AddStorageItemModal';

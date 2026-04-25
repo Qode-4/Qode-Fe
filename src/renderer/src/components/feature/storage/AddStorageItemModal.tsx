@@ -1,10 +1,7 @@
 import { useMemo, useState } from 'react';
 import { usePostStorageItem } from '../../../api/auth/useStorageItemsAPI';
 import { handleApiError } from '../../../api/axios';
-import type {
-  CreateStorageItemBody,
-  StorageItemType
-} from '../../../api/contracts/storageItems';
+import type { CreateStorageItemBody, StorageItemType } from '../../../api/contracts/storageItems';
 import { parseStorageUrl } from '../../../lib/parseStorageUrl';
 import { Button } from '../../ui/Button';
 import { InlineAlert } from '../../ui/InlineAlert';
@@ -53,8 +50,7 @@ export const AddStorageItemModal = ({
 
   if (!type) return null;
 
-  const urlError =
-    touched && url.trim() && !parsed ? `${URL_HINT[type]} 형식이 아닙니다.` : '';
+  const urlError = touched && url.trim() && !parsed ? `${URL_HINT[type]} 형식이 아닙니다.` : '';
   const titleError = touched && !title.trim() ? '제목을 입력해주세요.' : '';
 
   const resetAndClose = (): void => {
@@ -135,9 +131,7 @@ export const AddStorageItemModal = ({
             onBlur={() => setTouched(true)}
             placeholder="예: 프론트 레포"
           />
-          {titleError ? (
-            <span className="mt-1 block text-xs text-danger">{titleError}</span>
-          ) : null}
+          {titleError ? <span className="mt-1 block text-xs text-danger">{titleError}</span> : null}
         </label>
 
         {post.isError ? (

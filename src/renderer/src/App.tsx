@@ -174,9 +174,7 @@ const App = (): React.JSX.Element => {
           onCloseCreateChatModal={() => setCreateChatModalType(null)}
         />
       ) : null}
-      {storageMatch.matched ? (
-        <StoragePage projectId={storageMatch.params.projectId} />
-      ) : null}
+      {storageMatch.matched ? <StoragePage projectId={storageMatch.params.projectId} /> : null}
       {!matchPath(location.path, '/projects').matched &&
       !projectMatch.matched &&
       !storageMatch.matched ? (

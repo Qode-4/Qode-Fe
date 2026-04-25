@@ -5,8 +5,7 @@ type Props = {
   current: 'detail' | 'storage';
 };
 
-const TAB_BASE =
-  'relative inline-flex h-9 items-center px-3 text-sm font-medium transition-colors';
+const TAB_BASE = 'relative inline-flex h-9 items-center px-3 text-sm font-medium transition-colors';
 const TAB_ACTIVE = 'text-text-base';
 const TAB_INACTIVE = 'text-text-subtle hover:text-text-base';
 

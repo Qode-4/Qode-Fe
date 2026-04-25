@@ -48,10 +48,7 @@ const PARSERS: Record<StorageItemType, (url: string) => ParsedStorageUrl | null>
   figjam: parseFigjam
 };
 
-export const parseStorageUrl = (
-  type: StorageItemType,
-  url: string
-): ParsedStorageUrl | null => {
+export const parseStorageUrl = (type: StorageItemType, url: string): ParsedStorageUrl | null => {
   const trimmed = url.trim();
   if (!trimmed) return null;
   return PARSERS[type](trimmed);

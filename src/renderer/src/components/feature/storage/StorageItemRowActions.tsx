@@ -5,10 +5,7 @@ type Props = {
   onDeleteClick: () => void;
 };
 
-export const StorageItemRowActions = ({
-  onEditClick,
-  onDeleteClick
-}: Props): React.JSX.Element => {
+export const StorageItemRowActions = ({ onEditClick, onDeleteClick }: Props): React.JSX.Element => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 

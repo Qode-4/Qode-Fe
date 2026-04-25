@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { usePatchStorageItemTitle } from '../../../api/auth/useStorageItemsAPI';
 import { handleApiError } from '../../../api/axios';
 import type { StorageItem } from '../../../api/contracts/storageItems';
@@ -21,11 +21,15 @@ export const EditStorageItemTitleModal = ({
 }: Props): React.JSX.Element | null => {
   const [title, setTitle] = useState('');
   const [touched, setTouched] = useState(false);
+  const [lastItemId, setLastItemId] = useState<string | null>(null);
   const patch = usePatchStorageItemTitle({ projectId });
 
-  useEffect(() => {
-    if (item) setTitle(item.title);
-  }, [item]);
+  // 열려 있는 아이템이 바뀌면 입력 상태를 그 아이템의 title로 초기화.
+  if (item && item.id !== lastItemId) {
+    setLastItemId(item.id);
+    setTitle(item.title);
+    setTouched(false);
+  }
 
   const titleError = useMemo(
     () => (touched && !title.trim() ? '제목을 입력해주세요.' : ''),
@@ -76,9 +80,7 @@ export const EditStorageItemTitleModal = ({
             onBlur={() => setTouched(true)}
             autoFocus
           />
-          {titleError ? (
-            <span className="mt-1 block text-xs text-danger">{titleError}</span>
-          ) : null}
+          {titleError ? <span className="mt-1 block text-xs text-danger">{titleError}</span> : null}
         </label>
 
         {patch.isError ? (
