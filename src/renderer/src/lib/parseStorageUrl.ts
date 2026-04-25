@@ -25,19 +25,19 @@ const parseGithub = (url: string): ParsedStorageUrl | null => {
 };
 
 const parseFigma = (url: string): ParsedStorageUrl | null => {
-  const m = url.match(/figma\.com\/design\/([A-Za-z0-9]+)/);
+  const m = url.match(/^https?:\/\/(?:www\.)?figma\.com\/design\/([A-Za-z0-9]+)/);
   if (!m) return null;
   const fileKey = m[1]!;
   const nodeIdMatch = url.match(/[?&]node-id=([^&]+)/);
   const metadata: FigmaMetadata = { fileKey };
   if (nodeIdMatch) {
-    metadata.nodeId = decodeURIComponent(nodeIdMatch[1]!).replace('-', ':');
+    metadata.nodeId = decodeURIComponent(nodeIdMatch[1]!).replaceAll('-', ':');
   }
   return { type: 'figma', url, metadata };
 };
 
 const parseFigjam = (url: string): ParsedStorageUrl | null => {
-  const m = url.match(/figma\.com\/board\/([A-Za-z0-9]+)/);
+  const m = url.match(/^https?:\/\/(?:www\.)?figma\.com\/board\/([A-Za-z0-9]+)/);
   if (!m) return null;
   return { type: 'figjam', url, metadata: { fileKey: m[1]! } };
 };
