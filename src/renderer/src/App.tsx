@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useGetAuthMe } from './api/auth/useAuthAPI';
 import { useGetProjectChats } from './api/auth/useChatsAPI';
 import { useGetProjects } from './api/auth/useProjectsAPI';
+import { useGetProjectSections } from './api/auth/useSectionsAPI';
 import { authTransitionStorage } from './api/authTransitionStorage';
 import { handleApiError } from './api/axios';
 import { tokenStorage } from './api/tokenStorage';
@@ -35,6 +36,10 @@ const App = (): React.JSX.Element => {
 
   const projectMatch = matchPath(location.path, '/projects/:projectId');
   const selectedProjectId = projectMatch.matched ? projectMatch.params.projectId : undefined;
+  const sections = useGetProjectSections({
+    projectId: selectedProjectId ?? '',
+    enabled: Boolean(selectedProjectId)
+  });
 
   const chats = useGetProjectChats({
     projectId: selectedProjectId ?? '',
@@ -136,6 +141,9 @@ const App = (): React.JSX.Element => {
     <AppShell
       me={me.data}
       projects={projects.data?.data ?? []}
+      sections={sections.data?.data ?? []}
+      sectionsLoading={sections.isLoading}
+      sectionsErrorMessage={sections.isError ? handleApiError(sections.error).message : null}
       selectedProjectId={selectedProjectId}
       onOpenCreateProject={() => setCreateProjectModalOpen(true)}
       personalChats={personalChats}

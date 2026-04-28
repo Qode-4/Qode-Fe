@@ -6,6 +6,7 @@ export const QUERY_KEY = {
   inviteInfo: (inviteCode: string) => ['invite', inviteCode] as const,
   projects: (search?: string) => ['projects', { search: search ?? '' }] as const,
   project: (projectId: string) => ['project', projectId] as const,
+  projectSections: (projectId: string) => ['projectSections', projectId] as const,
   projectMembers: (projectId: string) => ['projectMembers', projectId] as const,
   syncStatus: (projectId: string) => ['syncStatus', projectId] as const,
   projectChats: (projectId: string, type: 'all' | 'personal' | 'team' = 'all') =>

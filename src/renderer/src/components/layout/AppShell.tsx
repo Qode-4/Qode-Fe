@@ -22,6 +22,12 @@ import {
   usePostProjectMembersInvite,
   usePostProjectSync
 } from '../../api/auth/useProjectsAPI';
+import {
+  useDeleteSection,
+  usePatchSection,
+  usePostFolder,
+  usePostSection
+} from '../../api/auth/useSectionsAPI';
 import { handleApiError } from '../../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
 import type {
@@ -30,6 +36,7 @@ import type {
   ProjectsDetailData,
   ProjectsListData
 } from '../../api/generated/data-contracts';
+import type { SectionItem } from '../../api/contracts/sections';
 import { QUERY_KEY } from '../../api/queryKeys';
 import { tokenStorage } from '../../api/tokenStorage';
 import overflowIcon from '../../assets/overflow-icon.png';
@@ -42,12 +49,14 @@ import { DrawerHeader } from '../ui/DrawerHeader';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { InlineAlert } from '../ui/InlineAlert';
-import { Link } from '../ui/Link';
 import { OverlayModal } from '../ui/OverlayModal';
 
 type Props = {
   me?: GetAuthData | null;
   projects: ProjectsListData['data'];
+  sections?: SectionItem[];
+  sectionsLoading?: boolean;
+  sectionsErrorMessage?: string | null;
   selectedProjectId?: string;
   onOpenCreateProject?: () => void;
   personalChats?: ChatsMeListData['data'];
@@ -62,6 +71,7 @@ type Props = {
 type ProjectActionKind = 'rename' | 'invite' | 'members' | 'source';
 type ProjectModalState = { kind: ProjectActionKind; projectId: string } | null;
 type ProjectMenuAction = { key: ProjectActionKind | 'delete'; label: string };
+type SectionMenuAction = { key: 'rename' | 'createFolder' | 'delete'; label: string };
 type SettingsActionKind = 'profile' | 'logout';
 type SettingsMenuAction = { key: SettingsActionKind; label: string; iconName: IconName };
 type AvatarSize = 'sm' | 'md';
@@ -152,6 +162,12 @@ const projectMenuActions: ProjectMenuAction[] = [
   { key: 'delete', label: '삭제' }
 ];
 
+const sectionMenuActions: SectionMenuAction[] = [
+  { key: 'createFolder', label: '폴더 추가' },
+  { key: 'rename', label: '이름 변경' },
+  { key: 'delete', label: '섹션 삭제' }
+];
+
 const settingsMenuActions: SettingsMenuAction[] = [
   { key: 'profile', label: '프로필 설정', iconName: 'User_light' },
   { key: 'logout', label: '로그아웃', iconName: 'Code_light' }
@@ -172,6 +188,9 @@ const formatTimeLabel = (iso: string | null): string => {
 export const AppShell = ({
   me,
   projects,
+  sections = [],
+  sectionsLoading = false,
+  sectionsErrorMessage = null,
   selectedProjectId,
   onOpenCreateProject,
   personalChats = [],
@@ -188,6 +207,26 @@ export const AppShell = ({
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [openSectionMenuId, setOpenSectionMenuId] = useState<string | null>(null);
+  const [sectionMenuPos, setSectionMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const sectionMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const sectionMenuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [sectionRenameModalSectionId, setSectionRenameModalSectionId] = useState<string | null>(
+    null
+  );
+  const [sectionRenameValue, setSectionRenameValue] = useState('');
+  const [sectionRenameTouched, setSectionRenameTouched] = useState(false);
+  const [sectionRenameError, setSectionRenameError] = useState<string | null>(null);
+  const [sectionCreateModalOpen, setSectionCreateModalOpen] = useState(false);
+  const [sectionCreateValue, setSectionCreateValue] = useState('');
+  const [sectionCreateTouched, setSectionCreateTouched] = useState(false);
+  const [sectionCreateError, setSectionCreateError] = useState<string | null>(null);
+  const [sectionDeleteError, setSectionDeleteError] = useState<string | null>(null);
+  const [folderCreateModalSectionId, setFolderCreateModalSectionId] = useState<string | null>(null);
+  const [folderCreateValue, setFolderCreateValue] = useState('');
+  const [folderCreateTouched, setFolderCreateTouched] = useState(false);
+  const [folderCreateError, setFolderCreateError] = useState<string | null>(null);
+  const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
   const [openSettingsMenu, setOpenSettingsMenu] = useState(false);
   const [settingsMenuPos, setSettingsMenuPos] = useState<{ left: number } | null>(null);
   const settingsMenuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -200,6 +239,10 @@ export const AppShell = ({
   const postAuthLogout = usePostAuthLogout();
   const postProjectSync = usePostProjectSync({ projectId: selectedProjectId ?? '' });
   const postProjectMembersInvite = usePostProjectMembersInvite();
+  const patchSection = usePatchSection({ projectId: selectedProjectId ?? '' });
+  const postSection = usePostSection({ projectId: selectedProjectId ?? '' });
+  const deleteSection = useDeleteSection({ projectId: selectedProjectId ?? '' });
+  const postFolder = usePostFolder({ projectId: selectedProjectId ?? '' });
 
   const [renameValue, setRenameValue] = useState('');
   const [renameTouched, setRenameTouched] = useState(false);
@@ -220,6 +263,7 @@ export const AppShell = ({
   const userAvatarUrl = me?.avatarUrl ?? null;
   const modalProjectId = modalProject?.id ?? '';
   const projectMenuId = openMenuProjectId ? `project-actions-menu-${openMenuProjectId}` : undefined;
+  const sectionMenuId = openSectionMenuId ? `section-actions-menu-${openSectionMenuId}` : undefined;
   const selectedProject = useMemo(
     () => projects.find((it) => it.id === selectedProjectId),
     [projects, selectedProjectId]
@@ -267,6 +311,12 @@ export const AppShell = ({
         setOpenMenuProjectId(null);
       }
       if (
+        !target.closest('[data-section-actions-menu]') &&
+        !target.closest('[data-section-actions-button]')
+      ) {
+        setOpenSectionMenuId(null);
+      }
+      if (
         !target.closest('[data-settings-menu]') &&
         !target.closest('[data-settings-trigger]') &&
         !target.closest('[data-profile-settings-dialog]')
@@ -292,6 +342,14 @@ export const AppShell = ({
     const spaceAbove = rect.top;
     const top = spaceAbove >= menuHeight ? rect.top - menuHeight : rect.bottom + 4;
     setMenuPos({ top, left: rect.right + 6 });
+  }, []);
+
+  const updateSectionMenuPos = useCallback((button: HTMLButtonElement) => {
+    const rect = button.getBoundingClientRect();
+    const menuHeight = 108; // approximate menu height
+    const spaceAbove = rect.top;
+    const top = spaceAbove >= menuHeight ? rect.top - menuHeight : rect.bottom + 4;
+    setSectionMenuPos({ top, left: rect.right + 2 });
   }, []);
 
   const updateSettingsMenuPos = useCallback((button: HTMLButtonElement) => {
@@ -334,6 +392,12 @@ export const AppShell = ({
   }, [openMenuProjectId, updateMenuPos]);
 
   useLayoutEffect(() => {
+    if (openSectionMenuId && sectionMenuTriggerRef.current) {
+      updateSectionMenuPos(sectionMenuTriggerRef.current);
+    }
+  }, [openSectionMenuId, updateSectionMenuPos]);
+
+  useLayoutEffect(() => {
     if (openSettingsMenu && settingsTriggerRef.current) {
       updateSettingsMenuPos(settingsTriggerRef.current);
     }
@@ -368,6 +432,14 @@ export const AppShell = ({
   }, [openMenuProjectId]);
 
   useEffect(() => {
+    if (!openSectionMenuId) return;
+    const frameId = window.requestAnimationFrame(() => {
+      sectionMenuItemRefs.current[0]?.focus();
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [openSectionMenuId]);
+
+  useEffect(() => {
     if (!openSettingsMenu) return;
     const frameId = window.requestAnimationFrame(() => {
       settingsMenuItemRefs.current[0]?.focus();
@@ -387,6 +459,19 @@ export const AppShell = ({
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [openMenuProjectId]);
+
+  useEffect(() => {
+    if (!openSectionMenuId) return;
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      setOpenSectionMenuId(null);
+      sectionMenuTriggerRef.current?.focus();
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [openSectionMenuId]);
 
   useEffect(() => {
     if (!openSettingsMenu && !profileDialogOpen) return;
@@ -482,6 +567,46 @@ export const AppShell = ({
     }
     if (e.key === 'Tab') {
       setOpenSettingsMenu(false);
+    }
+  };
+
+  const handleSectionMenuKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>): void => {
+    const items = sectionMenuItemRefs.current.filter(Boolean) as HTMLButtonElement[];
+    if (items.length === 0) return;
+
+    const active = document.activeElement as HTMLButtonElement | null;
+    const currentIndex = Math.max(
+      0,
+      items.findIndex((item) => item === active)
+    );
+
+    const focusAt = (index: number): void => {
+      const normalized = (index + items.length) % items.length;
+      items[normalized]?.focus();
+    };
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusAt(currentIndex + 1);
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusAt(currentIndex - 1);
+      return;
+    }
+    if (e.key === 'Home') {
+      e.preventDefault();
+      focusAt(0);
+      return;
+    }
+    if (e.key === 'End') {
+      e.preventDefault();
+      focusAt(items.length - 1);
+      return;
+    }
+    if (e.key === 'Tab') {
+      setOpenSectionMenuId(null);
     }
   };
 
@@ -650,6 +775,124 @@ export const AppShell = ({
     });
   };
 
+  const handleSectionMenuOpen = (sectionId: string, button: HTMLButtonElement): void => {
+    setOpenSectionMenuId((prev) => {
+      if (prev === sectionId) return null;
+      sectionMenuTriggerRef.current = button;
+      requestAnimationFrame(() => updateSectionMenuPos(button));
+      return sectionId;
+    });
+  };
+
+  const openSectionRenameModal = (sectionId: string): void => {
+    const section = sections.find((item) => item.id === sectionId);
+    if (!section) return;
+    setOpenSectionMenuId(null);
+    setSectionRenameModalSectionId(section.id);
+    setSectionRenameValue(section.name);
+    setSectionRenameTouched(false);
+    setSectionRenameError(null);
+    setSectionDeleteError(null);
+  };
+
+  const closeSectionRenameModal = (): void => {
+    setSectionRenameModalSectionId(null);
+    setSectionRenameTouched(false);
+    setSectionRenameError(null);
+  };
+
+  const openSectionCreateModal = (): void => {
+    setSectionCreateModalOpen(true);
+    setSectionCreateValue('');
+    setSectionCreateTouched(false);
+    setSectionCreateError(null);
+    setSectionDeleteError(null);
+  };
+
+  const closeSectionCreateModal = (): void => {
+    setSectionCreateModalOpen(false);
+    setSectionCreateTouched(false);
+    setSectionCreateError(null);
+  };
+
+  const openFolderCreateModal = (sectionId: string): void => {
+    setOpenSectionMenuId(null);
+    setFolderCreateModalSectionId(sectionId);
+    setFolderCreateValue('');
+    setFolderCreateTouched(false);
+    setFolderCreateError(null);
+  };
+
+  const closeFolderCreateModal = (): void => {
+    setFolderCreateModalSectionId(null);
+    setFolderCreateTouched(false);
+    setFolderCreateError(null);
+  };
+
+  const applySectionRename = async (): Promise<void> => {
+    if (!sectionRenameModalSectionId) return;
+
+    const trimmed = sectionRenameValue.trim();
+    setSectionRenameTouched(true);
+    setSectionRenameError(null);
+    if (!trimmed) return;
+
+    try {
+      await patchSection.mutateAsync({
+        sectionId: sectionRenameModalSectionId,
+        body: { name: trimmed }
+      });
+      closeSectionRenameModal();
+    } catch (error) {
+      setSectionRenameError(handleApiError(error).message);
+    }
+  };
+
+  const createSection = async (): Promise<void> => {
+    const trimmed = sectionCreateValue.trim();
+    setSectionCreateTouched(true);
+    setSectionCreateError(null);
+    if (!trimmed || !selectedProjectId) return;
+
+    try {
+      await postSection.mutateAsync({ name: trimmed });
+      closeSectionCreateModal();
+    } catch (error) {
+      setSectionCreateError(handleApiError(error).message);
+    }
+  };
+
+  const handleSectionDelete = async (sectionId: string): Promise<void> => {
+    const section = sections.find((item) => item.id === sectionId);
+    setOpenSectionMenuId(null);
+    setSectionDeleteError(null);
+    if (!section) return;
+    if (!window.confirm(`"${section.name}" 섹션을 삭제할까요?`)) return;
+
+    try {
+      await deleteSection.mutateAsync(sectionId);
+    } catch (error) {
+      setSectionDeleteError(handleApiError(error).message);
+    }
+  };
+
+  const createFolder = async (): Promise<void> => {
+    const trimmed = folderCreateValue.trim();
+    setFolderCreateTouched(true);
+    setFolderCreateError(null);
+    if (!trimmed || !folderCreateModalSectionId) return;
+
+    try {
+      await postFolder.mutateAsync({
+        sectionId: folderCreateModalSectionId,
+        body: { name: trimmed }
+      });
+      closeFolderCreateModal();
+    } catch (error) {
+      setFolderCreateError(handleApiError(error).message);
+    }
+  };
+
   const handlePersonalChatDelete = async (chat: ChatsMeListData['data'][number]): Promise<void> => {
     if (!selectedProjectId) return;
 
@@ -683,12 +926,32 @@ export const AppShell = ({
           />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <section className="px-4 pt-4">
-              <ContentTitle
-                title="프로젝트"
-                className="w-full"
-                titleClassName={drawerTypography.sectionTitle}
-                onAddClick={onOpenCreateProject}
-              />
+              <div className="inline-flex w-full items-center justify-between gap-2">
+                <p
+                  className={[
+                    'min-w-0 flex-1 font-medium leading-none text-text-subtle',
+                    drawerTypography.sectionTitle
+                  ].join(' ')}
+                >
+                  섹션
+                </p>
+                <button
+                  type="button"
+                  aria-label={sectionsCollapsed ? '섹션 펼치기' : '섹션 접기'}
+                  aria-expanded={!sectionsCollapsed}
+                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-[12px] text-fill-icon transition-colors hover:bg-zinc-100 active:bg-zinc-200"
+                  onClick={() => setSectionsCollapsed((prev) => !prev)}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={
+                      sectionsCollapsed ? '-rotate-90 transition-transform' : 'transition-transform'
+                    }
+                  >
+                    ˅
+                  </span>
+                </button>
+              </div>
               {projectDeleteError ? (
                 <div className="mt-1">
                   <InlineAlert tone="danger" title="프로젝트 삭제 실패">
@@ -697,60 +960,132 @@ export const AppShell = ({
                 </div>
               ) : null}
 
-              {projects.length === 0 ? (
+              {sectionDeleteError ? (
+                <div className="mt-1">
+                  <InlineAlert tone="danger" title="섹션 삭제 실패">
+                    {sectionDeleteError}
+                  </InlineAlert>
+                </div>
+              ) : null}
+
+              {sectionsErrorMessage ? (
+                <div className="mt-1">
+                  <InlineAlert tone="danger" title="섹션 조회 실패">
+                    {sectionsErrorMessage}
+                  </InlineAlert>
+                </div>
+              ) : sectionsCollapsed ? null : sectionsLoading ? (
+                <div
+                  className={[
+                    'flex h-24 items-center justify-center text-center font-normal leading-[1.6] text-zinc-500',
+                    drawerTypography.emptyState
+                  ].join(' ')}
+                >
+                  섹션을 불러오는 중입니다...
+                </div>
+              ) : sections.length === 0 ? (
                 <div
                   className={[
                     'flex h-40 items-center justify-center text-center font-normal leading-[1.6] text-zinc-700',
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
-                  새 프로젝트를 추가해보세요!
+                  아직 섹션이 없습니다.
                 </div>
               ) : (
-                <nav aria-label="프로젝트 목록" className="mt-0.5">
-                  {projects.map((project) => (
-                    <div key={project.id} className="group relative">
-                      <Link
-                        to={`/projects/${project.id}`}
-                        aria-current={selectedProjectId === project.id ? 'page' : undefined}
+                <nav aria-label="섹션 목록" className="mt-0.5">
+                  {sections.map((section) => (
+                    <div key={section.id} className="group relative">
+                      <div
                         className={[
-                          'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal no-underline transition-colors hover:no-underline',
+                          'inline-flex h-7 w-full items-center gap-1 rounded-[8px] pl-2 py-[2px] font-normal no-underline transition-colors',
                           drawerTypography.listItem,
-                          selectedProjectId === project.id
-                            ? 'bg-zinc-200 text-slate-900'
-                            : 'text-slate-900 hover:bg-zinc-100'
+                          'text-slate-900'
                         ].join(' ')}
                       >
-                        <Icon name="Code_light" size={24} decorative className="text-fill-icon" />
-                        <span className="min-w-0 flex-1 truncate">{project.name}</span>
-                      </Link>
+                        <Icon
+                          name="dot_round_fill"
+                          size="sm"
+                          decorative
+                          className="text-zinc-400"
+                        />
+                        <span className="min-w-0 flex-1 truncate">{section.name}</span>
+                        <button
+                          type="button"
+                          data-section-actions-button
+                          ref={openSectionMenuId === section.id ? sectionMenuTriggerRef : undefined}
+                          aria-label={`${section.name} 섹션 작업 메뉴`}
+                          aria-haspopup="menu"
+                          aria-expanded={openSectionMenuId === section.id}
+                          aria-controls={
+                            openSectionMenuId === section.id ? sectionMenuId : undefined
+                          }
+                          className={[
+                            'inline-flex shrink-0 items-center justify-center rounded-[4px] p-1 transition-opacity',
+                            openSectionMenuId === section.id
+                              ? 'bg-zinc-200 opacity-100'
+                              : 'opacity-0 hover:bg-zinc-200 group-hover:opacity-100 group-focus-within:opacity-100'
+                          ].join(' ')}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSectionMenuOpen(section.id, e.currentTarget);
+                          }}
+                        >
+                          <Icon
+                            name="Setting_line_light"
+                            size="sm"
+                            decorative
+                            className="text-zinc-500"
+                          />
+                        </button>
+                      </div>
 
-                      <button
-                        type="button"
-                        data-project-actions-button
-                        ref={openMenuProjectId === project.id ? menuTriggerRef : undefined}
-                        aria-label={`${project.name} 프로젝트 작업 메뉴`}
-                        aria-haspopup="menu"
-                        aria-expanded={openMenuProjectId === project.id}
-                        aria-controls={openMenuProjectId === project.id ? projectMenuId : undefined}
-                        className={[
-                          'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 font-normal text-zinc-500 transition-opacity',
-                          drawerTypography.listItemAction,
-                          'hover:bg-zinc-100',
-                          openMenuProjectId === project.id
-                            ? 'opacity-100'
-                            : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
-                        ].join(' ')}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleProjectMenuOpen(project.id, e.currentTarget);
-                        }}
-                      >
-                        ···
-                      </button>
+                      <div className="ml-6 mt-0.5 pl-2">
+                        {section.folders.map((folder) => (
+                          <div
+                            key={folder.id}
+                            className={[
+                              'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal text-slate-700 transition-colors hover:bg-zinc-100',
+                              drawerTypography.listItem
+                            ].join(' ')}
+                          >
+                            <Icon
+                              name="Folder_light"
+                              size={20}
+                              decorative
+                              className="text-fill-icon"
+                            />
+                            <span className="min-w-0 flex-1 truncate">{folder.name}</span>
+                          </div>
+                        ))}
+
+                        <button
+                          type="button"
+                          onClick={() => openFolderCreateModal(section.id)}
+                          className={[
+                            'inline-flex h-7 items-center gap-1 pl-3 pr-2 py-[2px] font-normal text-zinc-400 transition-colors hover:text-zinc-600',
+                            drawerTypography.listItem
+                          ].join(' ')}
+                        >
+                          <span className="text-[18px] leading-none">+</span>
+                          <span>추가</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
+
+                  <button
+                    type="button"
+                    onClick={openSectionCreateModal}
+                    className={[
+                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-zinc-400 transition-colors hover:text-zinc-600',
+                      drawerTypography.listItem
+                    ].join(' ')}
+                  >
+                    <span className="text-[18px] leading-none">+</span>
+                    <span>추가</span>
+                  </button>
                 </nav>
               )}
             </section>
@@ -1004,6 +1339,208 @@ export const AppShell = ({
             document.body
           )
         : null}
+
+      {openSectionMenuId && sectionMenuPos
+        ? createPortal(
+            <div
+              id={sectionMenuId}
+              data-section-actions-menu
+              className="fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-lg"
+              style={{ top: sectionMenuPos.top, left: sectionMenuPos.left }}
+              role="menu"
+              aria-label="섹션 작업 메뉴"
+              onKeyDown={handleSectionMenuKeyDown}
+            >
+              {sectionMenuActions.map((it, index) => (
+                <button
+                  key={it.key}
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  ref={(el) => {
+                    sectionMenuItemRefs.current[index] = el;
+                  }}
+                  className={[
+                    'block w-full rounded-md px-3 py-1.5 text-left text-xs',
+                    it.key === 'delete'
+                      ? 'text-red-600 hover:bg-red-50'
+                      : 'text-text-base hover:bg-surface-muted',
+                    it.key === 'delete' && deleteSection.isPending ? 'opacity-50' : ''
+                  ].join(' ')}
+                  disabled={it.key === 'delete' && deleteSection.isPending}
+                  onClick={() => {
+                    if (it.key === 'rename') {
+                      if (!openSectionMenuId) return;
+                      openSectionRenameModal(openSectionMenuId);
+                      return;
+                    }
+                    if (it.key === 'createFolder') {
+                      if (!openSectionMenuId) return;
+                      openFolderCreateModal(openSectionMenuId);
+                      return;
+                    }
+                    if (it.key === 'delete') {
+                      if (!openSectionMenuId) return;
+                      void handleSectionDelete(openSectionMenuId);
+                      return;
+                    }
+                    setOpenSectionMenuId(null);
+                  }}
+                >
+                  {it.label}
+                </button>
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
+
+      <OverlayModal
+        open={Boolean(folderCreateModalSectionId)}
+        onClose={closeFolderCreateModal}
+        title="폴더 추가"
+        widthClassName="max-w-[520px]"
+      >
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await createFolder();
+          }}
+        >
+          <label className="block" htmlFor="folder-create-input">
+            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
+            <input
+              id="folder-create-input"
+              className={[
+                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
+                folderCreateTouched && !folderCreateValue.trim()
+                  ? 'border-danger-line focus:border-danger'
+                  : 'border-line focus:border-primary'
+              ].join(' ')}
+              value={folderCreateValue}
+              onChange={(e) => setFolderCreateValue(e.target.value)}
+              onBlur={() => setFolderCreateTouched(true)}
+              autoFocus
+            />
+            {folderCreateTouched && !folderCreateValue.trim() ? (
+              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
+            ) : null}
+          </label>
+
+          {folderCreateError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">{folderCreateError}</InlineAlert>
+            </div>
+          ) : null}
+
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={closeFolderCreateModal}>
+              취소
+            </Button>
+            <Button type="submit" size="sm" isLoading={postFolder.isPending}>
+              {postFolder.isPending ? '추가 중...' : '추가'}
+            </Button>
+          </div>
+        </form>
+      </OverlayModal>
+
+      <OverlayModal
+        open={sectionCreateModalOpen}
+        onClose={closeSectionCreateModal}
+        title="섹션 추가"
+        widthClassName="max-w-[520px]"
+      >
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await createSection();
+          }}
+        >
+          <label className="block" htmlFor="section-create-input">
+            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
+            <input
+              id="section-create-input"
+              className={[
+                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
+                sectionCreateTouched && !sectionCreateValue.trim()
+                  ? 'border-danger-line focus:border-danger'
+                  : 'border-line focus:border-primary'
+              ].join(' ')}
+              value={sectionCreateValue}
+              onChange={(e) => setSectionCreateValue(e.target.value)}
+              onBlur={() => setSectionCreateTouched(true)}
+              autoFocus
+            />
+            {sectionCreateTouched && !sectionCreateValue.trim() ? (
+              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
+            ) : null}
+          </label>
+
+          {sectionCreateError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">{sectionCreateError}</InlineAlert>
+            </div>
+          ) : null}
+
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={closeSectionCreateModal}>
+              취소
+            </Button>
+            <Button type="submit" size="sm" isLoading={postSection.isPending}>
+              {postSection.isPending ? '추가 중...' : '추가'}
+            </Button>
+          </div>
+        </form>
+      </OverlayModal>
+
+      <OverlayModal
+        open={Boolean(sectionRenameModalSectionId)}
+        onClose={closeSectionRenameModal}
+        title="섹션 이름 변경"
+        widthClassName="max-w-[520px]"
+      >
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await applySectionRename();
+          }}
+        >
+          <label className="block" htmlFor="section-rename-input">
+            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
+            <input
+              id="section-rename-input"
+              className={[
+                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
+                sectionRenameTouched && !sectionRenameValue.trim()
+                  ? 'border-danger-line focus:border-danger'
+                  : 'border-line focus:border-primary'
+              ].join(' ')}
+              value={sectionRenameValue}
+              onChange={(e) => setSectionRenameValue(e.target.value)}
+              onBlur={() => setSectionRenameTouched(true)}
+              autoFocus
+            />
+            {sectionRenameTouched && !sectionRenameValue.trim() ? (
+              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
+            ) : null}
+          </label>
+
+          {sectionRenameError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">{sectionRenameError}</InlineAlert>
+            </div>
+          ) : null}
+
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={closeSectionRenameModal}>
+              취소
+            </Button>
+            <Button type="submit" size="sm" isLoading={patchSection.isPending}>
+              {patchSection.isPending ? '저장 중...' : '저장'}
+            </Button>
+          </div>
+        </form>
+      </OverlayModal>
 
       {profileDialogOpen && profileDialogPos
         ? createPortal(

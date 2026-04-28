@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { ChatsMeListData, ProjectsListData } from '../../api/generated/data-contracts';
+import type { SectionItem } from '../../api/contracts/sections';
 import { AppShell } from './AppShell';
 
 const sampleProjects: ProjectsListData['data'] = [
@@ -68,6 +69,40 @@ const sampleTeamChats: ChatsMeListData['data'] = [
   }
 ];
 
+const sampleSections: SectionItem[] = [
+  {
+    id: 'section-1',
+    projectId: 'project-1',
+    name: '챗봇',
+    createdAt: '2026-02-17T10:00:00Z',
+    updatedAt: '2026-02-17T10:00:00Z',
+    folders: [
+      {
+        id: 'folder-1',
+        sectionId: 'section-1',
+        name: '기능',
+        createdAt: '2026-02-17T10:00:00Z',
+        updatedAt: '2026-02-17T10:00:00Z'
+      },
+      {
+        id: 'folder-2',
+        sectionId: 'section-1',
+        name: '에러 케이스',
+        createdAt: '2026-02-17T10:00:00Z',
+        updatedAt: '2026-02-17T10:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'section-2',
+    projectId: 'project-1',
+    name: '정산',
+    createdAt: '2026-02-17T10:00:00Z',
+    updatedAt: '2026-02-17T10:00:00Z',
+    folders: []
+  }
+];
+
 const meta = {
   title: 'Components/Layout/AppShell',
   component: AppShell,
@@ -84,6 +119,7 @@ const meta = {
       avatarUrl: null
     },
     projects: sampleProjects,
+    sections: sampleSections,
     selectedProjectId: 'project-1',
     personalChats: samplePersonalChats,
     teamChats: sampleTeamChats,
@@ -124,6 +160,7 @@ export const Default: Story = {
 export const EmptyState: Story = {
   args: {
     projects: [],
+    sections: [],
     selectedProjectId: undefined,
     personalChats: [],
     teamChats: [],
