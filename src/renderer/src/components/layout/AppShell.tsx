@@ -44,7 +44,6 @@ import { navigate } from '../../lib/hashRouter';
 import type { IconName } from '../icons/iconTypes';
 import { Button } from '../ui/Button';
 import { Chip } from '../ui/Chip';
-import { ContentTitle } from '../ui/ContentTitle';
 import { DrawerHeader } from '../ui/DrawerHeader';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
@@ -227,6 +226,8 @@ export const AppShell = ({
   const [folderCreateTouched, setFolderCreateTouched] = useState(false);
   const [folderCreateError, setFolderCreateError] = useState<string | null>(null);
   const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
+  const [personalChatsCollapsed, setPersonalChatsCollapsed] = useState(false);
+  const [teamChatsCollapsed, setTeamChatsCollapsed] = useState(false);
   const [openSettingsMenu, setOpenSettingsMenu] = useState(false);
   const [settingsMenuPos, setSettingsMenuPos] = useState<{ left: number } | null>(null);
   const settingsMenuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -939,16 +940,18 @@ export const AppShell = ({
                   type="button"
                   aria-label={sectionsCollapsed ? '섹션 펼치기' : '섹션 접기'}
                   aria-expanded={!sectionsCollapsed}
-                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-[12px] text-fill-icon transition-colors hover:bg-zinc-100 active:bg-zinc-200"
+                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 active:bg-zinc-200"
                   onClick={() => setSectionsCollapsed((prev) => !prev)}
                 >
                   <span
                     aria-hidden="true"
                     className={
-                      sectionsCollapsed ? '-rotate-90 transition-transform' : 'transition-transform'
+                      sectionsCollapsed
+                        ? '-rotate-90 text-[11px] leading-none transition-transform'
+                        : 'text-[11px] leading-none transition-transform'
                     }
                   >
-                    ˅
+                    ▾
                   </span>
                 </button>
               </div>
@@ -1090,16 +1093,35 @@ export const AppShell = ({
               )}
             </section>
 
-            <div role="separator" className="mx-2 border-t border-zinc-200" />
-
             <section className="px-4 py-4">
-              <ContentTitle
-                title="내 채팅"
-                className="w-full"
-                titleClassName={drawerTypography.sectionTitle}
-                onAddClick={onCreatePersonalChat}
-                addAriaLabel="새 개인 채팅"
-              />
+              <div className="inline-flex w-full items-center justify-between gap-2">
+                <p
+                  className={[
+                    'min-w-0 flex-1 font-medium leading-none text-text-subtle',
+                    drawerTypography.sectionTitle
+                  ].join(' ')}
+                >
+                  내 채팅
+                </p>
+                <button
+                  type="button"
+                  aria-label={personalChatsCollapsed ? '내 채팅 펼치기' : '내 채팅 접기'}
+                  aria-expanded={!personalChatsCollapsed}
+                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 active:bg-zinc-200"
+                  onClick={() => setPersonalChatsCollapsed((prev) => !prev)}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={
+                      personalChatsCollapsed
+                        ? '-rotate-90 text-[11px] leading-none transition-transform'
+                        : 'text-[11px] leading-none transition-transform'
+                    }
+                  >
+                    ▾
+                  </span>
+                </button>
+              </div>
               {chatDeleteError ? (
                 <div className="mt-1">
                   <InlineAlert tone="danger" title="채팅 삭제 실패">
@@ -1108,96 +1130,151 @@ export const AppShell = ({
                 </div>
               ) : null}
 
-              <nav aria-label="내 채팅 목록" className="mt-0.5">
-                {personalChats.map((chat) => {
-                  const isActive = activeChatId === chat.id;
-                  return (
-                    <div key={chat.id} className="group relative">
-                      <button
-                        type="button"
-                        aria-current={isActive ? 'true' : undefined}
-                        className={[
-                          'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
-                          drawerTypography.listItem,
-                          isActive
-                            ? 'bg-zinc-700 text-white'
-                            : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
-                        ].join(' ')}
-                        onClick={() => onSelectChat?.(chat.id)}
-                      >
-                        <span className="min-w-0 flex-1 truncate">{chat.name}</span>
-                      </button>
+              {personalChatsCollapsed ? null : (
+                <>
+                  <nav aria-label="내 채팅 목록" className="mt-0.5">
+                    {personalChats.map((chat) => {
+                      const isActive = activeChatId === chat.id;
+                      return (
+                        <div key={chat.id} className="group relative">
+                          <button
+                            type="button"
+                            aria-current={isActive ? 'true' : undefined}
+                            className={[
+                              'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
+                              drawerTypography.listItem,
+                              isActive
+                                ? 'bg-zinc-700 text-white'
+                                : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
+                            ].join(' ')}
+                            onClick={() => onSelectChat?.(chat.id)}
+                          >
+                            <span className="min-w-0 flex-1 truncate">{chat.name}</span>
+                          </button>
 
-                      <button
-                        type="button"
-                        aria-label={`${chat.name} 채팅 삭제`}
-                        className={[
-                          'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 font-normal transition-opacity',
-                          drawerTypography.listItemAction,
-                          isActive
-                            ? 'text-zinc-200 hover:bg-zinc-600'
-                            : 'text-zinc-500 hover:bg-zinc-100',
-                          deleteChat.isPending
-                            ? 'pointer-events-none opacity-50'
-                            : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
-                        ].join(' ')}
-                        disabled={deleteChat.isPending}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          void handlePersonalChatDelete(chat);
-                        }}
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  );
-                })}
-              </nav>
+                          <button
+                            type="button"
+                            aria-label={`${chat.name} 채팅 삭제`}
+                            className={[
+                              'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 font-normal transition-opacity',
+                              drawerTypography.listItemAction,
+                              isActive
+                                ? 'text-zinc-200 hover:bg-zinc-600'
+                                : 'text-zinc-500 hover:bg-zinc-100',
+                              deleteChat.isPending
+                                ? 'pointer-events-none opacity-50'
+                                : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
+                            ].join(' ')}
+                            disabled={deleteChat.isPending}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              void handlePersonalChatDelete(chat);
+                            }}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </nav>
+
+                  <button
+                    type="button"
+                    onClick={onCreatePersonalChat}
+                    className={[
+                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-zinc-400 transition-colors hover:text-zinc-600',
+                      drawerTypography.listItem
+                    ].join(' ')}
+                  >
+                    <span className="text-[18px] leading-none">+</span>
+                    <span>추가</span>
+                  </button>
+                </>
+              )}
             </section>
 
             <section className="px-4 pb-4">
-              <ContentTitle
-                title="팀 채팅"
-                className="w-full"
-                titleClassName={drawerTypography.sectionTitle}
-                onAddClick={API_CAPABILITIES.teamChatWritable ? onCreateTeamChat : undefined}
-                addAriaLabel="새 팀 채팅"
-                addButtonDisabled={!API_CAPABILITIES.teamChatWritable}
-                addButtonTooltip={TEAM_CHAT_READONLY_TOOLTIP}
-              />
+              <div className="inline-flex w-full items-center justify-between gap-2">
+                <p
+                  className={[
+                    'min-w-0 flex-1 font-medium leading-none text-text-subtle',
+                    drawerTypography.sectionTitle
+                  ].join(' ')}
+                >
+                  팀 채팅
+                </p>
+                <button
+                  type="button"
+                  aria-label={teamChatsCollapsed ? '팀 채팅 펼치기' : '팀 채팅 접기'}
+                  aria-expanded={!teamChatsCollapsed}
+                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 active:bg-zinc-200"
+                  onClick={() => setTeamChatsCollapsed((prev) => !prev)}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={
+                      teamChatsCollapsed
+                        ? '-rotate-90 text-[11px] leading-none transition-transform'
+                        : 'text-[11px] leading-none transition-transform'
+                    }
+                  >
+                    ▾
+                  </span>
+                </button>
+              </div>
 
-              <nav aria-label="팀 채팅 목록" className="mt-0.5">
-                {teamChats.map((chat, index) => {
-                  const isActive = activeChatId === chat.id;
-                  const showUnread = index < 3;
-                  return (
-                    <button
-                      key={chat.id}
-                      type="button"
-                      aria-current={isActive ? 'true' : undefined}
-                      className={[
-                        'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
-                        drawerTypography.listItem,
-                        isActive
-                          ? 'bg-zinc-700 text-white'
-                          : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
-                      ].join(' ')}
-                      onClick={() => onSelectChat?.(chat.id)}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{chat.name}</span>
-                      {showUnread ? (
-                        <Icon
-                          name="dot_round_fill"
-                          size="sm"
-                          decorative
-                          className={isActive ? 'text-white' : 'text-fill-icon'}
-                        />
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </nav>
+              {teamChatsCollapsed ? null : (
+                <>
+                  <nav aria-label="팀 채팅 목록" className="mt-0.5">
+                    {teamChats.map((chat, index) => {
+                      const isActive = activeChatId === chat.id;
+                      const showUnread = index < 3;
+                      return (
+                        <button
+                          key={chat.id}
+                          type="button"
+                          aria-current={isActive ? 'true' : undefined}
+                          className={[
+                            'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
+                            drawerTypography.listItem,
+                            isActive
+                              ? 'bg-zinc-700 text-white'
+                              : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
+                          ].join(' ')}
+                          onClick={() => onSelectChat?.(chat.id)}
+                        >
+                          <span className="min-w-0 flex-1 truncate">{chat.name}</span>
+                          {showUnread ? (
+                            <Icon
+                              name="dot_round_fill"
+                              size="sm"
+                              decorative
+                              className={isActive ? 'text-white' : 'text-fill-icon'}
+                            />
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </nav>
+
+                  <button
+                    type="button"
+                    onClick={API_CAPABILITIES.teamChatWritable ? onCreateTeamChat : undefined}
+                    title={
+                      !API_CAPABILITIES.teamChatWritable ? TEAM_CHAT_READONLY_TOOLTIP : undefined
+                    }
+                    disabled={!API_CAPABILITIES.teamChatWritable}
+                    className={[
+                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-zinc-400 transition-colors hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50',
+                      drawerTypography.listItem
+                    ].join(' ')}
+                  >
+                    <span className="text-[18px] leading-none">+</span>
+                    <span>추가</span>
+                  </button>
+                </>
+              )}
             </section>
           </div>
           <div className="px-2">
