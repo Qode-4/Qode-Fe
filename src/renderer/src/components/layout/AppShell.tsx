@@ -776,6 +776,13 @@ export const AppShell = ({
     });
   };
 
+  const handleHeaderProjectMenuClick = (e: ReactMouseEvent<HTMLButtonElement>): void => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!selectedProjectId) return;
+    handleProjectMenuOpen(selectedProjectId, e.currentTarget);
+  };
+
   const handleSectionMenuOpen = (sectionId: string, button: HTMLButtonElement): void => {
     setOpenSectionMenuId((prev) => {
       if (prev === sectionId) return null;
@@ -921,9 +928,8 @@ export const AppShell = ({
             projects={projects}
             selectedProjectId={selectedProjectId}
             onOpenCreateProject={onOpenCreateProject}
-            openMenuProjectId={openMenuProjectId}
-            menuTriggerRef={menuTriggerRef}
-            onOpenProjectMenu={handleProjectMenuOpen}
+            settingsDisabled={!selectedProjectId}
+            onSettingsClick={handleHeaderProjectMenuClick}
           />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <section className="px-4 pt-4">

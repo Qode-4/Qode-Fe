@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../lib/hashRouter';
 
 type ProjectItem = {
@@ -10,9 +10,6 @@ type Props = {
   projects: ProjectItem[];
   selectedProjectId?: string;
   onOpenCreateProject?: () => void;
-  openMenuProjectId?: string | null;
-  menuTriggerRef?: RefObject<HTMLButtonElement | null>;
-  onOpenProjectMenu?: (projectId: string, button: HTMLButtonElement) => void;
   className?: string;
 };
 
@@ -20,9 +17,6 @@ export const ProjectSwitcher = ({
   projects,
   selectedProjectId,
   onOpenCreateProject,
-  openMenuProjectId,
-  menuTriggerRef,
-  onOpenProjectMenu,
   className
 }: Props): React.JSX.Element => {
   const [open, setOpen] = useState(false);
@@ -65,14 +59,17 @@ export const ProjectSwitcher = ({
         </span>
         <span
           aria-hidden="true"
-          className={['shrink-0 text-[11px] text-zinc-700', open ? 'rotate-180' : ''].join(' ')}
+          className={[
+            'shrink-0 text-[11px] leading-none text-zinc-500 transition-transform',
+            open ? 'rotate-180 text-zinc-700' : ''
+          ].join(' ')}
         >
-          ▼
+          ▾
         </span>
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-[280px] overflow-hidden rounded-[18px] border border-zinc-200 bg-white py-2 shadow-[0_18px_50px_rgba(15,23,42,0.16)]">
+        <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-[220px] overflow-hidden rounded-[18px] border border-zinc-200 bg-white py-2 shadow-[0_18px_50px_rgba(15,23,42,0.16)]">
           <div
             role="listbox"
             aria-label="내 프로젝트 목록"
@@ -83,14 +80,13 @@ export const ProjectSwitcher = ({
             ) : (
               projects.map((project) => {
                 const isSelected = project.id === selectedProjectId;
-                const isMenuOpen = project.id === openMenuProjectId;
 
                 return (
                   <div
                     key={project.id}
                     className={[
                       'group flex items-center gap-1 rounded-[12px] transition-colors',
-                      isSelected || isMenuOpen ? 'bg-zinc-100' : 'hover:bg-zinc-100'
+                      isSelected ? 'bg-zinc-100' : 'hover:bg-zinc-100'
                     ].join(' ')}
                   >
                     <button
@@ -105,28 +101,6 @@ export const ProjectSwitcher = ({
                       }}
                     >
                       <span className="truncate">{project.name}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      data-project-actions-button
-                      ref={isMenuOpen ? menuTriggerRef : undefined}
-                      aria-label={`${project.name} 프로젝트 작업 메뉴`}
-                      aria-haspopup="menu"
-                      aria-expanded={isMenuOpen}
-                      className={[
-                        'shrink-0 rounded-[10px] px-2 py-1 text-[13px] font-medium transition-colors',
-                        isMenuOpen
-                          ? 'bg-white/70 text-zinc-700'
-                          : 'text-zinc-500 opacity-0 hover:bg-white/70 hover:text-zinc-700 group-hover:opacity-100 group-focus-within:opacity-100'
-                      ].join(' ')}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onOpenProjectMenu?.(project.id, event.currentTarget);
-                      }}
-                    >
-                      ···
                     </button>
                   </div>
                 );
