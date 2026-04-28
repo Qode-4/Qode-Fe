@@ -641,6 +641,15 @@ export const AppShell = ({
     }
   };
 
+  const handleProjectMenuOpen = (projectId: string, button: HTMLButtonElement): void => {
+    setOpenMenuProjectId((prev) => {
+      if (prev === projectId) return null;
+      menuTriggerRef.current = button;
+      requestAnimationFrame(() => updateMenuPos(button));
+      return projectId;
+    });
+  };
+
   const handlePersonalChatDelete = async (chat: ChatsMeListData['data'][number]): Promise<void> => {
     if (!selectedProjectId) return;
 
@@ -663,7 +672,15 @@ export const AppShell = ({
     <div className="h-full w-full bg-zinc-50">
       <div className="grid h-full grid-cols-[240px_1fr]">
         <aside aria-label="사이드바 네비게이션" className="flex min-h-0 flex-col  bg-zinc-50">
-          <DrawerHeader className="w-full" />
+          <DrawerHeader
+            className="w-full"
+            projects={projects}
+            selectedProjectId={selectedProjectId}
+            onOpenCreateProject={onOpenCreateProject}
+            openMenuProjectId={openMenuProjectId}
+            menuTriggerRef={menuTriggerRef}
+            onOpenProjectMenu={handleProjectMenuOpen}
+          />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <section className="px-4 pt-4">
               <ContentTitle
@@ -727,13 +744,7 @@ export const AppShell = ({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          const button = e.currentTarget;
-                          setOpenMenuProjectId((prev) => {
-                            if (prev === project.id) return null;
-                            menuTriggerRef.current = button;
-                            requestAnimationFrame(() => updateMenuPos(button));
-                            return project.id;
-                          });
+                          handleProjectMenuOpen(project.id, e.currentTarget);
                         }}
                       >
                         ···
