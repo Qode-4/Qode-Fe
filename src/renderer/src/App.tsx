@@ -36,17 +36,16 @@ const App = (): React.JSX.Element => {
   const loginTransitionUserName = authTransitionStorage.getLoginTransitionUserName();
 
   const projectMatch = matchPath(location.path, '/projects/:projectId');
-  const selectedProjectId = projectMatch.matched ? projectMatch.params.projectId : undefined;
-  const sections = useGetProjectSections({
-    projectId: selectedProjectId ?? '',
-    enabled: Boolean(selectedProjectId)
-  });
   const storageMatch = matchPath(location.path, '/projects/:projectId/storage');
   const selectedProjectId = projectMatch.matched
     ? projectMatch.params.projectId
     : storageMatch.matched
       ? storageMatch.params.projectId
       : undefined;
+  const sections = useGetProjectSections({
+    projectId: selectedProjectId ?? '',
+    enabled: Boolean(selectedProjectId)
+  });
 
   const chats = useGetProjectChats({
     projectId: selectedProjectId ?? '',
