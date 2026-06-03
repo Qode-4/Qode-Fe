@@ -983,106 +983,105 @@ export const AppShell = ({
                     {sectionsErrorMessage}
                   </InlineAlert>
                 </div>
-              ) : sectionsCollapsed ? null : sectionsLoading ? (
-                <div
-                  className={[
-                    'flex h-24 items-center justify-center text-center font-normal leading-[1.6] text-zinc-500',
-                    drawerTypography.emptyState
-                  ].join(' ')}
-                >
-                  섹션을 불러오는 중입니다...
-                </div>
-              ) : sections.length === 0 ? (
-                <div
-                  className={[
-                    'flex h-40 items-center justify-center text-center font-normal leading-[1.6] text-zinc-700',
-                    drawerTypography.emptyState
-                  ].join(' ')}
-                >
-                  아직 섹션이 없습니다.
-                </div>
-              ) : (
-                <nav aria-label="섹션 목록" className="mt-0.5">
-                  {sections.map((section) => (
-                    <div key={section.id} className="group relative">
-                      <div
-                        className={[
-                          'inline-flex h-7 w-full items-center gap-1 rounded-[8px] pl-2 py-[2px] font-normal no-underline transition-colors',
-                          drawerTypography.listItem,
-                          'text-slate-900'
-                        ].join(' ')}
-                      >
-                        <Icon
-                          name="dot_round_fill"
-                          size="sm"
-                          decorative
-                          className="text-zinc-400"
-                        />
-                        <span className="min-w-0 flex-1 truncate">{section.name}</span>
-                        <button
-                          type="button"
-                          data-section-actions-button
-                          ref={openSectionMenuId === section.id ? sectionMenuTriggerRef : undefined}
-                          aria-label={`${section.name} 섹션 작업 메뉴`}
-                          aria-haspopup="menu"
-                          aria-expanded={openSectionMenuId === section.id}
-                          aria-controls={
-                            openSectionMenuId === section.id ? sectionMenuId : undefined
-                          }
-                          className={[
-                            'inline-flex shrink-0 items-center justify-center rounded-[4px] p-1 transition-opacity',
-                            openSectionMenuId === section.id
-                              ? 'bg-zinc-200 opacity-100'
-                              : 'opacity-0 hover:bg-zinc-200 group-hover:opacity-100 group-focus-within:opacity-100'
-                          ].join(' ')}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleSectionMenuOpen(section.id, e.currentTarget);
-                          }}
-                        >
-                          <Icon
-                            name="Setting_line_light"
-                            size="sm"
-                            decorative
-                            className="text-zinc-500"
-                          />
-                        </button>
-                      </div>
+              ) : null}
 
-                      <div className="ml-6 mt-0.5 pl-2">
-                        {section.folders.map((folder) => (
+              {sectionsCollapsed ? null : (
+                <>
+                  {sectionsErrorMessage ? null : sectionsLoading ? (
+                    <div
+                      className={[
+                        'flex h-24 items-center justify-center text-center font-normal leading-[1.6] text-zinc-500',
+                        drawerTypography.emptyState
+                      ].join(' ')}
+                    >
+                      섹션을 불러오는 중입니다...
+                    </div>
+                  ) : sections.length > 0 ? (
+                    <nav aria-label="섹션 목록" className="mt-0.5">
+                      {sections.map((section) => (
+                        <div key={section.id} className="group relative">
                           <div
-                            key={folder.id}
                             className={[
-                              'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal text-slate-700 transition-colors hover:bg-zinc-100',
-                              drawerTypography.listItem
+                              'inline-flex h-7 w-full items-center gap-1 rounded-[8px] pl-2 py-[2px] font-normal no-underline transition-colors',
+                              drawerTypography.listItem,
+                              'text-slate-900'
                             ].join(' ')}
                           >
                             <Icon
-                              name="Folder_light"
-                              size={20}
+                              name="dot_round_fill"
+                              size="sm"
                               decorative
-                              className="text-fill-icon"
+                              className="text-zinc-400"
                             />
-                            <span className="min-w-0 flex-1 truncate">{folder.name}</span>
+                            <span className="min-w-0 flex-1 truncate">{section.name}</span>
+                            <button
+                              type="button"
+                              data-section-actions-button
+                              ref={
+                                openSectionMenuId === section.id ? sectionMenuTriggerRef : undefined
+                              }
+                              aria-label={`${section.name} 섹션 작업 메뉴`}
+                              aria-haspopup="menu"
+                              aria-expanded={openSectionMenuId === section.id}
+                              aria-controls={
+                                openSectionMenuId === section.id ? sectionMenuId : undefined
+                              }
+                              className={[
+                                'inline-flex shrink-0 items-center justify-center rounded-[4px] p-1 transition-opacity',
+                                openSectionMenuId === section.id
+                                  ? 'bg-zinc-200 opacity-100'
+                                  : 'opacity-0 hover:bg-zinc-200 group-hover:opacity-100 group-focus-within:opacity-100'
+                              ].join(' ')}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleSectionMenuOpen(section.id, e.currentTarget);
+                              }}
+                            >
+                              <Icon
+                                name="Setting_line_light"
+                                size="sm"
+                                decorative
+                                className="text-zinc-500"
+                              />
+                            </button>
                           </div>
-                        ))}
 
-                        <button
-                          type="button"
-                          onClick={() => openFolderCreateModal(section.id)}
-                          className={[
-                            'inline-flex h-7 items-center gap-1 pl-3 pr-2 py-[2px] font-normal text-zinc-400 transition-colors hover:text-zinc-600',
-                            drawerTypography.listItem
-                          ].join(' ')}
-                        >
-                          <span className="text-[18px] leading-none">+</span>
-                          <span>추가</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                          <div className="ml-6 mt-0.5 pl-2">
+                            {section.folders.map((folder) => (
+                              <div
+                                key={folder.id}
+                                className={[
+                                  'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal text-slate-700 transition-colors hover:bg-zinc-100',
+                                  drawerTypography.listItem
+                                ].join(' ')}
+                              >
+                                <Icon
+                                  name="Folder_light"
+                                  size={20}
+                                  decorative
+                                  className="text-fill-icon"
+                                />
+                                <span className="min-w-0 flex-1 truncate">{folder.name}</span>
+                              </div>
+                            ))}
+
+                            <button
+                              type="button"
+                              onClick={() => openFolderCreateModal(section.id)}
+                              className={[
+                                'inline-flex h-7 items-center gap-1 pl-3 pr-2 py-[2px] font-normal text-zinc-400 transition-colors hover:text-zinc-600',
+                                drawerTypography.listItem
+                              ].join(' ')}
+                            >
+                              <span className="text-[18px] leading-none">+</span>
+                              <span>추가</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </nav>
+                  ) : null}
 
                   <button
                     type="button"
@@ -1095,7 +1094,7 @@ export const AppShell = ({
                     <span className="text-[18px] leading-none">+</span>
                     <span>추가</span>
                   </button>
-                </nav>
+                </>
               )}
             </section>
 
