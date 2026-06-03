@@ -19,6 +19,8 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { SignupPage } from './pages/SignupPage';
 import { StoragePage } from './pages/StoragePage';
 
+const LAST_SELECTED_PROJECT_ID_KEY = 'qode:last-selected-project-id';
+
 const App = (): React.JSX.Element => {
   const location = useHashLocation();
   const token = tokenStorage.getAccessToken();
@@ -87,6 +89,29 @@ const App = (): React.JSX.Element => {
       navigate(authRedirectPath, { replace: true });
     }
   }, [token, isAuthRoute, authRedirectPath]);
+
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    window.localStorage.setItem(LAST_SELECTED_PROJECT_ID_KEY, selectedProjectId);
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (!token) return;
+    if (!matchPath(location.path, '/projects').matched) return;
+    if (!projects.isSuccess) return;
+
+    const projectList = projects.data.data;
+    if (projectList.length === 0) {
+      window.localStorage.removeItem(LAST_SELECTED_PROJECT_ID_KEY);
+      return;
+    }
+
+    const lastSelectedProjectId = window.localStorage.getItem(LAST_SELECTED_PROJECT_ID_KEY);
+    const lastSelectedProject = projectList.find((project) => project.id === lastSelectedProjectId);
+    const projectToSelect = lastSelectedProject ?? projectList[0];
+
+    navigate(`/projects/${projectToSelect.id}`, { replace: true });
+  }, [token, location.path, projects.isSuccess, projects.data]);
 
   useEffect(() => {
     if (!loginTransitionUserName) return;
