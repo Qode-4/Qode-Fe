@@ -36,6 +36,7 @@
     "@vanilla-extract/css": "^1.18.0",
     "@vanilla-extract/vite-plugin": "^5.1.4",
     "axios": "^1.13.5",
+    "socket.io-client": "^4.8.3",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
