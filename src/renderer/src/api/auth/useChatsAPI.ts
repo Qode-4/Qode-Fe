@@ -210,9 +210,9 @@ export const usePostProjectChats = (params: { projectId: string }) => {
       }
 
       const res = await apiClient.request({
-        path: `/api/projects/${params.projectId}/chats`,
+        path: `/api/chats/team`,
         method: 'POST',
-        body,
+        body: { project_id: params.projectId, name: body.name?.trim() || '새 팀 채팅' },
         type: ContentType.Json,
         secure: true,
         format: 'json'
@@ -248,19 +248,18 @@ export const useGetChatMessages = (params: {
   return useQuery({
     queryKey: QUERY_KEY.chatMessages(params.chatId, Boolean(params.personal)),
     queryFn: async () => {
-      // 일단 지금은 팀 채팅 없으니까 주석처리
-      // if (params.personal) {
-      const res = await apiClient.chatsMeMessagesList(params.chatId, undefined, { secure: true });
-      return res.data;
-      // }
+      if (params.personal) {
+        const res = await apiClient.chatsMeMessagesList(params.chatId, undefined, { secure: true });
+        return res.data;
+      }
 
-      // const res = await apiClient.request({
-      //   path: `/api/chats/${params.chatId}/messages`,
-      //   method: 'GET',
-      //   secure: true,
-      //   format: 'json'
-      // });
-      // return res.data;
+      const res = await apiClient.request<{ ok: boolean; data: unknown[] }>({
+        path: `/api/chats/${params.chatId}/messages`,
+        method: 'GET',
+        secure: true,
+        format: 'json'
+      });
+      return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.chatId)
   });
