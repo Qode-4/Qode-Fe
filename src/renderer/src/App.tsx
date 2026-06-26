@@ -164,6 +164,7 @@ const App = (): React.JSX.Element => {
           location={location}
           activeChatId={activeChatId}
           meName={me.data?.name}
+          meId={me.data?.id}
           createChatModalType={createChatModalType}
           onCloseCreateChatModal={() => setCreateChatModalType(null)}
         />
