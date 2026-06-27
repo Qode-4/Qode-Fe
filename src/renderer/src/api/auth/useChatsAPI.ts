@@ -168,6 +168,34 @@ const streamChatMessage = async (params: {
   if (tail) parseSseBlock(tail, params.callbacks);
 };
 
+// 개인채팅과 팀채팅을 합산한 공통 타입
+export type ProjectChatItem = {
+  id: string;
+  project_id: string;
+  created_by: string;
+  name: string;
+  chat_type: 'PERSONAL' | 'TEAM';
+  created_at: string;
+};
+
+type TeamChatRoomRaw = {
+  id: string;
+  projectId: string;
+  name: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+// 백엔드 팀채팅 룸(camelCase)을 개인채팅과 동일한 구조(snake_case)로 정규화
+const normalizeTeamRoom = (room: TeamChatRoomRaw): ProjectChatItem => ({
+  id: room.id,
+  name: room.name,
+  chat_type: 'TEAM',
+  project_id: room.projectId,
+  created_by: room.createdBy,
+  created_at: room.createdAt
+});
+
 export const useGetProjectChats = (params: {
   projectId: string;
   type?: 'all' | 'personal' | 'team';
@@ -175,14 +203,33 @@ export const useGetProjectChats = (params: {
 }) => {
   return useQuery({
     queryKey: QUERY_KEY.projectChats(params.projectId, params.type),
-    queryFn: async () => {
-      const res = await apiClient.chatsMeList(
-        {
-          project_id: params.projectId
-        },
-        { secure: true }
-      );
-      return res.data;
+    queryFn: async (): Promise<{ data: ProjectChatItem[] }> => {
+      const fetchPersonal = async (): Promise<ProjectChatItem[]> => {
+        const res = await apiClient.chatsMeList({ project_id: params.projectId }, { secure: true });
+        return res.data.data as ProjectChatItem[];
+      };
+
+      const fetchTeam = async (): Promise<ProjectChatItem[]> => {
+        const res = await apiClient.request<{ ok: boolean; data: TeamChatRoomRaw[] }>({
+          path: `/api/projects/${params.projectId}/chats`,
+          method: 'GET',
+          secure: true,
+          format: 'json'
+        });
+        return ((res.data as { data?: TeamChatRoomRaw[] }).data ?? []).map(normalizeTeamRoom);
+      };
+
+      if (params.type === 'personal') {
+        return { data: await fetchPersonal() };
+      }
+
+      if (params.type === 'team') {
+        return { data: await fetchTeam() };
+      }
+
+      // type === 'all': 개인 + 팀 병렬 조회 후 합산
+      const [personalChats, teamChats] = await Promise.all([fetchPersonal(), fetchTeam()]);
+      return { data: [...personalChats, ...teamChats] };
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });
@@ -210,9 +257,9 @@ export const usePostProjectChats = (params: { projectId: string }) => {
       }
 
       const res = await apiClient.request({
-        path: `/api/chats/team`,
+        path: `/api/projects/${params.projectId}/chats`,
         method: 'POST',
-        body: { project_id: params.projectId, name: body.name?.trim() || '새 팀 채팅' },
+        body: { name: body.name?.trim() || '새 팀 채팅' },
         type: ContentType.Json,
         secure: true,
         format: 'json'
