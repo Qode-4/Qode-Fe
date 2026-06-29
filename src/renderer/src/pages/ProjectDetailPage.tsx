@@ -208,6 +208,8 @@ export const ProjectDetailPage = ({
         id: pendingUserMessage.clientId,
         role: 'USER',
         content: pendingUserMessage.content,
+        userId: meId,        // 추가
+        userName: meName,    // 추가
         __localFailed: pendingUserMessage.failed
       }
     ];
