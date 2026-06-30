@@ -64,11 +64,8 @@ const App = (): React.JSX.Element => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [createChatModalType, setCreateChatModalType] = useState<'personal' | 'team' | null>(null);
 
-  const activeChatId = useMemo(() => {
-    if (selectedChatId && allChats.some((it) => it.id === selectedChatId)) return selectedChatId;
-    const team = allChats.find((it) => it.chat_type === 'TEAM');
-    return (team ?? allChats[0])?.id ?? '';
-  }, [selectedChatId, allChats]);
+  const activeChatId =
+    selectedChatId && allChats.some((it) => it.id === selectedChatId) ? selectedChatId : '';
 
   useEffect(() => {
     if (!window.location.hash) navigate('/login', { replace: true });
