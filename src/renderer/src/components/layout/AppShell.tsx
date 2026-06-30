@@ -30,13 +30,13 @@ import {
 } from '../../api/auth/useSectionsAPI';
 import { handleApiError } from '../../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
+import type { SectionItem } from '../../api/contracts/sections';
 import type {
   ChatsMeListData,
   GetAuthData,
   ProjectsDetailData,
   ProjectsListData
 } from '../../api/generated/data-contracts';
-import type { SectionItem } from '../../api/contracts/sections';
 import { QUERY_KEY } from '../../api/queryKeys';
 import { tokenStorage } from '../../api/tokenStorage';
 import overflowIcon from '../../assets/overflow-icon.png';
@@ -1206,9 +1206,8 @@ export const AppShell = ({
               {teamChatsCollapsed ? null : (
                 <>
                   <nav aria-label="팀 채팅 목록" className="mt-0.5">
-                    {teamChats.map((chat, index) => {
+                    {teamChats.map((chat) => {
                       const isActive = activeChatId === chat.id;
-                      const showUnread = index < 3;
                       return (
                         <button
                           key={chat.id}
@@ -1224,14 +1223,14 @@ export const AppShell = ({
                           onClick={() => onSelectChat?.(chat.id)}
                         >
                           <span className="min-w-0 flex-1 truncate">{chat.name}</span>
-                          {showUnread ? (
+                          {/* {showUnread ? (
                             <Icon
                               name="dot_round_fill"
                               size="sm"
                               decorative
                               className={isActive ? 'text-white' : 'text-fill-icon'}
                             />
-                          ) : null}
+                          ) : null} */}
                         </button>
                       );
                     })}
