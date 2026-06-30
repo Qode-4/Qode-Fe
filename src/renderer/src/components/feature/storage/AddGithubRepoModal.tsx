@@ -189,8 +189,7 @@ export const AddGithubRepoModal = ({
     });
   };
 
-  const canSubmit =
-    isAuthorized && hasRepo && Boolean(title.trim()) && !post.isPending;
+  const canSubmit = isAuthorized && hasRepo && Boolean(title.trim()) && !post.isPending;
 
   return (
     <OverlayModal
@@ -280,7 +279,9 @@ export const AddGithubRepoModal = ({
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-text-base">2. 저장소 선택</p>
-                <p className="text-xs text-text-soft">저장소에 등록할 GitHub 저장소 1개를 고르세요.</p>
+                <p className="text-xs text-text-soft">
+                  저장소에 등록할 GitHub 저장소 1개를 고르세요.
+                </p>
               </div>
               <span
                 className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(hasRepo)}`}
