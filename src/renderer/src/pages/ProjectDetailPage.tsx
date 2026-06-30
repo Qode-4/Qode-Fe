@@ -208,10 +208,12 @@ export const ProjectDetailPage = ({
         id: pendingUserMessage.clientId,
         role: 'USER',
         content: pendingUserMessage.content,
-        __localFailed: pendingUserMessage.failed
+        __localFailed: pendingUserMessage.failed,
+        userId: meId,
+        __isMe: true
       }
     ];
-  }, [activeChatId, messageItems, pendingUserMessage]);
+  }, [activeChatId, meId, messageItems, pendingUserMessage]);
 
   useEffect(() => {
     return () => {
@@ -424,7 +426,8 @@ export const ProjectDetailPage = ({
                 const senderName = getTeamMessageUserName(message);
                 const createdAt = getMessageCreatedAt(message);
                 const timeLabel = formatMessageTime(createdAt);
-                const isMe = Boolean(meId && msgUserId === meId);
+                const isPendingMine = Boolean((message as { __isMe?: boolean }).__isMe);
+                const isMe = isPendingMine || Boolean(meId && msgUserId === meId);
 
                 if (isMe) {
                   return (
