@@ -1223,14 +1223,6 @@ export const AppShell = ({
                           onClick={() => onSelectChat?.(chat.id)}
                         >
                           <span className="min-w-0 flex-1 truncate">{chat.name}</span>
-                          {/* {showUnread ? (
-                            <Icon
-                              name="dot_round_fill"
-                              size="sm"
-                              decorative
-                              className={isActive ? 'text-white' : 'text-fill-icon'}
-                            />
-                          ) : null} */}
                         </button>
                       );
                     })}
