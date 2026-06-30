@@ -19,6 +19,7 @@ type SseStatusPayload = {
 
 type SseChunkPayload = {
   content?: string;
+  token?: string;
 };
 
 type SseSourcesPayload = {
@@ -87,7 +88,7 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void 
     return;
   }
 
-  if (event === 'chunk') {
+  if (event === 'chunk' || event === 'token') {
     callbacks?.onChunk?.((parsed as SseChunkPayload) ?? {});
     return;
   }
@@ -154,13 +155,15 @@ const streamChatMessage = async (params: {
 
     buffer += decoder.decode(value, { stream: true });
 
-    let boundary = buffer.indexOf('\n\n');
+    let boundaryMatch = /\r?\n\r?\n/.exec(buffer);
+    let boundary = boundaryMatch?.index ?? -1;
     while (boundary !== -1) {
       const block = buffer.slice(0, boundary).trim();
-      buffer = buffer.slice(boundary + 2);
+      buffer = buffer.slice(boundary + (boundaryMatch?.[0].length ?? 2));
 
       if (block) parseSseBlock(block, params.callbacks);
-      boundary = buffer.indexOf('\n\n');
+      boundaryMatch = /\r?\n\r?\n/.exec(buffer);
+      boundary = boundaryMatch?.index ?? -1;
     }
   }
 
