@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useGetAuthMe } from './api/auth/useAuthAPI';
 import { useGetProjectChats } from './api/auth/useChatsAPI';
 import { useGetProjects } from './api/auth/useProjectsAPI';
+import { useGetProjectSections } from './api/auth/useSectionsAPI';
 import { authTransitionStorage } from './api/authTransitionStorage';
 import { handleApiError } from './api/axios';
 import { tokenStorage } from './api/tokenStorage';
@@ -16,6 +17,9 @@ import { LoginPage } from './pages/LoginPage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { SignupPage } from './pages/SignupPage';
+import { StoragePage } from './pages/StoragePage';
+
+const LAST_SELECTED_PROJECT_ID_KEY = 'qode:last-selected-project-id';
 
 const App = (): React.JSX.Element => {
   const location = useHashLocation();
@@ -34,7 +38,16 @@ const App = (): React.JSX.Element => {
   const loginTransitionUserName = authTransitionStorage.getLoginTransitionUserName();
 
   const projectMatch = matchPath(location.path, '/projects/:projectId');
-  const selectedProjectId = projectMatch.matched ? projectMatch.params.projectId : undefined;
+  const storageMatch = matchPath(location.path, '/projects/:projectId/storage');
+  const selectedProjectId = projectMatch.matched
+    ? projectMatch.params.projectId
+    : storageMatch.matched
+      ? storageMatch.params.projectId
+      : undefined;
+  const sections = useGetProjectSections({
+    projectId: selectedProjectId ?? '',
+    enabled: Boolean(selectedProjectId)
+  });
 
   const chats = useGetProjectChats({
     projectId: selectedProjectId ?? '',
@@ -51,11 +64,8 @@ const App = (): React.JSX.Element => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [createChatModalType, setCreateChatModalType] = useState<'personal' | 'team' | null>(null);
 
-  const activeChatId = useMemo(() => {
-    if (selectedChatId && allChats.some((it) => it.id === selectedChatId)) return selectedChatId;
-    const team = allChats.find((it) => it.chat_type === 'TEAM');
-    return (team ?? allChats[0])?.id ?? '';
-  }, [selectedChatId, allChats]);
+  const activeChatId =
+    selectedChatId && allChats.some((it) => it.id === selectedChatId) ? selectedChatId : '';
 
   useEffect(() => {
     if (!window.location.hash) navigate('/login', { replace: true });
@@ -76,6 +86,29 @@ const App = (): React.JSX.Element => {
       navigate(authRedirectPath, { replace: true });
     }
   }, [token, isAuthRoute, authRedirectPath]);
+
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    window.localStorage.setItem(LAST_SELECTED_PROJECT_ID_KEY, selectedProjectId);
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (!token) return;
+    if (!matchPath(location.path, '/projects').matched) return;
+    if (!projects.isSuccess) return;
+
+    const projectList = projects.data.data;
+    if (projectList.length === 0) {
+      window.localStorage.removeItem(LAST_SELECTED_PROJECT_ID_KEY);
+      return;
+    }
+
+    const lastSelectedProjectId = window.localStorage.getItem(LAST_SELECTED_PROJECT_ID_KEY);
+    const lastSelectedProject = projectList.find((project) => project.id === lastSelectedProjectId);
+    const projectToSelect = lastSelectedProject ?? projectList[0];
+
+    navigate(`/projects/${projectToSelect.id}`, { replace: true });
+  }, [token, location.path, projects.isSuccess, projects.data]);
 
   useEffect(() => {
     if (!loginTransitionUserName) return;
@@ -136,6 +169,9 @@ const App = (): React.JSX.Element => {
     <AppShell
       me={me.data}
       projects={projects.data?.data ?? []}
+      sections={sections.data?.data ?? []}
+      sectionsLoading={sections.isLoading}
+      sectionsErrorMessage={sections.isError ? handleApiError(sections.error).message : null}
       selectedProjectId={selectedProjectId}
       onOpenCreateProject={() => setCreateProjectModalOpen(true)}
       personalChats={personalChats}
@@ -169,7 +205,10 @@ const App = (): React.JSX.Element => {
           onCloseCreateChatModal={() => setCreateChatModalType(null)}
         />
       ) : null}
-      {!matchPath(location.path, '/projects').matched && !projectMatch.matched ? (
+      {storageMatch.matched ? <StoragePage projectId={storageMatch.params.projectId} /> : null}
+      {!matchPath(location.path, '/projects').matched &&
+      !projectMatch.matched &&
+      !storageMatch.matched ? (
         <div className="rounded-xl border border-line bg-surface p-6">
           <h1 className="text-2xl font-semibold text-text-base">Not Found</h1>
           <p className="mt-2 text-sm text-text-subtle">{location.path}</p>

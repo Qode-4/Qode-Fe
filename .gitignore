@@ -40,6 +40,7 @@ Desktop.ini
 docs-private/
 .codex/
 .claude/
+.superpowers/
 AGENTS.md
 
 # Electron-builder artifacts (in case output is configured outside dist/)
