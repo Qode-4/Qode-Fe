@@ -208,9 +208,9 @@ export const ProjectDetailPage = ({
         id: pendingUserMessage.clientId,
         role: 'USER',
         content: pendingUserMessage.content,
-        __localFailed: pendingUserMessage.failed,
         userId: meId,
-        __isMe: true
+        userName: meName,
+        __localFailed: pendingUserMessage.failed
       }
     ];
   }, [activeChatId, meId, messageItems, pendingUserMessage]);

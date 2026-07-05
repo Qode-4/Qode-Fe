@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getSocket } from '../socket';
 import { QUERY_KEY } from '../queryKeys';
+import { getSocket } from '../socket';
 
 export type TeamChatSocketMessage = {
   id: string;
@@ -44,6 +44,9 @@ export const useTeamChatSocket = (
 
     socket.emit('room:join', chatId);
 
+
+    
+
     const handleMessage = (message: TeamChatSocketMessage): void => {
       setIsSending(false);
       setSendError(null);
@@ -62,10 +65,12 @@ export const useTeamChatSocket = (
 
     socket.on('team:message:receive', handleMessage);
     socket.on('team:message:error', handleError);
-
+    socket.on('team:message:sent', handleMessage);
+    
     return () => {
       socket.off('team:message:receive', handleMessage);
       socket.off('team:message:error', handleError);
+      socket.off('team:message:sent', handleMessage);
     };
   }, [chatId, qc]);
 
