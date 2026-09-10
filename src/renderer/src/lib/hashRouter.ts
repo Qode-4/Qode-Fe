@@ -26,8 +26,14 @@ export const getHashLocation = (): RouteLocation => {
 
 export const navigate = (to: string, opts?: { replace?: boolean }): void => {
   const next = to.startsWith('#') ? to : `#${to.startsWith('/') ? to : `/${to}`}`;
-  if (opts?.replace) window.location.replace(next);
-  else window.location.hash = next.slice(1);
+  if (opts?.replace) {
+    window.location.replace(next);
+    // window.location.replace()는 hashchange 이벤트를 발생시키지 않으므로
+    // 수동으로 dispatch하여 useHashLocation이 갱신되도록 함
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+  } else {
+    window.location.hash = next.slice(1);
+  }
 };
 
 export const buildPath = (path: string, query?: Record<string, string | undefined>): string => {
