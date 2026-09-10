@@ -15,6 +15,7 @@ release/
 
 # Logs
 *.log*
+artifacts/
 
 # Env (keep templates if you add them)
 .env
@@ -51,3 +52,7 @@ docs-private/
 *.snap
 *.blockmap
 *.asar
+
+#ai
+/.omx
+/.omc
