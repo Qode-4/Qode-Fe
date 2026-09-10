@@ -336,31 +336,6 @@ export const usePostPersonalChatMessageSSE = (params: { projectId: string; chatI
   });
 };
 
-export const usePostTeamChatMessageSSE = (params: { projectId: string; chatId: string }) => {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      content,
-      callbacks
-    }: {
-      content: string;
-      callbacks?: MessageStreamCallbacks;
-    }) => {
-      ensureTeamChatWritable();
-      return streamChatMessage({
-        path: `/api/chats/${params.chatId}/messages`,
-        body: { content },
-        callbacks
-      });
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
-    }
-  });
-};
-
 export const usePostMessageShare = (params: { projectId: string; chatId: string }) => {
   const qc = useQueryClient();
 
