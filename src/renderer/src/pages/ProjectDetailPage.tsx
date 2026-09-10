@@ -293,8 +293,8 @@ export const ProjectDetailPage = ({
               setStreamStatus(payload.message ?? payload.status ?? '진행 중...');
             },
             onChunk: (payload) => {
-              if (!payload.content) return;
-              setStreamContent((prev) => `${prev}${payload.content}`);
+              if (!payload.content && !payload.token) return;
+              setStreamContent((prev) => `${prev}${payload.content ?? payload.token ?? ''}`);
             },
             onSources: (payload) => {
               setStreamSources(payload.sources ?? []);
