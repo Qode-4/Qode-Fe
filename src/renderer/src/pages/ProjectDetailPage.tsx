@@ -539,9 +539,9 @@ export const ProjectDetailPage = ({
                     <MessageActionButton
                       iconName="shared"
                       label="팀 공유"
-                      disabled={postShare.isPending || !API_CAPABILITIES.teamChatWritable}
+                      disabled={postShare.isPending || !API_CAPABILITIES.messageShareEnabled}
                       disabledReason={
-                        !API_CAPABILITIES.teamChatWritable ? teamReadOnlyReason : undefined
+                        !API_CAPABILITIES.messageShareEnabled ? teamReadOnlyReason : undefined
                       }
                       onClick={() =>
                         postShare.mutate({
