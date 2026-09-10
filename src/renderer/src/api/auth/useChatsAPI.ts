@@ -1,12 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../apiClient';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../capabilities';
-import type {
-  ProjectGuideResponse,
-  ShareMessageBody,
-  ShareMessageResponse,
-  SourceItem
-} from '../contracts/chats';
+import type { ShareMessageBody, ShareMessageResponse, SourceItem } from '../contracts/chats';
 import type { ChatsMeMessagesCreatePayload } from '../generated/data-contracts';
 import { ContentType } from '../generated/http-client';
 import { QUERY_KEY } from '../queryKeys';
@@ -341,31 +336,6 @@ export const usePostPersonalChatMessageSSE = (params: { projectId: string; chatI
   });
 };
 
-export const usePostTeamChatMessageSSE = (params: { projectId: string; chatId: string }) => {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      content,
-      callbacks
-    }: {
-      content: string;
-      callbacks?: MessageStreamCallbacks;
-    }) => {
-      ensureTeamChatWritable();
-      return streamChatMessage({
-        path: `/api/chats/${params.chatId}/messages`,
-        body: { content },
-        callbacks
-      });
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
-    }
-  });
-};
-
 export const usePostMessageShare = (params: { projectId: string; chatId: string }) => {
   const qc = useQueryClient();
 
@@ -388,18 +358,3 @@ export const usePostMessageShare = (params: { projectId: string; chatId: string 
     }
   });
 };
-
-export const useGetProjectGuide = (params: { projectId: string; enabled?: boolean }) =>
-  useQuery({
-    queryKey: QUERY_KEY.projectGuide(params.projectId),
-    queryFn: async () => {
-      const res = await apiClient.request<ProjectGuideResponse>({
-        path: `/api/projects/${params.projectId}/guide`,
-        method: 'GET',
-        secure: true,
-        format: 'json'
-      });
-      return res.data;
-    },
-    enabled: (params.enabled ?? true) && Boolean(params.projectId)
-  });

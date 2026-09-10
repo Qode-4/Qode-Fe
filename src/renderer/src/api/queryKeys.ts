@@ -15,6 +15,5 @@ export const QUERY_KEY = {
   chatMessages: (chatId: string, personal = false) =>
     ['chatMessages', chatId, personal ? 'personal' : 'team'] as const,
   chatMessagesByChat: (chatId: string) => ['chatMessages', chatId] as const,
-  projectGuide: (projectId: string) => ['projectGuide', projectId] as const,
   storageItems: (projectId: string) => ['storageItems', projectId] as const
 } as const;
