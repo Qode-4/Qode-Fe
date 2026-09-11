@@ -15,6 +15,7 @@ release/
 
 # Logs
 *.log*
+artifacts/
 
 # Env (keep templates if you add them)
 .env
@@ -40,7 +41,7 @@ Desktop.ini
 docs-private/
 .codex/
 .claude/
-AGENTS.md
+.superpowers/
 
 # Electron-builder artifacts (in case output is configured outside dist/)
 *.dmg
@@ -51,3 +52,7 @@ AGENTS.md
 *.snap
 *.blockmap
 *.asar
+
+#ai
+/.omx
+/.omc

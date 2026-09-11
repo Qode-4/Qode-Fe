@@ -111,7 +111,7 @@
   }
 
   :where(button, a, input, textarea, select, [tabindex]:not([tabindex='-1'])):focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-sky-600);
     outline-offset: 2px;
   }
 

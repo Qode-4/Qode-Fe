@@ -3,35 +3,39 @@ import {
   useGetGithubOauthDeviceFlow,
   useGetGithubOauthRepos,
   usePostGithubOauthDeviceStart
-} from '../../api/auth/useGithubOAuthAPI';
-import { useGetProjectSyncStatus, usePostProjects } from '../../api/auth/useProjectsAPI';
-import { handleApiError } from '../../api/axios';
-import type { GithubOauthDeviceStartCreateData } from '../../api/generated/data-contracts';
+} from '../../../api/auth/useGithubOAuthAPI';
+import { usePostStorageItem } from '../../../api/auth/useStorageItemsAPI';
+import { handleApiError } from '../../../api/axios';
+import type { CreateStorageItemBody } from '../../../api/contracts/storageItems';
+import type { GithubOauthDeviceStartCreateData } from '../../../api/generated/data-contracts';
 import {
-  clearCachedOauthFlow,
   readCachedOauthFlow,
-  saveCachedOauthFlow
-} from '../../lib/githubOauthFlowCache';
-import { navigate } from '../../lib/hashRouter';
-import { Button } from '../ui/Button';
-import { InlineAlert } from '../ui/InlineAlert';
-import { OverlayModal } from '../ui/OverlayModal';
+  saveCachedOauthFlow,
+  clearCachedOauthFlow
+} from '../../../lib/githubOauthFlowCache';
+import { Button } from '../../ui/Button';
+import { InlineAlert } from '../../ui/InlineAlert';
+import { OverlayModal } from '../../ui/OverlayModal';
 
 type Props = {
   open: boolean;
+  projectId: string;
   onClose: () => void;
 };
 
-export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element | null => {
-  const create = usePostProjects();
+export const AddGithubRepoModal = ({
+  open,
+  projectId,
+  onClose
+}: Props): React.JSX.Element | null => {
+  const post = usePostStorageItem({ projectId });
   const startGithubOauth = usePostGithubOauthDeviceStart();
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [oauthFlow, setOauthFlow] = useState<GithubOauthDeviceStartCreateData | null>(null);
   const [selectedRepoFullName, setSelectedRepoFullName] = useState('');
-  const [createdProjectId, setCreatedProjectId] = useState('');
-  const [touched, setTouched] = useState({ name: false, repo: false });
+  const [title, setTitle] = useState('');
+  const [titleManuallyEdited, setTitleManuallyEdited] = useState(false);
+  const [touched, setTouched] = useState({ repo: false, title: false });
 
   const autoHandledFlowRef = useRef<string | null>(null);
   const startedFlowRef = useRef<string | null>(null);
@@ -51,10 +55,6 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     flowId: activeOauthFlow?.data.flowId ?? '',
     enabled: oauthStatus.data?.data.status === 'authorized'
   });
-  const syncStatus = useGetProjectSyncStatus({
-    projectId: createdProjectId,
-    enabled: Boolean(createdProjectId)
-  });
 
   const repoItems = useMemo(() => repos.data?.data ?? [], [repos.data?.data]);
   const selectedRepo = useMemo(
@@ -62,16 +62,8 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     [repoItems, selectedRepoFullName]
   );
 
-  const hasProjectInfo = Boolean(name.trim());
   const isAuthorized = oauthStatus.data?.data.status === 'authorized';
   const hasRepo = Boolean(selectedRepo);
-  const waitingAuth = Boolean(activeOauthFlow?.data.flowId) && !isAuthorized;
-
-  const nameError = useMemo(() => {
-    if (!touched.name) return '';
-    if (!name.trim()) return '프로젝트 이름을 입력해주세요.';
-    return '';
-  }, [name, touched.name]);
 
   const repoError = useMemo(() => {
     if (!touched.repo) return '';
@@ -81,13 +73,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     return '';
   }, [activeOauthFlow, isAuthorized, selectedRepo, touched.repo]);
 
-  const canSubmit =
-    hasProjectInfo &&
-    Boolean(activeOauthFlow?.data.flowId) &&
-    isAuthorized &&
-    hasRepo &&
-    !createdProjectId &&
-    !create.isPending;
+  const titleError = touched.title && !title.trim() ? '제목을 입력해주세요.' : '';
 
   const oauthStatusLabel = (() => {
     const status = oauthStatus.data?.data.status;
@@ -96,16 +82,6 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     if (status === 'authorized') return '인증 완료';
     if (status === 'auth_failed') return '인증 실패';
     if (status === 'expired') return '인증 만료';
-    return status;
-  })();
-
-  const syncStatusLabel = (() => {
-    const status = syncStatus.data?.data.status;
-    if (!status) return '동기화 상태 확인 중';
-    if (status === 'queued') return '대기 중';
-    if (status === 'syncing') return '동기화 중';
-    if (status === 'done') return '완료';
-    if (status === 'failed') return '실패';
     return status;
   })();
 
@@ -125,6 +101,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     }
   }, [activeOauthFlow?.data.verificationUri, activeOauthFlow?.data.verificationUriComplete]);
 
+  // 새 flow 시작 시 인증 코드 클립보드 복사 + 브라우저 열기 (CreateProjectModal과 동일)
   useEffect(() => {
     if (!oauthFlow?.data.flowId) return;
     if (startedFlowRef.current !== oauthFlow.data.flowId) return;
@@ -142,6 +119,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     })();
   }, [oauthFlow?.data.flowId, oauthFlow?.data.userCode, oauthOpenUrl]);
 
+  // 인증 상태가 캐시에 반영되도록 동기화
   useEffect(() => {
     const status = oauthStatus.data?.data.status;
     if (!status || !activeOauthFlow?.data.flowId) return;
@@ -154,20 +132,28 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     }
   }, [oauthStatus.data?.data.status, activeOauthFlow]);
 
+  // 사용자가 직접 title을 수정하기 전까지는 선택한 레포의 fullName으로 자동 채움.
+  // useEffect 대신 render-time setState 패턴으로 cascading render 회피.
+  const [lastSelectedRepoFullName, setLastSelectedRepoFullName] = useState<string | null>(null);
+  if (selectedRepo && selectedRepo.fullName !== lastSelectedRepoFullName) {
+    setLastSelectedRepoFullName(selectedRepo.fullName);
+    if (!titleManuallyEdited) setTitle(selectedRepo.fullName);
+  }
+
   const stepTone = (ready: boolean): string =>
     ready
       ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
       : 'border-zinc-300 bg-zinc-100 text-zinc-500';
 
   const closeAndReset = (): void => {
-    setName('');
-    setDescription('');
-    setTouched({ name: false, repo: false });
     setOauthFlow(null);
     setSelectedRepoFullName('');
-    setCreatedProjectId('');
+    setTitle('');
+    setTitleManuallyEdited(false);
+    setTouched({ repo: false, title: false });
     autoHandledFlowRef.current = null;
     startedFlowRef.current = null;
+    post.reset();
     onClose();
   };
 
@@ -182,88 +168,42 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     });
   };
 
+  const onSubmit = (e: React.FormEvent): void => {
+    e.preventDefault();
+    setTouched({ repo: true, title: true });
+    if (!selectedRepo || !title.trim()) return;
+
+    const body: CreateStorageItemBody = {
+      type: 'github_repo',
+      title: title.trim(),
+      url: `https://github.com/${selectedRepo.owner}/${selectedRepo.name}`,
+      metadata: {
+        owner: selectedRepo.owner,
+        repo: selectedRepo.name,
+        defaultBranch: selectedRepo.defaultBranch
+      }
+    };
+
+    post.mutate(body, {
+      onSuccess: () => closeAndReset()
+    });
+  };
+
+  const canSubmit = isAuthorized && hasRepo && Boolean(title.trim()) && !post.isPending;
+
   return (
     <OverlayModal
       open={open}
       onClose={closeAndReset}
-      title="새 프로젝트"
-      widthClassName="max-w-[620px] max-h-[90vh] overflow-hidden"
+      title="GitHub 레포 추가"
+      widthClassName="max-w-[560px] max-h-[90vh] overflow-hidden"
     >
-      <form
-        className="flex max-h-[calc(90vh-120px)] flex-col"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setTouched({ name: true, repo: true });
-          if (!canSubmit || !activeOauthFlow || !selectedRepo) return;
-
-          create.mutate(
-            {
-              name: name.trim(),
-              description: description.trim() ? description.trim() : undefined,
-              git: {
-                provider: 'github_oauth',
-                flowId: activeOauthFlow.data.flowId,
-                owner: selectedRepo.owner,
-                repo: selectedRepo.name,
-                defaultBranch: selectedRepo.defaultBranch
-              }
-            },
-            {
-              onSuccess: (data) => {
-                setCreatedProjectId(data.data.id);
-              }
-            }
-          );
-        }}
-      >
-        <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-          <section className="rounded-lg border border-line bg-surface p-3">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-text-base">1. 프로젝트 정보</p>
-              <span
-                className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(hasProjectInfo)}`}
-              >
-                {hasProjectInfo ? '완료' : '필수 입력'}
-              </span>
-            </div>
-
-            <label className="block" htmlFor="create-project-name">
-              <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
-              <input
-                id="create-project-name"
-                className={[
-                  'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                  nameError
-                    ? 'border-danger-line focus:border-danger'
-                    : 'border-[#737983] focus:border-primary'
-                ].join(' ')}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
-                placeholder="예) Qode-Fe"
-                autoFocus
-              />
-              {nameError ? (
-                <span className="mt-1 block text-xs text-danger">{nameError}</span>
-              ) : null}
-            </label>
-
-            <label className="mt-3 block" htmlFor="create-project-description">
-              <span className="mb-1 block text-xs font-medium text-text-soft">설명 (선택)</span>
-              <input
-                id="create-project-description"
-                className="h-10 w-full rounded-md border border-[#737983] bg-surface px-3 text-base text-text-base outline-none focus:border-primary"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="예) 고객 대시보드 개선 프로젝트"
-              />
-            </label>
-          </section>
-
+      <form className="flex max-h-[calc(90vh-120px)] flex-col" onSubmit={onSubmit}>
+        <div className="mt-2 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
           <section className="rounded-lg border border-line bg-surface-muted p-3">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-semibold text-text-base">2. GitHub 인증</p>
+                <p className="text-sm font-semibold text-text-base">1. GitHub 인증</p>
                 <p className="text-xs text-text-soft">승인 후 저장소 목록을 불러옵니다.</p>
               </div>
               <span
@@ -338,8 +278,10 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           >
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-text-base">3. 저장소 선택</p>
-                <p className="text-xs text-text-soft">연결할 GitHub 저장소를 1개 선택하세요.</p>
+                <p className="text-sm font-semibold text-text-base">2. 저장소 선택</p>
+                <p className="text-xs text-text-soft">
+                  저장소에 등록할 GitHub 저장소 1개를 고르세요.
+                </p>
               </div>
               <span
                 className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(hasRepo)}`}
@@ -368,7 +310,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                 >
                   <input
                     type="radio"
-                    name="create-project-github-repo"
+                    name="add-storage-github-repo"
                     checked={selectedRepoFullName === repo.fullName}
                     onChange={() => {
                       setSelectedRepoFullName(repo.fullName);
@@ -382,6 +324,33 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             </div>
 
             {repoError ? <p className="mt-2 text-xs text-danger">{repoError}</p> : null}
+          </section>
+
+          <section className="rounded-lg border border-line bg-surface p-3">
+            <p className="mb-2 text-sm font-semibold text-text-base">3. 제목</p>
+            <input
+              id="add-github-storage-title"
+              className={[
+                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
+                titleError
+                  ? 'border-danger-line focus:border-danger'
+                  : 'border-[#737983] focus:border-primary'
+              ].join(' ')}
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setTitleManuallyEdited(true);
+              }}
+              onBlur={() => setTouched((prev) => ({ ...prev, title: true }))}
+              placeholder="예: 프론트 레포"
+            />
+            {titleError ? (
+              <p className="mt-1 text-xs text-danger">{titleError}</p>
+            ) : (
+              <p className="mt-1 text-xs text-text-soft">
+                저장소를 선택하면 자동으로 채워져요. 직접 수정도 가능합니다.
+              </p>
+            )}
           </section>
         </div>
 
@@ -409,56 +378,11 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           </div>
         ) : null}
 
-        {create.isError ? (
+        {post.isError ? (
           <div className="mt-3">
-            <InlineAlert tone="danger" title="생성 실패">
-              {handleApiError(create.error).message}
+            <InlineAlert tone="danger" title="등록 실패">
+              {handleApiError(post.error).message}
             </InlineAlert>
-          </div>
-        ) : null}
-
-        {createdProjectId ? (
-          <div className="mt-3 space-y-2">
-            <InlineAlert
-              tone={
-                syncStatus.data?.data.status === 'failed'
-                  ? 'danger'
-                  : syncStatus.data?.data.status === 'done'
-                    ? 'success'
-                    : 'info'
-              }
-              title={`초기 동기화 ${syncStatusLabel}`}
-            >
-              프로젝트가 생성되었습니다. ID: {createdProjectId}
-              {syncStatus.data?.data.latestJob?.errorMessage
-                ? ` (${syncStatus.data.data.latestJob.errorMessage})`
-                : ''}
-            </InlineAlert>
-
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  void syncStatus.refetch();
-                }}
-                isLoading={syncStatus.isFetching}
-              >
-                동기화 상태 새로고침
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  const targetId = createdProjectId;
-                  closeAndReset();
-                  navigate(`/projects/${targetId}`);
-                }}
-              >
-                프로젝트로 이동
-              </Button>
-            </div>
           </div>
         ) : null}
 
@@ -466,8 +390,8 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           <Button type="button" variant="secondary" size="sm" onClick={closeAndReset}>
             취소
           </Button>
-          <Button type="submit" size="sm" isLoading={create.isPending} disabled={!canSubmit}>
-            {waitingAuth ? 'GitHub 인증 대기' : !hasRepo ? '저장소 선택 필요' : '프로젝트 생성'}
+          <Button type="submit" size="sm" isLoading={post.isPending} disabled={!canSubmit}>
+            추가
           </Button>
         </div>
       </form>

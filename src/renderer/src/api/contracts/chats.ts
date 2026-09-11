@@ -63,9 +63,3 @@ export type ShareMessageResponse = {
     type: ChatType;
   };
 };
-
-export type ProjectGuideResponse = {
-  welcomeMessage: string;
-  fileCount: number;
-  lastSyncedAt: string | null;
-};

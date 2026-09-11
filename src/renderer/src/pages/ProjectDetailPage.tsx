@@ -4,10 +4,10 @@ import {
   useGetProjectChats,
   usePostMessageShare,
   usePostPersonalChatMessageSSE,
-  usePostProjectChats,
-  usePostTeamChatMessageSSE
+  usePostProjectChats
 } from '../api/auth/useChatsAPI';
 import { useGetProject } from '../api/auth/useProjectsAPI';
+import { useTeamChatSocket } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
 import type { SourceItem } from '../api/contracts/chats';
@@ -23,6 +23,7 @@ type Props = {
   location: RouteLocation;
   activeChatId: string;
   meName?: string;
+  meId?: string;
   createChatModalType: 'personal' | 'team' | null;
   onCloseCreateChatModal: () => void;
 };
@@ -32,6 +33,22 @@ type PendingUserMessage = {
   chatId: string;
   content: string;
   failed: boolean;
+};
+
+const getMessageCreatedAt = (message: unknown): string =>
+  String((message as { createdAt?: string }).createdAt ?? '');
+
+const getTeamMessageUserId = (message: unknown): string =>
+  String((message as { userId?: string }).userId ?? '');
+
+const getTeamMessageUserName = (message: unknown): string =>
+  String((message as { userName?: string }).userName ?? '팀 멤버');
+
+const formatMessageTime = (iso: string): string => {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 };
 
 const extractSources = (message: unknown): SourceItem[] => {
@@ -114,6 +131,7 @@ export const ProjectDetailPage = ({
   location,
   activeChatId,
   meName,
+  meId,
   createChatModalType,
   onCloseCreateChatModal
 }: Props): React.JSX.Element => {
@@ -153,17 +171,23 @@ export const ProjectDetailPage = ({
     projectId,
     chatId: activeChatId || '__empty__'
   });
-  const postTeamMessage = usePostTeamChatMessageSSE({
-    projectId,
-    chatId: activeChatId || '__empty__'
-  });
   const postShare = usePostMessageShare({
     projectId,
     chatId: activeChatId || '__empty__'
   });
   const createChat = usePostProjectChats({ projectId });
 
-  const isSending = postTeamMessage.isPending || postPersonalMessage.isPending;
+  const {
+    sendMessage: socketSendMessage,
+    isSending: socketIsSending,
+    sendError: socketSendError
+  } = useTeamChatSocket(isTeamChat ? activeChatId : undefined, meId, (msg) => {
+    if (msg.userId === meId) {
+      setPendingUserMessage(null);
+    }
+  });
+
+  const isSending = isPersonalChat ? postPersonalMessage.isPending : socketIsSending;
   const canSend =
     Boolean(activeChatId) && Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly;
   const teamReadOnlyReason = TEAM_CHAT_READONLY_TOOLTIP;
@@ -184,10 +208,12 @@ export const ProjectDetailPage = ({
         id: pendingUserMessage.clientId,
         role: 'USER',
         content: pendingUserMessage.content,
+        userId: meId,
+        userName: meName,
         __localFailed: pendingUserMessage.failed
       }
     ];
-  }, [activeChatId, messageItems, pendingUserMessage]);
+  }, [activeChatId, meId, messageItems, pendingUserMessage]);
 
   useEffect(() => {
     return () => {
@@ -243,61 +269,65 @@ export const ProjectDetailPage = ({
     if (!canSend || !activeChatId) return;
 
     const content = draft.trim();
+    setDraft('');
+
     const pendingMessage: PendingUserMessage = {
       clientId: `pending-user-${Date.now()}`,
       chatId: activeChatId,
       content,
       failed: false
     };
-
-    setDraft('');
     setPendingUserMessage(pendingMessage);
-    setStreamStatus('요청 중...');
-    setStreamContent('');
-    setStreamSources([]);
-    setStreamError(null);
-
-    const callbacks = {
-      onStatus: (payload: { message?: string; status?: string }) => {
-        setStreamStatus(payload.message ?? payload.status ?? '진행 중...');
-      },
-      onChunk: (payload: { content?: string }) => {
-        if (!payload.content) return;
-        setStreamContent((prev) => `${prev}${payload.content}`);
-      },
-      onSources: (payload: { sources?: SourceItem[] }) => {
-        setStreamSources(payload.sources ?? []);
-      },
-      onDone: () => {
-        setStreamStatus('완료');
-      },
-      onError: (message: string) => {
-        setStreamError(message);
-        setPendingUserMessage((prev) => {
-          if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
-          return { ...prev, failed: true };
-        });
-      }
-    };
-
-    const settled = {
-      onSettled: (_data: unknown, error: unknown) => {
-        window.setTimeout(() => {
-          setStreamStatus('');
-          setStreamContent('');
-          setStreamSources([]);
-          setPendingUserMessage((prev) => {
-            if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
-            return error ? prev : null;
-          });
-        }, 500);
-      }
-    };
 
     if (isPersonalChat) {
-      postPersonalMessage.mutate({ content, callbacks }, settled);
+      setStreamStatus('요청 중...');
+      setStreamContent('');
+      setStreamSources([]);
+      setStreamError(null);
+
+      postPersonalMessage.mutate(
+        {
+          content,
+          callbacks: {
+            onStatus: (payload) => {
+              setStreamStatus(payload.message ?? payload.status ?? '진행 중...');
+            },
+            onChunk: (payload) => {
+              if (!payload.content && !payload.token) return;
+              setStreamContent((prev) => `${prev}${payload.content ?? payload.token ?? ''}`);
+            },
+            onSources: (payload) => {
+              setStreamSources(payload.sources ?? []);
+            },
+            onDone: () => {
+              setStreamStatus('완료');
+            },
+            onError: (message) => {
+              setStreamError(message);
+              setPendingUserMessage((prev) => {
+                if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
+                return { ...prev, failed: true };
+              });
+            }
+          }
+        },
+        {
+          onSettled: (_data, error) => {
+            window.setTimeout(() => {
+              setStreamStatus('');
+              setStreamContent('');
+              setStreamSources([]);
+              setPendingUserMessage((prev) => {
+                if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
+                return error ? prev : null;
+              });
+            }, 500);
+          }
+        }
+      );
     } else {
-      postTeamMessage.mutate({ content, callbacks }, settled);
+      // 팀채팅: 소켓으로 전송, onReceive 콜백에서 pending 제거
+      socketSendMessage(content);
     }
   };
 
@@ -344,10 +374,10 @@ export const ProjectDetailPage = ({
             </InlineAlert>
           </div>
         ) : null}
-        {postTeamMessage.isError ? (
+        {socketSendError ? (
           <div className="mb-2">
             <InlineAlert tone="danger" title="메시지 전송 실패">
-              {postTeamMessage.error.message}
+              {socketSendError}
             </InlineAlert>
           </div>
         ) : null}
@@ -389,6 +419,47 @@ export const ProjectDetailPage = ({
               const messageContent = getMessageContent(message);
               const isLocalFailed = isLocalFailedMessage(message);
 
+              // ── 팀 채팅 렌더링 ──────────────────────────────────────────────
+              if (isTeamChat) {
+                // TeamChatMessage shape: { userId, userName, content, createdAt } — role 필드 없음
+                const msgUserId = getTeamMessageUserId(message);
+                const senderName = getTeamMessageUserName(message);
+                const createdAt = getMessageCreatedAt(message);
+                const timeLabel = formatMessageTime(createdAt);
+                const isPendingMine = Boolean((message as { __isMe?: boolean }).__isMe);
+                const isMe = isPendingMine || Boolean(meId && msgUserId === meId);
+
+                if (isMe) {
+                  return (
+                    <div key={messageId} className="flex items-end justify-end gap-2">
+                      <div className="flex flex-col items-end gap-0.5 w-full">
+                        {isLocalFailed ? (
+                          <p className="text-ui-10 font-medium text-red-500">전송 실패</p>
+                        ) : null}
+                        <div className="max-w-[70%] rounded-xl bg-zinc-700 px-3 py-2.5 text-ui-12 font-medium text-white">
+                          {messageContent}
+                        </div>
+                        {timeLabel ? <p className="text-ui-10 text-zinc-400">{timeLabel}</p> : null}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={messageId} className="flex items-end gap-2">
+                    <Avatar name={senderName} />
+                    <div className="flex flex-col gap-0.5 w-full">
+                      <p className="text-ui-10 font-medium text-zinc-500">{senderName}</p>
+                      <div className="max-w-[70%] w-fit rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-ui-12 text-zinc-800">
+                        {messageContent}
+                      </div>
+                      {timeLabel ? <p className="text-ui-10 text-zinc-400">{timeLabel}</p> : null}
+                    </div>
+                  </div>
+                );
+              }
+
+              // ── 개인 채팅 렌더링 ────────────────────────────────────────────
               if (isUserMessageRole(messageRole)) {
                 return (
                   <div key={messageId} className="flex items-end justify-end gap-3">
@@ -468,9 +539,9 @@ export const ProjectDetailPage = ({
                     <MessageActionButton
                       iconName="shared"
                       label="팀 공유"
-                      disabled={postShare.isPending || !API_CAPABILITIES.teamChatWritable}
+                      disabled={postShare.isPending || !API_CAPABILITIES.messageShareEnabled}
                       disabledReason={
-                        !API_CAPABILITIES.teamChatWritable ? teamReadOnlyReason : undefined
+                        !API_CAPABILITIES.messageShareEnabled ? teamReadOnlyReason : undefined
                       }
                       onClick={() =>
                         postShare.mutate({
@@ -490,7 +561,7 @@ export const ProjectDetailPage = ({
               );
             })}
 
-            {(isSending || streamContent) && activeChatId ? (
+            {(isSending || streamContent) && activeChatId && isPersonalChat ? (
               <article
                 className="rounded-[12px] border border-zinc-200 bg-white p-3"
                 aria-live="polite"
@@ -521,7 +592,9 @@ export const ProjectDetailPage = ({
               ? '채팅을 선택하세요...'
               : isTeamChatReadOnly
                 ? '팀채팅은 현재 읽기 전용입니다.'
-                : '메시지를 입력하세요...'
+                : isTeamChat
+                  ? '팀에게 메시지 보내기...'
+                  : '메시지를 입력하세요...'
           }
           disabled={!activeChatId || isTeamChatReadOnly}
           canSend={canSend}

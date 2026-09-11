@@ -4,8 +4,8 @@ import { authTransitionStorage } from '../api/authTransitionStorage';
 import { handleApiError } from '../api/axios';
 import { tokenStorage } from '../api/tokenStorage';
 import { Link } from '../components/ui/Link';
-import { buildPath, navigate, resolveNextPath } from '../lib/hashRouter';
 import type { RouteLocation } from '../lib/hashRouter';
+import { buildPath, navigate, resolveNextPath } from '../lib/hashRouter';
 
 type Props = {
   location: RouteLocation;
@@ -101,10 +101,10 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
                 className={[
                   'h-10 w-full rounded-xl border bg-surface px-3 text-base font-medium transition-colors',
                   'placeholder:text-zinc-400',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
+                  'focus-visible:border-2 focus-visible:outline-none',
                   shouldShowEmailError
-                    ? 'border-danger-line text-danger'
-                    : 'border-zinc-300 text-zinc-900'
+                    ? 'border-danger text-danger focus-visible:border-danger'
+                    : 'border-zinc-300 text-zinc-900 focus-visible:border-sky-600 '
                 ].join(' ')}
                 aria-invalid={shouldShowEmailError}
                 aria-describedby={shouldShowEmailError ? 'login-email-error' : undefined}
@@ -137,10 +137,10 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
                   className={[
                     'h-10 w-full rounded-xl border bg-surface px-3 text-base font-medium transition-colors',
                     'placeholder:text-zinc-400',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
+                    'focus-visible:border-2 focus-visible:outline-none',
                     shouldShowPasswordError
-                      ? 'border-danger-line text-danger'
-                      : 'border-zinc-300 text-zinc-900'
+                      ? 'border-danger-line text-danger focus-visible:border-danger'
+                      : 'border-zinc-300 text-zinc-900 focus-visible:border-sky-600'
                   ].join(' ')}
                   aria-invalid={shouldShowPasswordError}
                   aria-describedby={shouldShowPasswordError ? 'login-password-error' : undefined}
@@ -159,7 +159,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
 
             <button
               type="submit"
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-zinc-800 px-3 text-base font-medium text-white transition-colors hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-zinc-800 px-3 text-base font-medium text-white transition-colors hover:bg-zinc-900  disabled:cursor-not-allowed disabled:opacity-60"
               disabled={login.isPending}
               aria-busy={login.isPending || undefined}
             >

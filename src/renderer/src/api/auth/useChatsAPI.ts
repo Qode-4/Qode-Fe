@@ -1,12 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../apiClient';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../capabilities';
-import type {
-  ProjectGuideResponse,
-  ShareMessageBody,
-  ShareMessageResponse,
-  SourceItem
-} from '../contracts/chats';
+import type { ShareMessageBody, ShareMessageResponse, SourceItem } from '../contracts/chats';
 import type { ChatsMeMessagesCreatePayload } from '../generated/data-contracts';
 import { ContentType } from '../generated/http-client';
 import { QUERY_KEY } from '../queryKeys';
@@ -19,6 +14,7 @@ type SseStatusPayload = {
 
 type SseChunkPayload = {
   content?: string;
+  token?: string;
 };
 
 type SseSourcesPayload = {
@@ -87,7 +83,7 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void 
     return;
   }
 
-  if (event === 'chunk') {
+  if (event === 'chunk' || event === 'token') {
     callbacks?.onChunk?.((parsed as SseChunkPayload) ?? {});
     return;
   }
@@ -154,19 +150,49 @@ const streamChatMessage = async (params: {
 
     buffer += decoder.decode(value, { stream: true });
 
-    let boundary = buffer.indexOf('\n\n');
+    let boundaryMatch = /\r?\n\r?\n/.exec(buffer);
+    let boundary = boundaryMatch?.index ?? -1;
     while (boundary !== -1) {
       const block = buffer.slice(0, boundary).trim();
-      buffer = buffer.slice(boundary + 2);
+      buffer = buffer.slice(boundary + (boundaryMatch?.[0].length ?? 2));
 
       if (block) parseSseBlock(block, params.callbacks);
-      boundary = buffer.indexOf('\n\n');
+      boundaryMatch = /\r?\n\r?\n/.exec(buffer);
+      boundary = boundaryMatch?.index ?? -1;
     }
   }
 
   const tail = buffer.trim();
   if (tail) parseSseBlock(tail, params.callbacks);
 };
+
+// 개인채팅과 팀채팅을 합산한 공통 타입
+export type ProjectChatItem = {
+  id: string;
+  project_id: string;
+  created_by: string;
+  name: string;
+  chat_type: 'PERSONAL' | 'TEAM';
+  created_at: string;
+};
+
+type TeamChatRoomRaw = {
+  id: string;
+  projectId: string;
+  name: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+// 백엔드 팀채팅 룸(camelCase)을 개인채팅과 동일한 구조(snake_case)로 정규화
+const normalizeTeamRoom = (room: TeamChatRoomRaw): ProjectChatItem => ({
+  id: room.id,
+  name: room.name,
+  chat_type: 'TEAM',
+  project_id: room.projectId,
+  created_by: room.createdBy,
+  created_at: room.createdAt
+});
 
 export const useGetProjectChats = (params: {
   projectId: string;
@@ -175,14 +201,33 @@ export const useGetProjectChats = (params: {
 }) => {
   return useQuery({
     queryKey: QUERY_KEY.projectChats(params.projectId, params.type),
-    queryFn: async () => {
-      const res = await apiClient.chatsMeList(
-        {
-          project_id: params.projectId
-        },
-        { secure: true }
-      );
-      return res.data;
+    queryFn: async (): Promise<{ data: ProjectChatItem[] }> => {
+      const fetchPersonal = async (): Promise<ProjectChatItem[]> => {
+        const res = await apiClient.chatsMeList({ project_id: params.projectId }, { secure: true });
+        return res.data.data as ProjectChatItem[];
+      };
+
+      const fetchTeam = async (): Promise<ProjectChatItem[]> => {
+        const res = await apiClient.request<{ ok: boolean; data: TeamChatRoomRaw[] }>({
+          path: `/api/projects/${params.projectId}/chats`,
+          method: 'GET',
+          secure: true,
+          format: 'json'
+        });
+        return ((res.data as { data?: TeamChatRoomRaw[] }).data ?? []).map(normalizeTeamRoom);
+      };
+
+      if (params.type === 'personal') {
+        return { data: await fetchPersonal() };
+      }
+
+      if (params.type === 'team') {
+        return { data: await fetchTeam() };
+      }
+
+      // type === 'all': 개인 + 팀 병렬 조회 후 합산
+      const [personalChats, teamChats] = await Promise.all([fetchPersonal(), fetchTeam()]);
+      return { data: [...personalChats, ...teamChats] };
     },
     enabled: (params.enabled ?? true) && Boolean(params.projectId)
   });
@@ -212,7 +257,7 @@ export const usePostProjectChats = (params: { projectId: string }) => {
       const res = await apiClient.request({
         path: `/api/projects/${params.projectId}/chats`,
         method: 'POST',
-        body,
+        body: { name: body.name?.trim() || '새 팀 채팅' },
         type: ContentType.Json,
         secure: true,
         format: 'json'
@@ -248,19 +293,18 @@ export const useGetChatMessages = (params: {
   return useQuery({
     queryKey: QUERY_KEY.chatMessages(params.chatId, Boolean(params.personal)),
     queryFn: async () => {
-      // 일단 지금은 팀 채팅 없으니까 주석처리
-      // if (params.personal) {
-      const res = await apiClient.chatsMeMessagesList(params.chatId, undefined, { secure: true });
-      return res.data;
-      // }
+      if (params.personal) {
+        const res = await apiClient.chatsMeMessagesList(params.chatId, undefined, { secure: true });
+        return res.data;
+      }
 
-      // const res = await apiClient.request({
-      //   path: `/api/chats/${params.chatId}/messages`,
-      //   method: 'GET',
-      //   secure: true,
-      //   format: 'json'
-      // });
-      // return res.data;
+      const res = await apiClient.request<{ ok: boolean; data: unknown[] }>({
+        path: `/api/chats/${params.chatId}/messages`,
+        method: 'GET',
+        secure: true,
+        format: 'json'
+      });
+      return res.data;
     },
     enabled: (params.enabled ?? true) && Boolean(params.chatId)
   });
@@ -282,31 +326,6 @@ export const usePostPersonalChatMessageSSE = (params: { projectId: string; chatI
         body: {
           content
         },
-        callbacks
-      });
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
-    }
-  });
-};
-
-export const usePostTeamChatMessageSSE = (params: { projectId: string; chatId: string }) => {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      content,
-      callbacks
-    }: {
-      content: string;
-      callbacks?: MessageStreamCallbacks;
-    }) => {
-      ensureTeamChatWritable();
-      return streamChatMessage({
-        path: `/api/chats/${params.chatId}/messages`,
-        body: { content },
         callbacks
       });
     },
@@ -339,18 +358,3 @@ export const usePostMessageShare = (params: { projectId: string; chatId: string 
     }
   });
 };
-
-export const useGetProjectGuide = (params: { projectId: string; enabled?: boolean }) =>
-  useQuery({
-    queryKey: QUERY_KEY.projectGuide(params.projectId),
-    queryFn: async () => {
-      const res = await apiClient.request<ProjectGuideResponse>({
-        path: `/api/projects/${params.projectId}/guide`,
-        method: 'GET',
-        secure: true,
-        format: 'json'
-      });
-      return res.data;
-    },
-    enabled: (params.enabled ?? true) && Boolean(params.projectId)
-  });
