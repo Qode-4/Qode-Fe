@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGetAuthMe } from './api/auth/useAuthAPI';
 import { useGetProjectChats } from './api/auth/useChatsAPI';
 import { useGetProjects } from './api/auth/useProjectsAPI';
@@ -94,21 +94,49 @@ const App = (): React.JSX.Element => {
 
   useEffect(() => {
     if (!token) return;
-    if (!matchPath(location.path, '/projects').matched) return;
     if (!projects.isSuccess) return;
 
     const projectList = projects.data.data;
     if (projectList.length === 0) {
       window.localStorage.removeItem(LAST_SELECTED_PROJECT_ID_KEY);
+      if (projectMatch.matched || storageMatch.matched) {
+        navigate('/projects', { replace: true });
+      }
       return;
     }
+
+    if (!matchPath(location.path, '/projects').matched) return;
 
     const lastSelectedProjectId = window.localStorage.getItem(LAST_SELECTED_PROJECT_ID_KEY);
     const lastSelectedProject = projectList.find((project) => project.id === lastSelectedProjectId);
     const projectToSelect = lastSelectedProject ?? projectList[0];
 
     navigate(`/projects/${projectToSelect.id}`, { replace: true });
-  }, [token, location.path, projects.isSuccess, projects.data]);
+  }, [
+    token,
+    location.path,
+    projects.isSuccess,
+    projects.data,
+    projectMatch.matched,
+    storageMatch.matched
+  ]);
+
+  const autoOpenedForEmptyRef = useRef(false);
+
+  useEffect(() => {
+    if (!token) return;
+    if (!projects.isSuccess) return;
+
+    if (projects.data.data.length === 0) {
+      if (!autoOpenedForEmptyRef.current) {
+        autoOpenedForEmptyRef.current = true;
+        setCreateProjectModalOpen(true);
+      }
+      return;
+    }
+
+    autoOpenedForEmptyRef.current = false;
+  }, [token, projects.isSuccess, projects.data]);
 
   useEffect(() => {
     if (!loginTransitionUserName) return;
