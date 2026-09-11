@@ -40,6 +40,8 @@ jobs:
             printf '%s' "$WEB_ENV_FILE" > .env
           elif [ -n "${VITE_API_BASE_URL:-}" ]; then
             printf 'VITE_API_BASE_URL=%s\n' "$VITE_API_BASE_URL" > .env
+            # index.html 의 CSP connect-src 에 치환될 호스트. 스킴과 경로를 떼어낸다.
+            printf 'VITE_API_HOST=%s\n' "$(printf '%s' "$VITE_API_BASE_URL" | sed -E 's#^[a-zA-Z]+://##; s#/.*##')" >> .env
           else
             echo "WEB_ENV_FILE (or VITE_API_BASE_URL) secret is required."
             exit 1
@@ -47,6 +49,16 @@ jobs:
 
       - name: Build web app
         run: corepack yarn web:build
+
+      - name: Verify env substitution
+        run: |
+          if grep -q '%VITE_' src/renderer/dist/index.html; then
+            echo "환경변수 치환 실패 — .env 에 값이 빠졌습니다:"
+            grep -o '%VITE_[A-Z_]*%' src/renderer/dist/index.html | sort -u
+            exit 1
+          fi
+          echo "CSP connect-src:"
+          grep -o "connect-src[^\"]*" src/renderer/dist/index.html
 
       - name: Archive web build
         run: tar -czf web-dist.tar.gz -C src/renderer/dist .
