@@ -15,11 +15,13 @@ import { useTeamChatSocket } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
 import type { SourceItem } from '../api/contracts/chats';
+import { friendlyErrorMessage } from '../api/errorMessages';
 import { CreateChatModal } from '../components/feature/CreateChatModal';
 import type { IconName } from '../components/icons/iconTypes';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
+import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
 
@@ -148,21 +150,14 @@ export const ProjectDetailPage = ({
   const chats = useGetProjectChats({ projectId, type: 'all', enabled: Boolean(projectId) });
 
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [draft, setDraft] = useState('');
   const [streamStatus, setStreamStatus] = useState('');
   const [streamContent, setStreamContent] = useState('');
   const [streamSources, setStreamSources] = useState<SourceItem[]>([]);
-  const [streamError, setStreamError] = useState<string | null>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<PendingUserMessage | null>(null);
-  const [copyToastVisible, setCopyToastVisible] = useState(false);
   const [headerRenameDraft, setHeaderRenameDraft] = useState('');
   const [editingHeaderChatId, setEditingHeaderChatId] = useState<string | null>(null);
-  const [headerRenameErrorState, setHeaderRenameErrorState] = useState<{
-    chatId: string;
-    message: string;
-  } | null>(null);
-  const [autoCreateError, setAutoCreateError] = useState<string | null>(null);
-  const copyToastTimeoutRef = useRef<number | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const messagesBottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -227,42 +222,19 @@ export const ProjectDetailPage = ({
     ];
   }, [activeChatId, meId, messageItems, pendingUserMessage]);
 
-  useEffect(() => {
-    return () => {
-      if (copyToastTimeoutRef.current !== null) {
-        window.clearTimeout(copyToastTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const showCopyToast = (): void => {
-    setCopyToastVisible(true);
-    if (copyToastTimeoutRef.current !== null) {
-      window.clearTimeout(copyToastTimeoutRef.current);
-    }
-
-    copyToastTimeoutRef.current = window.setTimeout(() => {
-      setCopyToastVisible(false);
-      copyToastTimeoutRef.current = null;
-    }, 1500);
-  };
-
   const copyText = async (value: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(value);
-      showCopyToast();
+      toast.success('복사되었습니다');
     } catch {
       // noop
     }
   };
 
   const isEditingHeaderTitle = Boolean(activeChatId) && editingHeaderChatId === activeChatId;
-  const headerRenameError =
-    headerRenameErrorState?.chatId === activeChatId ? headerRenameErrorState.message : null;
 
   const beginHeaderRename = (): void => {
     if (!activeChat) return;
-    setHeaderRenameErrorState(null);
     setHeaderRenameDraft(activeChat.name);
     setEditingHeaderChatId(activeChat.id);
   };
@@ -292,12 +264,15 @@ export const ProjectDetailPage = ({
       });
       cancelHeaderRename();
     } catch (error) {
-      setHeaderRenameErrorState({
-        chatId: activeChat.id,
-        message: handleApiError(error).message
-      });
+      toast.error(friendlyErrorMessage(error, 'chat.rename'));
     }
   };
+
+  useEffect(() => {
+    if (socketSendError) {
+      toast.error({ title: '전송 실패', description: socketSendError });
+    }
+  }, [socketSendError, toast]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
     if (messagesBottomRef.current) {
@@ -325,7 +300,6 @@ export const ProjectDetailPage = ({
 
     const content = draft.trim();
     setDraft('');
-    setAutoCreateError(null);
 
     const wasAutoCreate = !activeChatId;
     let targetChatId = activeChatId;
@@ -337,14 +311,17 @@ export const ProjectDetailPage = ({
         const newId = (created as { data?: { id?: string } })?.data?.id;
         if (!newId) {
           setDraft(content);
-          setAutoCreateError('채팅 생성에 실패했습니다.');
+          toast.error({
+            title: '채팅 생성 실패',
+            description: '채팅을 만들지 못했어요. 잠시 후 다시 시도해주세요.'
+          });
           return;
         }
         targetChatId = newId;
         onSelectChat(newId);
       } catch (error) {
         setDraft(content);
-        setAutoCreateError(handleApiError(error).message);
+        toast.error(friendlyErrorMessage(error, 'chat.create'));
         return;
       }
     }
@@ -364,7 +341,6 @@ export const ProjectDetailPage = ({
       setStreamStatus('요청 중...');
       setStreamContent('');
       setStreamSources([]);
-      setStreamError(null);
 
       const chatQueryKey = QUERY_KEY.projectChatsByProject(projectId);
 
@@ -400,7 +376,7 @@ export const ProjectDetailPage = ({
               setStreamStatus('완료');
             },
             onError: (message) => {
-              setStreamError(message);
+              toast.error({ title: '스트리밍 오류', description: message });
               setPendingUserMessage((prev) => {
                 if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
                 return { ...prev, failed: true };
@@ -409,6 +385,9 @@ export const ProjectDetailPage = ({
           }
         },
         {
+          onError: (error) => {
+            toast.error(friendlyErrorMessage(error, 'chat.send'));
+          },
           onSettled: (_data, error) => {
             window.setTimeout(() => {
               setStreamStatus('');
@@ -446,16 +425,6 @@ export const ProjectDetailPage = ({
 
   return (
     <section className="flex h-full min-h-0 flex-col rounded-[16px] border border-zinc-200 bg-white">
-      <div
-        role="status"
-        aria-live="polite"
-        aria-hidden={!copyToastVisible}
-        className={`pointer-events-none fixed right-6 top-6 z-50 rounded-[10px] border border-zinc-200 bg-zinc-900 px-3 py-2 text-ui-12 font-medium text-white shadow-lg transition-all duration-200 ${
-          copyToastVisible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
-        }`}
-      >
-        복사되었습니다
-      </div>
       <div className="px-4" role="alert" aria-live="assertive">
         {chats.isError ? (
           <div className="mb-2">
@@ -471,45 +440,10 @@ export const ProjectDetailPage = ({
             </InlineAlert>
           </div>
         ) : null}
-        {socketSendError ? (
-          <div className="mb-2">
-            <InlineAlert tone="danger" title="메시지 전송 실패">
-              {socketSendError}
-            </InlineAlert>
-          </div>
-        ) : null}
-        {postPersonalMessage.isError ? (
-          <div className="mb-2">
-            <InlineAlert tone="danger" title="SSE 전송 실패">
-              {postPersonalMessage.error.message}
-            </InlineAlert>
-          </div>
-        ) : null}
-        {streamError ? (
-          <div className="mb-2">
-            <InlineAlert tone="danger" title="스트리밍 오류">
-              {streamError}
-            </InlineAlert>
-          </div>
-        ) : null}
         {isTeamChatReadOnly ? (
           <div className="mb-2">
             <InlineAlert tone="info" title="팀채팅 읽기 전용">
               팀채팅은 현재 읽기 전용입니다. 작성 기능은 추후 지원 예정입니다.
-            </InlineAlert>
-          </div>
-        ) : null}
-        {autoCreateError ? (
-          <div className="mb-2">
-            <InlineAlert tone="danger" title="채팅 생성 실패">
-              {autoCreateError}
-            </InlineAlert>
-          </div>
-        ) : null}
-        {headerRenameError ? (
-          <div className="mb-2">
-            <InlineAlert tone="danger" title="채팅 이름 변경 실패">
-              {headerRenameError}
             </InlineAlert>
           </div>
         ) : null}
@@ -707,10 +641,20 @@ export const ProjectDetailPage = ({
                           !API_CAPABILITIES.messageShareEnabled ? teamReadOnlyReason : undefined
                         }
                         onClick={() =>
-                          postShare.mutate({
-                            messageId,
-                            body: { comment: `${chatName}에서 공유한 답변입니다.` }
-                          })
+                          postShare.mutate(
+                            {
+                              messageId,
+                              body: { comment: `${chatName}에서 공유한 답변입니다.` }
+                            },
+                            {
+                              onSuccess: () => {
+                                toast.success('팀에 공유했어요');
+                              },
+                              onError: (error) => {
+                                toast.error(friendlyErrorMessage(error, 'message.share'));
+                              }
+                            }
+                          )
                         }
                       />
                       <MessageActionButton

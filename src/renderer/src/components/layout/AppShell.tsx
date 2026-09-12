@@ -14,6 +14,8 @@ import {
 import { createPortal } from 'react-dom';
 import { usePostAuthLogout } from '../../api/auth/useAuthAPI';
 import { useDeleteChat, usePatchChat } from '../../api/auth/useChatsAPI';
+import { friendlyErrorMessage } from '../../api/errorMessages';
+import { useToast } from '../../hooks/useToast';
 import {
   useDeleteProject,
   useGetProject,
@@ -208,7 +210,6 @@ export const AppShell = ({
   const [sectionCreateValue, setSectionCreateValue] = useState('');
   const [sectionCreateTouched, setSectionCreateTouched] = useState(false);
   const [sectionCreateError, setSectionCreateError] = useState<string | null>(null);
-  const [sectionDeleteError, setSectionDeleteError] = useState<string | null>(null);
   const [folderCreateModalSectionId, setFolderCreateModalSectionId] = useState<string | null>(null);
   const [folderCreateValue, setFolderCreateValue] = useState('');
   const [folderCreateTouched, setFolderCreateTouched] = useState(false);
@@ -226,6 +227,7 @@ export const AppShell = ({
   const deleteProject = useDeleteProject();
   const deleteChat = useDeleteChat();
   const patchChat = usePatchChat();
+  const toast = useToast();
   const postAuthLogout = usePostAuthLogout();
   const postProjectSync = usePostProjectSync({ projectId: selectedProjectId ?? '' });
   const postProjectMembersInvite = usePostProjectMembersInvite();
@@ -237,9 +239,6 @@ export const AppShell = ({
   const [renameValue, setRenameValue] = useState('');
   const [renameTouched, setRenameTouched] = useState(false);
   const [renameInfo, setRenameInfo] = useState<string | null>(null);
-  const [projectDeleteError, setProjectDeleteError] = useState<string | null>(null);
-  const [chatDeleteError, setChatDeleteError] = useState<string | null>(null);
-  const [chatRenameError, setChatRenameError] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [chatRenameDraft, setChatRenameDraft] = useState('');
 
@@ -633,8 +632,6 @@ export const AppShell = ({
   ): void => {
     setOpenMenuProjectId(null);
     setProjectModal({ kind, projectId: project.id });
-    setProjectDeleteError(null);
-    setChatDeleteError(null);
     if (kind === 'rename') {
       setRenameValue(project.name);
       setRenameTouched(false);
@@ -653,7 +650,6 @@ export const AppShell = ({
     setRenameTouched(false);
     setInviteError(null);
     setInviteSuccess(null);
-    setProjectDeleteError(null);
   };
 
   const applyProjectRename = (): void => {
@@ -733,7 +729,6 @@ export const AppShell = ({
     project: ProjectsListData['data'][number]
   ): Promise<void> => {
     setOpenMenuProjectId(null);
-    setProjectDeleteError(null);
     if (!window.confirm(`"${project.name}" 프로젝트를 삭제할까요?`)) return;
 
     try {
@@ -742,7 +737,7 @@ export const AppShell = ({
         navigate('/projects', { replace: true });
       }
     } catch (error) {
-      setProjectDeleteError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'project.delete'));
     }
   };
 
@@ -779,7 +774,6 @@ export const AppShell = ({
     setSectionRenameValue(section.name);
     setSectionRenameTouched(false);
     setSectionRenameError(null);
-    setSectionDeleteError(null);
   };
 
   const closeSectionRenameModal = (): void => {
@@ -793,7 +787,6 @@ export const AppShell = ({
     setSectionCreateValue('');
     setSectionCreateTouched(false);
     setSectionCreateError(null);
-    setSectionDeleteError(null);
   };
 
   const closeSectionCreateModal = (): void => {
@@ -852,14 +845,13 @@ export const AppShell = ({
   const handleSectionDelete = async (sectionId: string): Promise<void> => {
     const section = sections.find((item) => item.id === sectionId);
     setOpenSectionMenuId(null);
-    setSectionDeleteError(null);
     if (!section) return;
     if (!window.confirm(`"${section.name}" 섹션을 삭제할까요?`)) return;
 
     try {
       await deleteSection.mutateAsync(sectionId);
     } catch (error) {
-      setSectionDeleteError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'section.delete'));
     }
   };
 
@@ -882,19 +874,16 @@ export const AppShell = ({
 
   const handlePersonalChatDelete = async (chat: ChatsMeListData['data'][number]): Promise<void> => {
     if (!selectedProjectId) return;
-
-    setChatDeleteError(null);
     if (!window.confirm(`"${chat.name}" 채팅을 삭제할까요?`)) return;
 
     try {
       await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
     } catch (error) {
-      setChatDeleteError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'chat.delete'));
     }
   };
 
   const beginChatRename = (chat: ChatsMeListData['data'][number]): void => {
-    setChatRenameError(null);
     setEditingChatId(chat.id);
     setChatRenameDraft(chat.name);
   };
@@ -927,13 +916,17 @@ export const AppShell = ({
       });
       cancelChatRename();
     } catch (error) {
-      setChatRenameError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'chat.rename'));
     }
   };
 
   const requestProjectSync = (): void => {
     if (!canRequestProjectSync) return;
-    postProjectSync.mutate();
+    postProjectSync.mutate(undefined, {
+      onError: (error) => {
+        toast.error(friendlyErrorMessage(error, 'project.sync'));
+      }
+    });
   };
 
   return (
@@ -978,22 +971,6 @@ export const AppShell = ({
                   </span>
                 </button>
               </div>
-              {projectDeleteError ? (
-                <div className="mt-1">
-                  <InlineAlert tone="danger" title="프로젝트 삭제 실패">
-                    {projectDeleteError}
-                  </InlineAlert>
-                </div>
-              ) : null}
-
-              {sectionDeleteError ? (
-                <div className="mt-1">
-                  <InlineAlert tone="danger" title="섹션 삭제 실패">
-                    {sectionDeleteError}
-                  </InlineAlert>
-                </div>
-              ) : null}
-
               {sectionsErrorMessage ? (
                 <div className="mt-1">
                   <InlineAlert tone="danger" title="섹션 조회 실패">
@@ -1144,21 +1121,6 @@ export const AppShell = ({
                   </span>
                 </button>
               </div>
-              {chatDeleteError ? (
-                <div className="mt-1">
-                  <InlineAlert tone="danger" title="채팅 삭제 실패">
-                    {chatDeleteError}
-                  </InlineAlert>
-                </div>
-              ) : null}
-              {chatRenameError ? (
-                <div className="mt-1">
-                  <InlineAlert tone="danger" title="채팅 이름 변경 실패">
-                    {chatRenameError}
-                  </InlineAlert>
-                </div>
-              ) : null}
-
               {personalChatsCollapsed ? null : (
                 <>
                   <nav aria-label="내 채팅 목록" className="mt-0.5">
@@ -1383,13 +1345,6 @@ export const AppShell = ({
             <div className="px-4 pb-2" role="alert" aria-live="assertive">
               <InlineAlert tone="danger" title="동기화 상태 조회 실패">
                 {handleApiError(selectedProjectSyncStatus.error).message}
-              </InlineAlert>
-            </div>
-          ) : null}
-          {selectedProjectId && postProjectSync.isError ? (
-            <div className="px-4 pb-2" role="alert" aria-live="assertive">
-              <InlineAlert tone="danger" title="프로젝트 동기화 요청 실패">
-                {handleApiError(postProjectSync.error).message}
               </InlineAlert>
             </div>
           ) : null}
