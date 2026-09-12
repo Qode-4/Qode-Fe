@@ -1223,12 +1223,13 @@ export const AppShell = ({
                       }
 
                       return (
-                        <div key={chat.id} className="group relative">
+                        <div key={chat.id} className="group relative min-w-0 overflow-hidden">
                           <button
                             type="button"
                             aria-current={isActive ? 'true' : undefined}
+                            title={chat.name}
                             className={[
-                              'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
+                              'flex h-7 w-full min-w-0 items-center overflow-hidden rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
                               drawerTypography.listItem,
                               isActive
                                 ? 'bg-zinc-700 text-white'
@@ -1317,8 +1318,9 @@ export const AppShell = ({
                           key={chat.id}
                           type="button"
                           aria-current={isActive ? 'true' : undefined}
+                          title={chat.name}
                           className={[
-                            'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
+                            'flex h-7 w-full min-w-0 items-center gap-1 overflow-hidden rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
                             drawerTypography.listItem,
                             isActive
                               ? 'bg-zinc-700 text-white'

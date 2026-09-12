@@ -331,7 +331,7 @@ export const ProjectDetailPage = ({
     let targetChatId = activeChatId;
 
     if (wasAutoCreate) {
-      const tempName = content.split('\n')[0].trim().slice(0, 20) || '새 대화';
+      const tempName = content.split('\n')[0].trim().slice(0, 30) || '새 대화';
       try {
         const created = await createChat.mutateAsync({ type: 'personal', name: tempName });
         const newId = (created as { data?: { id?: string } })?.data?.id;
