@@ -63,9 +63,24 @@ const App = (): React.JSX.Element => {
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [createChatModalType, setCreateChatModalType] = useState<'personal' | 'team' | null>(null);
+  const autoSelectedForProjectRef = useRef<string | null>(null);
 
   const activeChatId =
     selectedChatId && allChats.some((it) => it.id === selectedChatId) ? selectedChatId : '';
+
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    if (autoSelectedForProjectRef.current === selectedProjectId) return;
+    if (allChats.length === 0) return;
+
+    const mostRecent = [...allChats].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+    if (!mostRecent) return;
+
+    autoSelectedForProjectRef.current = selectedProjectId;
+    // 프로젝트 진입/전환 시 1회 초기 선택 — ref 가드로 재실행 억제
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedChatId(mostRecent.id);
+  }, [selectedProjectId, allChats]);
 
   useEffect(() => {
     if (!window.location.hash) navigate('/login', { replace: true });

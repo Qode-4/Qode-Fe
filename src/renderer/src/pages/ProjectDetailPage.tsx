@@ -560,35 +560,60 @@ export const ProjectDetailPage = ({
           ref={messagesViewportRef}
           className="h-full overflow-y-auto px-3 pb-3 flex justify-center"
         >
-          <div className="flex min-h-full flex-col gap-6 max-w-145.5 w-full">
-            {messages.isLoading ? (
-              <p className="text-ui-12 font-medium text-zinc-500">메시지를 불러오는 중...</p>
-            ) : null}
+          {!activeChatId ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
+              <p className="text-ui-12 font-medium text-zinc-400">현재 프로젝트</p>
+              <h2 className="text-2xl font-semibold text-zinc-800">
+                {project.data?.data.name ?? '프로젝트'}
+              </h2>
+              <p className="text-ui-14 text-zinc-500">메시지를 입력하면 새 대화가 시작돼요.</p>
+            </div>
+          ) : (
+            <div className="flex min-h-full flex-col gap-6 max-w-145.5 w-full">
+              {messages.isLoading ? (
+                <p className="text-ui-12 font-medium text-zinc-500">메시지를 불러오는 중...</p>
+              ) : null}
 
-            {displayMessageItems.map((message) => {
-              const messageId = getMessageId(message);
-              const messageRole = getMessageRole(message);
-              const messageContent = getMessageContent(message);
-              const isLocalFailed = isLocalFailedMessage(message);
+              {displayMessageItems.map((message) => {
+                const messageId = getMessageId(message);
+                const messageRole = getMessageRole(message);
+                const messageContent = getMessageContent(message);
+                const isLocalFailed = isLocalFailedMessage(message);
 
-              // ── 팀 채팅 렌더링 ──────────────────────────────────────────────
-              if (isTeamChat) {
-                // TeamChatMessage shape: { userId, userName, content, createdAt } — role 필드 없음
-                const msgUserId = getTeamMessageUserId(message);
-                const senderName = getTeamMessageUserName(message);
-                const createdAt = getMessageCreatedAt(message);
-                const timeLabel = formatMessageTime(createdAt);
-                const isPendingMine = Boolean((message as { __isMe?: boolean }).__isMe);
-                const isMe = isPendingMine || Boolean(meId && msgUserId === meId);
+                // ── 팀 채팅 렌더링 ──────────────────────────────────────────────
+                if (isTeamChat) {
+                  // TeamChatMessage shape: { userId, userName, content, createdAt } — role 필드 없음
+                  const msgUserId = getTeamMessageUserId(message);
+                  const senderName = getTeamMessageUserName(message);
+                  const createdAt = getMessageCreatedAt(message);
+                  const timeLabel = formatMessageTime(createdAt);
+                  const isPendingMine = Boolean((message as { __isMe?: boolean }).__isMe);
+                  const isMe = isPendingMine || Boolean(meId && msgUserId === meId);
 
-                if (isMe) {
+                  if (isMe) {
+                    return (
+                      <div key={messageId} className="flex items-end justify-end gap-2">
+                        <div className="flex flex-col items-end gap-0.5 w-full">
+                          {isLocalFailed ? (
+                            <p className="text-ui-10 font-medium text-red-500">전송 실패</p>
+                          ) : null}
+                          <div className="max-w-[70%] rounded-xl bg-zinc-700 px-3 py-2.5 text-ui-12 font-medium text-white">
+                            {messageContent}
+                          </div>
+                          {timeLabel ? (
+                            <p className="text-ui-10 text-zinc-400">{timeLabel}</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
-                    <div key={messageId} className="flex items-end justify-end gap-2">
-                      <div className="flex flex-col items-end gap-0.5 w-full">
-                        {isLocalFailed ? (
-                          <p className="text-ui-10 font-medium text-red-500">전송 실패</p>
-                        ) : null}
-                        <div className="max-w-[70%] rounded-xl bg-zinc-700 px-3 py-2.5 text-ui-12 font-medium text-white">
+                    <div key={messageId} className="flex items-end gap-2">
+                      <Avatar name={senderName} />
+                      <div className="flex flex-col gap-0.5 w-full">
+                        <p className="text-ui-10 font-medium text-zinc-500">{senderName}</p>
+                        <div className="max-w-[70%] w-fit rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-ui-12 text-zinc-800">
                           {messageContent}
                         </div>
                         {timeLabel ? <p className="text-ui-10 text-zinc-400">{timeLabel}</p> : null}
@@ -597,142 +622,129 @@ export const ProjectDetailPage = ({
                   );
                 }
 
+                // ── 개인 채팅 렌더링 ────────────────────────────────────────────
+                if (isUserMessageRole(messageRole)) {
+                  return (
+                    <div key={messageId} className="flex items-end justify-end gap-3">
+                      <div className="flex flex-col items-end">
+                        <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-ui-12 font-medium text-zinc-800">
+                          {messageContent}
+                        </div>
+                        {isLocalFailed ? (
+                          <p className="mt-1 text-ui-10 font-medium text-red-500">전송 실패</p>
+                        ) : null}
+                      </div>
+                      <Avatar name={myAvatarName} />
+                    </div>
+                  );
+                }
+
+                const sources = extractSources(message);
+                const primarySource = sources[0];
+
                 return (
-                  <div key={messageId} className="flex items-end gap-2">
-                    <Avatar name={senderName} />
-                    <div className="flex flex-col gap-0.5 w-full">
-                      <p className="text-ui-10 font-medium text-zinc-500">{senderName}</p>
-                      <div className="max-w-[70%] w-fit rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-ui-12 text-zinc-800">
-                        {messageContent}
-                      </div>
-                      {timeLabel ? <p className="text-ui-10 text-zinc-400">{timeLabel}</p> : null}
+                  <article key={messageId} className="rounded-[12px] bg-white p-3">
+                    <div className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
+                      {messageContent}
                     </div>
-                  </div>
-                );
-              }
 
-              // ── 개인 채팅 렌더링 ────────────────────────────────────────────
-              if (isUserMessageRole(messageRole)) {
-                return (
-                  <div key={messageId} className="flex items-end justify-end gap-3">
-                    <div className="flex flex-col items-end">
-                      <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-ui-12 font-medium text-zinc-800">
-                        {messageContent}
+                    {primarySource ? (
+                      <div className="mt-3 rounded-[12px] bg-zinc-100 p-3">
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="text-ui-10 font-medium text-zinc-500">Java Script</p>
+                          <MessageActionButton
+                            iconName="Copy_light"
+                            label="코드복사"
+                            onClick={() => copyText(primarySource.snippet)}
+                          />
+                        </div>
+                        <pre className="m-0 overflow-x-auto whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
+                          <code>{primarySource.snippet}</code>
+                        </pre>
                       </div>
-                      {isLocalFailed ? (
-                        <p className="mt-1 text-ui-10 font-medium text-red-500">전송 실패</p>
-                      ) : null}
-                    </div>
-                    <Avatar name={myAvatarName} />
-                  </div>
-                );
-              }
+                    ) : null}
 
-              const sources = extractSources(message);
-              const primarySource = sources[0];
-
-              return (
-                <article key={messageId} className="rounded-[12px] bg-white p-3">
-                  <div className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                    {messageContent}
-                  </div>
-
-                  {primarySource ? (
-                    <div className="mt-3 rounded-[12px] bg-zinc-100 p-3">
-                      <div className="mb-3 flex items-center justify-between">
-                        <p className="text-ui-10 font-medium text-zinc-500">Java Script</p>
-                        <MessageActionButton
-                          iconName="Copy_light"
-                          label="코드복사"
-                          onClick={() => copyText(primarySource.snippet)}
-                        />
-                      </div>
-                      <pre className="m-0 overflow-x-auto whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                        <code>{primarySource.snippet}</code>
-                      </pre>
-                    </div>
-                  ) : null}
-
-                  {sources.length > 0 ? (
-                    <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
-                      <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500">
-                        <span>참조한 소스 {sources.length}개</span>
-                        <button
-                          type="button"
-                          className="text-zinc-500 transition-colors hover:text-zinc-700"
-                        >
-                          닫기
-                        </button>
-                      </div>
-                      <div className="divide-y divide-zinc-100">
-                        {sources.map((source) => (
-                          <div
-                            key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-                            className="flex items-center justify-between px-3 py-1.5 text-ui-12"
+                    {sources.length > 0 ? (
+                      <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
+                        <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500">
+                          <span>참조한 소스 {sources.length}개</span>
+                          <button
+                            type="button"
+                            className="text-zinc-500 transition-colors hover:text-zinc-700"
                           >
-                            <span className="min-w-0 flex-1 truncate text-zinc-800">
-                              {source.filePath}
-                            </span>
-                            <span className="ml-3 text-ui-10 text-zinc-500">
-                              {source.startLine ?? '-'}-{source.endLine ?? '-'}
-                            </span>
-                          </div>
-                        ))}
+                            닫기
+                          </button>
+                        </div>
+                        <div className="divide-y divide-zinc-100">
+                          {sources.map((source) => (
+                            <div
+                              key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
+                              className="flex items-center justify-between px-3 py-1.5 text-ui-12"
+                            >
+                              <span className="min-w-0 flex-1 truncate text-zinc-800">
+                                {source.filePath}
+                              </span>
+                              <span className="ml-3 text-ui-10 text-zinc-500">
+                                {source.startLine ?? '-'}-{source.endLine ?? '-'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
+                    ) : null}
+
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <MessageActionButton
+                        iconName="Copy_light"
+                        label="복사"
+                        onClick={() => copyText(messageContent)}
+                      />
+                      <MessageActionButton
+                        iconName="shared"
+                        label="팀 공유"
+                        disabled={postShare.isPending || !API_CAPABILITIES.messageShareEnabled}
+                        disabledReason={
+                          !API_CAPABILITIES.messageShareEnabled ? teamReadOnlyReason : undefined
+                        }
+                        onClick={() =>
+                          postShare.mutate({
+                            messageId,
+                            body: { comment: `${chatName}에서 공유한 답변입니다.` }
+                          })
+                        }
+                      />
+                      <MessageActionButton
+                        iconName="create_box"
+                        label="팀 채팅 생성"
+                        disabled
+                        disabledReason={teamReadOnlyReason}
+                      />
                     </div>
-                  ) : null}
+                  </article>
+                );
+              })}
 
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <MessageActionButton
-                      iconName="Copy_light"
-                      label="복사"
-                      onClick={() => copyText(messageContent)}
-                    />
-                    <MessageActionButton
-                      iconName="shared"
-                      label="팀 공유"
-                      disabled={postShare.isPending || !API_CAPABILITIES.messageShareEnabled}
-                      disabledReason={
-                        !API_CAPABILITIES.messageShareEnabled ? teamReadOnlyReason : undefined
-                      }
-                      onClick={() =>
-                        postShare.mutate({
-                          messageId,
-                          body: { comment: `${chatName}에서 공유한 답변입니다.` }
-                        })
-                      }
-                    />
-                    <MessageActionButton
-                      iconName="create_box"
-                      label="팀 채팅 생성"
-                      disabled
-                      disabledReason={teamReadOnlyReason}
-                    />
-                  </div>
-                </article>
-              );
-            })}
-
-            {(isSending || streamContent) && activeChatId && isPersonalChat ? (
-              <article
-                className="rounded-[12px] border border-zinc-200 bg-white p-3"
-                aria-live="polite"
-              >
-                <p className="mb-1 text-ui-10 font-medium text-zinc-500">
-                  Qode AI · {streamStatus || '스트리밍 중'}
-                </p>
-                <p className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                  {streamContent || '답변을 생성하고 있습니다...'}
-                </p>
-                {streamSources.length > 0 ? (
-                  <p className="mt-2 text-ui-10 text-zinc-500">
-                    참조 소스 {streamSources.length}개 수집됨
+              {(isSending || streamContent) && activeChatId && isPersonalChat ? (
+                <article
+                  className="rounded-[12px] border border-zinc-200 bg-white p-3"
+                  aria-live="polite"
+                >
+                  <p className="mb-1 text-ui-10 font-medium text-zinc-500">
+                    Qode AI · {streamStatus || '스트리밍 중'}
                   </p>
-                ) : null}
-              </article>
-            ) : null}
-            <div ref={messagesBottomRef} aria-hidden />
-          </div>
+                  <p className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
+                    {streamContent || '답변을 생성하고 있습니다...'}
+                  </p>
+                  {streamSources.length > 0 ? (
+                    <p className="mt-2 text-ui-10 text-zinc-500">
+                      참조 소스 {streamSources.length}개 수집됨
+                    </p>
+                  ) : null}
+                </article>
+              ) : null}
+              <div ref={messagesBottomRef} aria-hidden />
+            </div>
+          )}
         </div>
       </div>
 
