@@ -206,7 +206,7 @@ const App = (): React.JSX.Element => {
       teamChats={teamChats}
       activeChatId={activeChatId}
       onSelectChat={setSelectedChatId}
-      onCreatePersonalChat={() => setCreateChatModalType('personal')}
+      onCreatePersonalChat={() => setSelectedChatId(null)}
       onCreateTeamChat={() => setCreateChatModalType('team')}
     >
       {projects.isError ? (
@@ -230,6 +230,7 @@ const App = (): React.JSX.Element => {
           meName={me.data?.name}
           meId={me.data?.id}
           createChatModalType={createChatModalType}
+          onSelectChat={setSelectedChatId}
           onCloseCreateChatModal={() => setCreateChatModalType(null)}
         />
       ) : null}

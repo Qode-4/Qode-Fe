@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetChatMessages,
   useGetProjectChats,
+  usePatchChat,
   usePostMessageShare,
   usePostPersonalChatMessageSSE,
-  usePostProjectChats
+  usePostProjectChats,
+  type ProjectChatItem
 } from '../api/auth/useChatsAPI';
+import { QUERY_KEY } from '../api/queryKeys';
 import { useGetProject } from '../api/auth/useProjectsAPI';
 import { useTeamChatSocket } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
@@ -25,6 +29,7 @@ type Props = {
   meName?: string;
   meId?: string;
   createChatModalType: 'personal' | 'team' | null;
+  onSelectChat: (chatId: string) => void;
   onCloseCreateChatModal: () => void;
 };
 
@@ -133,6 +138,7 @@ export const ProjectDetailPage = ({
   meName,
   meId,
   createChatModalType,
+  onSelectChat,
   onCloseCreateChatModal
 }: Props): React.JSX.Element => {
   const match = useMemo(() => matchPath(location.path, '/projects/:projectId'), [location.path]);
@@ -141,6 +147,7 @@ export const ProjectDetailPage = ({
   const project = useGetProject({ projectId, enabled: Boolean(projectId) });
   const chats = useGetProjectChats({ projectId, type: 'all', enabled: Boolean(projectId) });
 
+  const queryClient = useQueryClient();
   const [draft, setDraft] = useState('');
   const [streamStatus, setStreamStatus] = useState('');
   const [streamContent, setStreamContent] = useState('');
@@ -148,6 +155,13 @@ export const ProjectDetailPage = ({
   const [streamError, setStreamError] = useState<string | null>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<PendingUserMessage | null>(null);
   const [copyToastVisible, setCopyToastVisible] = useState(false);
+  const [headerRenameDraft, setHeaderRenameDraft] = useState('');
+  const [editingHeaderChatId, setEditingHeaderChatId] = useState<string | null>(null);
+  const [headerRenameErrorState, setHeaderRenameErrorState] = useState<{
+    chatId: string;
+    message: string;
+  } | null>(null);
+  const [autoCreateError, setAutoCreateError] = useState<string | null>(null);
   const copyToastTimeoutRef = useRef<number | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const messagesBottomRef = useRef<HTMLDivElement | null>(null);
@@ -167,15 +181,13 @@ export const ProjectDetailPage = ({
     enabled: Boolean(activeChatId)
   });
 
-  const postPersonalMessage = usePostPersonalChatMessageSSE({
-    projectId,
-    chatId: activeChatId || '__empty__'
-  });
+  const postPersonalMessage = usePostPersonalChatMessageSSE({ projectId });
   const postShare = usePostMessageShare({
     projectId,
     chatId: activeChatId || '__empty__'
   });
   const createChat = usePostProjectChats({ projectId });
+  const patchChat = usePatchChat();
 
   const {
     sendMessage: socketSendMessage,
@@ -187,9 +199,9 @@ export const ProjectDetailPage = ({
     }
   });
 
-  const isSending = isPersonalChat ? postPersonalMessage.isPending : socketIsSending;
-  const canSend =
-    Boolean(activeChatId) && Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly;
+  const isSending =
+    postPersonalMessage.isPending || createChat.isPending || (isTeamChat && socketIsSending);
+  const canSend = Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly;
   const teamReadOnlyReason = TEAM_CHAT_READONLY_TOOLTIP;
 
   const chatName = activeChat?.name;
@@ -244,6 +256,49 @@ export const ProjectDetailPage = ({
     }
   };
 
+  const isEditingHeaderTitle = Boolean(activeChatId) && editingHeaderChatId === activeChatId;
+  const headerRenameError =
+    headerRenameErrorState?.chatId === activeChatId ? headerRenameErrorState.message : null;
+
+  const beginHeaderRename = (): void => {
+    if (!activeChat) return;
+    setHeaderRenameErrorState(null);
+    setHeaderRenameDraft(activeChat.name);
+    setEditingHeaderChatId(activeChat.id);
+  };
+
+  const cancelHeaderRename = (): void => {
+    setEditingHeaderChatId(null);
+    setHeaderRenameDraft('');
+  };
+
+  const commitHeaderRename = async (nextName: string): Promise<void> => {
+    if (!activeChat || !projectId) {
+      cancelHeaderRename();
+      return;
+    }
+
+    const trimmed = nextName.trim();
+    if (!trimmed || trimmed === activeChat.name) {
+      cancelHeaderRename();
+      return;
+    }
+
+    try {
+      await patchChat.mutateAsync({
+        projectId,
+        chatId: activeChat.id,
+        name: trimmed
+      });
+      cancelHeaderRename();
+    } catch (error) {
+      setHeaderRenameErrorState({
+        chatId: activeChat.id,
+        message: handleApiError(error).message
+      });
+    }
+  };
+
   const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
     if (messagesBottomRef.current) {
       messagesBottomRef.current.scrollIntoView({ block: 'end', behavior });
@@ -265,28 +320,57 @@ export const ProjectDetailPage = ({
     return () => window.cancelAnimationFrame(frameId);
   }, [activeChatId, displayMessageItems.length, streamContent, streamStatus]);
 
-  const sendMessage = (): void => {
-    if (!canSend || !activeChatId) return;
+  const sendMessage = async (): Promise<void> => {
+    if (!canSend) return;
 
     const content = draft.trim();
     setDraft('');
+    setAutoCreateError(null);
+
+    const wasAutoCreate = !activeChatId;
+    let targetChatId = activeChatId;
+
+    if (wasAutoCreate) {
+      const tempName = content.split('\n')[0].trim().slice(0, 20) || '새 대화';
+      try {
+        const created = await createChat.mutateAsync({ type: 'personal', name: tempName });
+        const newId = (created as { data?: { id?: string } })?.data?.id;
+        if (!newId) {
+          setDraft(content);
+          setAutoCreateError('채팅 생성에 실패했습니다.');
+          return;
+        }
+        targetChatId = newId;
+        onSelectChat(newId);
+      } catch (error) {
+        setDraft(content);
+        setAutoCreateError(handleApiError(error).message);
+        return;
+      }
+    }
+
+    // 자동 생성이었다면 개인 채팅이 확정, 아니면 기존 활성 채팅 타입을 따름
+    const isPersonalTarget = wasAutoCreate || isPersonalChat;
 
     const pendingMessage: PendingUserMessage = {
       clientId: `pending-user-${Date.now()}`,
-      chatId: activeChatId,
+      chatId: targetChatId,
       content,
       failed: false
     };
     setPendingUserMessage(pendingMessage);
 
-    if (isPersonalChat) {
+    if (isPersonalTarget) {
       setStreamStatus('요청 중...');
       setStreamContent('');
       setStreamSources([]);
       setStreamError(null);
 
+      const chatQueryKey = QUERY_KEY.projectChatsByProject(projectId);
+
       postPersonalMessage.mutate(
         {
+          chatId: targetChatId,
           content,
           callbacks: {
             onStatus: (payload) => {
@@ -298,6 +382,19 @@ export const ProjectDetailPage = ({
             },
             onSources: (payload) => {
               setStreamSources(payload.sources ?? []);
+            },
+            onTitle: (name) => {
+              queryClient.setQueriesData<{ data: ProjectChatItem[] }>(
+                { queryKey: chatQueryKey },
+                (old) => {
+                  if (!old) return old;
+                  return {
+                    ...old,
+                    data: old.data.map((c) => (c.id === targetChatId ? { ...c, name } : c))
+                  };
+                }
+              );
+              void queryClient.invalidateQueries({ queryKey: chatQueryKey });
             },
             onDone: () => {
               setStreamStatus('완료');
@@ -402,7 +499,62 @@ export const ProjectDetailPage = ({
             </InlineAlert>
           </div>
         ) : null}
+        {autoCreateError ? (
+          <div className="mb-2">
+            <InlineAlert tone="danger" title="채팅 생성 실패">
+              {autoCreateError}
+            </InlineAlert>
+          </div>
+        ) : null}
+        {headerRenameError ? (
+          <div className="mb-2">
+            <InlineAlert tone="danger" title="채팅 이름 변경 실패">
+              {headerRenameError}
+            </InlineAlert>
+          </div>
+        ) : null}
       </div>
+
+      {activeChat && isPersonalChat ? (
+        <div className="border-b border-zinc-100 px-4 py-2 flex justify-center">
+          <div className="max-w-145.5 w-full">
+            {isEditingHeaderTitle ? (
+              <input
+                autoFocus
+                value={headerRenameDraft}
+                maxLength={100}
+                disabled={patchChat.isPending}
+                onChange={(e) => setHeaderRenameDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void commitHeaderRename(headerRenameDraft);
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelHeaderRename();
+                  }
+                }}
+                onBlur={() => {
+                  void commitHeaderRename(headerRenameDraft);
+                }}
+                className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1 text-ui-14 font-medium text-zinc-900 outline-none focus:border-primary"
+                aria-label={`${activeChat.name} 이름 바꾸기`}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={beginHeaderRename}
+                className="w-full truncate rounded-md px-2 py-1 text-left text-ui-14 font-medium text-zinc-900 transition-colors hover:bg-zinc-100"
+                title="클릭하여 채팅 이름 바꾸기"
+                aria-label={`${activeChat.name} — 이름 바꾸기`}
+              >
+                {activeChat.name}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       <div className="min-h-0 flex-1 pt-[12px]">
         <div
           ref={messagesViewportRef}
@@ -589,19 +741,21 @@ export const ProjectDetailPage = ({
           value={draft}
           placeholder={
             !activeChatId
-              ? '채팅을 선택하세요...'
+              ? '새 대화를 시작해보세요...'
               : isTeamChatReadOnly
                 ? '팀채팅은 현재 읽기 전용입니다.'
                 : isTeamChat
                   ? '팀에게 메시지 보내기...'
                   : '메시지를 입력하세요...'
           }
-          disabled={!activeChatId || isTeamChatReadOnly}
+          disabled={isTeamChatReadOnly}
           canSend={canSend}
           sendDisabledReason={isTeamChatReadOnly ? teamReadOnlyReason : undefined}
           isSending={isSending}
           onChange={setDraft}
-          onSend={sendMessage}
+          onSend={() => {
+            void sendMessage();
+          }}
         />
       </footer>
 

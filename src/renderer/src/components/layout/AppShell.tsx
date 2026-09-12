@@ -13,7 +13,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { usePostAuthLogout } from '../../api/auth/useAuthAPI';
-import { useDeleteChat } from '../../api/auth/useChatsAPI';
+import { useDeleteChat, usePatchChat } from '../../api/auth/useChatsAPI';
 import {
   useDeleteProject,
   useGetProject,
@@ -43,6 +43,7 @@ import overflowIcon from '../../assets/overflow-icon.png';
 import { navigate } from '../../lib/hashRouter';
 import type { IconName } from '../icons/iconTypes';
 import { Button } from '../ui/Button';
+import { ChatItemMenu, type ChatItemMenuAction } from '../ui/ChatItemMenu';
 import { DrawerHeader } from '../ui/DrawerHeader';
 import { Icon } from '../ui/Icon';
 import { InlineAlert } from '../ui/InlineAlert';
@@ -224,6 +225,7 @@ export const AppShell = ({
   const [projectModal, setProjectModal] = useState<ProjectModalState>(null);
   const deleteProject = useDeleteProject();
   const deleteChat = useDeleteChat();
+  const patchChat = usePatchChat();
   const postAuthLogout = usePostAuthLogout();
   const postProjectSync = usePostProjectSync({ projectId: selectedProjectId ?? '' });
   const postProjectMembersInvite = usePostProjectMembersInvite();
@@ -237,6 +239,9 @@ export const AppShell = ({
   const [renameInfo, setRenameInfo] = useState<string | null>(null);
   const [projectDeleteError, setProjectDeleteError] = useState<string | null>(null);
   const [chatDeleteError, setChatDeleteError] = useState<string | null>(null);
+  const [chatRenameError, setChatRenameError] = useState<string | null>(null);
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [chatRenameDraft, setChatRenameDraft] = useState('');
 
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -888,6 +893,44 @@ export const AppShell = ({
     }
   };
 
+  const beginChatRename = (chat: ChatsMeListData['data'][number]): void => {
+    setChatRenameError(null);
+    setEditingChatId(chat.id);
+    setChatRenameDraft(chat.name);
+  };
+
+  const cancelChatRename = (): void => {
+    setEditingChatId(null);
+    setChatRenameDraft('');
+  };
+
+  const commitChatRename = async (
+    chat: ChatsMeListData['data'][number],
+    nextName: string
+  ): Promise<void> => {
+    if (!selectedProjectId) {
+      cancelChatRename();
+      return;
+    }
+
+    const trimmed = nextName.trim();
+    if (!trimmed || trimmed === chat.name) {
+      cancelChatRename();
+      return;
+    }
+
+    try {
+      await patchChat.mutateAsync({
+        projectId: selectedProjectId,
+        chatId: chat.id,
+        name: trimmed
+      });
+      cancelChatRename();
+    } catch (error) {
+      setChatRenameError(handleApiError(error).message);
+    }
+  };
+
   const requestProjectSync = (): void => {
     if (!canRequestProjectSync) return;
     postProjectSync.mutate();
@@ -1108,12 +1151,77 @@ export const AppShell = ({
                   </InlineAlert>
                 </div>
               ) : null}
+              {chatRenameError ? (
+                <div className="mt-1">
+                  <InlineAlert tone="danger" title="채팅 이름 변경 실패">
+                    {chatRenameError}
+                  </InlineAlert>
+                </div>
+              ) : null}
 
               {personalChatsCollapsed ? null : (
                 <>
                   <nav aria-label="내 채팅 목록" className="mt-0.5">
                     {personalChats.map((chat) => {
                       const isActive = activeChatId === chat.id;
+                      const isEditing = editingChatId === chat.id;
+                      const menuActions: ChatItemMenuAction[] = [
+                        {
+                          key: 'rename',
+                          label: '이름 바꾸기',
+                          iconName: 'Pencil_light',
+                          onSelect: () => beginChatRename(chat)
+                        },
+                        {
+                          key: 'delete',
+                          label: '삭제',
+                          iconName: 'Trash_light',
+                          danger: true,
+                          disabled: deleteChat.isPending,
+                          onSelect: () => {
+                            void handlePersonalChatDelete(chat);
+                          }
+                        }
+                      ];
+
+                      if (isEditing) {
+                        return (
+                          <div
+                            key={chat.id}
+                            className={[
+                              'flex h-7 w-full items-center rounded-[8px] px-2 py-[2px]',
+                              isActive ? 'bg-zinc-700' : 'bg-zinc-100'
+                            ].join(' ')}
+                          >
+                            <input
+                              autoFocus
+                              value={chatRenameDraft}
+                              maxLength={100}
+                              disabled={patchChat.isPending}
+                              onChange={(e) => setChatRenameDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  void commitChatRename(chat, chatRenameDraft);
+                                } else if (e.key === 'Escape') {
+                                  e.preventDefault();
+                                  cancelChatRename();
+                                }
+                              }}
+                              onBlur={() => {
+                                void commitChatRename(chat, chatRenameDraft);
+                              }}
+                              className={[
+                                'w-full bg-transparent outline-none',
+                                drawerTypography.listItem,
+                                isActive ? 'text-white placeholder-zinc-300' : 'text-slate-900'
+                              ].join(' ')}
+                              aria-label={`${chat.name} 이름 바꾸기`}
+                            />
+                          </div>
+                        );
+                      }
+
                       return (
                         <div key={chat.id} className="group relative">
                           <button
@@ -1128,31 +1236,27 @@ export const AppShell = ({
                             ].join(' ')}
                             onClick={() => onSelectChat?.(chat.id)}
                           >
-                            <span className="min-w-0 flex-1 truncate">{chat.name}</span>
+                            <span className="min-w-0 flex-1 truncate pr-6">{chat.name}</span>
                           </button>
 
-                          <button
-                            type="button"
-                            aria-label={`${chat.name} 채팅 삭제`}
+                          <div
                             className={[
-                              'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 font-normal transition-opacity',
-                              drawerTypography.listItemAction,
-                              isActive
-                                ? 'text-zinc-200 hover:bg-zinc-600'
-                                : 'text-zinc-500 hover:bg-zinc-100',
-                              deleteChat.isPending
-                                ? 'pointer-events-none opacity-50'
-                                : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
+                              'absolute right-1 top-1/2 -translate-y-1/2 transition-opacity',
+                              'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
                             ].join(' ')}
-                            disabled={deleteChat.isPending}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              void handlePersonalChatDelete(chat);
-                            }}
                           >
-                            삭제
-                          </button>
+                            <ChatItemMenu
+                              triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
+                              ariaLabel={`${chat.name} 채팅 작업 메뉴`}
+                              triggerClassName={[
+                                'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
+                                isActive
+                                  ? 'text-zinc-200 hover:bg-zinc-600'
+                                  : 'text-zinc-500 hover:bg-zinc-200'
+                              ].join(' ')}
+                              actions={menuActions}
+                            />
+                          </div>
                         </div>
                       );
                     })}
