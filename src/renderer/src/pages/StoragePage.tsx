@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDeleteStorageItem, useGetStorageItems } from '../api/auth/useStorageItemsAPI';
 import { handleApiError } from '../api/axios';
 import type { StorageItem } from '../api/contracts/storageItems';
+import { friendlyErrorMessage } from '../api/errorMessages';
 import { AddGithubRepoModal } from '../components/feature/storage/AddGithubRepoModal';
 import { AddStorageItemModal } from '../components/feature/storage/AddStorageItemModal';
 import { EditStorageItemTitleModal } from '../components/feature/storage/EditStorageItemTitleModal';
@@ -9,6 +10,7 @@ import { StorageItemsTable } from '../components/feature/storage/StorageItemsTab
 import { ProjectTabs } from '../components/layout/ProjectTabs';
 import { Button } from '../components/ui/Button';
 import { InlineAlert } from '../components/ui/InlineAlert';
+import { useToast } from '../hooks/useToast';
 
 type SimpleAddType = 'figma' | 'figjam';
 
@@ -17,6 +19,7 @@ type Props = {
 };
 
 export const StoragePage = ({ projectId }: Props): React.JSX.Element => {
+  const toast = useToast();
   const items = useGetStorageItems({ projectId });
   const deleteItem = useDeleteStorageItem({ projectId });
 
@@ -26,7 +29,11 @@ export const StoragePage = ({ projectId }: Props): React.JSX.Element => {
 
   const onDelete = (item: StorageItem): void => {
     if (!window.confirm(`"${item.title}" 저장소 아이템을 삭제할까요?`)) return;
-    deleteItem.mutate(item.id);
+    deleteItem.mutate(item.id, {
+      onError: (error) => {
+        toast.error(friendlyErrorMessage(error, 'storage.delete'));
+      }
+    });
   };
 
   const data = items.data?.data ?? [];
@@ -53,12 +60,6 @@ export const StoragePage = ({ projectId }: Props): React.JSX.Element => {
       {items.isError ? (
         <InlineAlert tone="danger" title="저장소 조회 실패">
           {handleApiError(items.error).message}
-        </InlineAlert>
-      ) : null}
-
-      {deleteItem.isError ? (
-        <InlineAlert tone="danger" title="삭제 실패">
-          {handleApiError(deleteItem.error).message}
         </InlineAlert>
       ) : null}
 

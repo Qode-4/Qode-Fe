@@ -8,6 +8,7 @@ export type ErrorContext =
   | 'chat.rename'
   | 'chat.stream'
   | 'message.share'
+  | 'project.create'
   | 'project.sync'
   | 'project.delete'
   | 'section.create'
@@ -47,6 +48,7 @@ const CONTEXT_TITLES: Record<ErrorContext, string> = {
   'chat.rename': '채팅 이름 변경 실패',
   'chat.stream': '스트리밍 오류',
   'message.share': '메시지 공유 실패',
+  'project.create': '프로젝트 생성 실패',
   'project.sync': '동기화 실패',
   'project.delete': '프로젝트 삭제 실패',
   'section.create': '섹션 생성 실패',
@@ -81,6 +83,10 @@ const CONTEXT_STATUS_OVERRIDES: Partial<Record<ErrorContext, Record<number, stri
   },
   'project.delete': {
     409: '프로젝트를 삭제할 수 없어요. 진행 중인 작업이 있는지 확인해주세요.'
+  },
+  'project.create': {
+    400: '프로젝트 정보를 확인해주세요.',
+    409: '같은 이름의 프로젝트가 이미 있어요.'
   },
   'section.rename': {
     400: '섹션 이름을 다시 확인해주세요.'

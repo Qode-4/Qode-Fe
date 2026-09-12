@@ -205,15 +205,12 @@ export const AppShell = ({
   );
   const [sectionRenameValue, setSectionRenameValue] = useState('');
   const [sectionRenameTouched, setSectionRenameTouched] = useState(false);
-  const [sectionRenameError, setSectionRenameError] = useState<string | null>(null);
   const [sectionCreateModalOpen, setSectionCreateModalOpen] = useState(false);
   const [sectionCreateValue, setSectionCreateValue] = useState('');
   const [sectionCreateTouched, setSectionCreateTouched] = useState(false);
-  const [sectionCreateError, setSectionCreateError] = useState<string | null>(null);
   const [folderCreateModalSectionId, setFolderCreateModalSectionId] = useState<string | null>(null);
   const [folderCreateValue, setFolderCreateValue] = useState('');
   const [folderCreateTouched, setFolderCreateTouched] = useState(false);
-  const [folderCreateError, setFolderCreateError] = useState<string | null>(null);
   const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
   const [personalChatsCollapsed, setPersonalChatsCollapsed] = useState(false);
   const [teamChatsCollapsed, setTeamChatsCollapsed] = useState(false);
@@ -244,7 +241,6 @@ export const AppShell = ({
 
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
 
   const modalProject = useMemo(
     () => projects.find((it) => it.id === projectModal?.projectId),
@@ -641,7 +637,6 @@ export const AppShell = ({
     if (kind === 'invite') {
       setInviteEmails('');
       setInviteError(null);
-      setInviteSuccess(null);
     }
   };
 
@@ -649,7 +644,6 @@ export const AppShell = ({
     setProjectModal(null);
     setRenameTouched(false);
     setInviteError(null);
-    setInviteSuccess(null);
   };
 
   const applyProjectRename = (): void => {
@@ -696,17 +690,14 @@ export const AppShell = ({
 
     if (rows.length === 0) {
       setInviteError('이메일을 하나 이상 입력해주세요.');
-      setInviteSuccess(null);
       return;
     }
     if (!rows.every(isEmail)) {
       setInviteError('이메일 형식을 확인해주세요. 쉼표(,)로 여러 명을 입력할 수 있어요.');
-      setInviteSuccess(null);
       return;
     }
 
     setInviteError(null);
-    setInviteSuccess(null);
 
     if (!modalProjectId) {
       setInviteError('프로젝트 정보를 찾을 수 없습니다.');
@@ -719,9 +710,9 @@ export const AppShell = ({
         emails: rows
       });
       setInviteEmails('');
-      setInviteSuccess(`${rows.length}명에게 초대 요청을 보냈어요.`);
+      toast.success(`${rows.length}명에게 초대 요청을 보냈어요.`);
     } catch (error) {
-      setInviteError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'invite.accept'));
     }
   };
 
@@ -773,26 +764,22 @@ export const AppShell = ({
     setSectionRenameModalSectionId(section.id);
     setSectionRenameValue(section.name);
     setSectionRenameTouched(false);
-    setSectionRenameError(null);
   };
 
   const closeSectionRenameModal = (): void => {
     setSectionRenameModalSectionId(null);
     setSectionRenameTouched(false);
-    setSectionRenameError(null);
   };
 
   const openSectionCreateModal = (): void => {
     setSectionCreateModalOpen(true);
     setSectionCreateValue('');
     setSectionCreateTouched(false);
-    setSectionCreateError(null);
   };
 
   const closeSectionCreateModal = (): void => {
     setSectionCreateModalOpen(false);
     setSectionCreateTouched(false);
-    setSectionCreateError(null);
   };
 
   const openFolderCreateModal = (sectionId: string): void => {
@@ -800,13 +787,11 @@ export const AppShell = ({
     setFolderCreateModalSectionId(sectionId);
     setFolderCreateValue('');
     setFolderCreateTouched(false);
-    setFolderCreateError(null);
   };
 
   const closeFolderCreateModal = (): void => {
     setFolderCreateModalSectionId(null);
     setFolderCreateTouched(false);
-    setFolderCreateError(null);
   };
 
   const applySectionRename = async (): Promise<void> => {
@@ -814,7 +799,6 @@ export const AppShell = ({
 
     const trimmed = sectionRenameValue.trim();
     setSectionRenameTouched(true);
-    setSectionRenameError(null);
     if (!trimmed) return;
 
     try {
@@ -824,21 +808,20 @@ export const AppShell = ({
       });
       closeSectionRenameModal();
     } catch (error) {
-      setSectionRenameError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'section.rename'));
     }
   };
 
   const createSection = async (): Promise<void> => {
     const trimmed = sectionCreateValue.trim();
     setSectionCreateTouched(true);
-    setSectionCreateError(null);
     if (!trimmed || !selectedProjectId) return;
 
     try {
       await postSection.mutateAsync({ name: trimmed });
       closeSectionCreateModal();
     } catch (error) {
-      setSectionCreateError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'section.create'));
     }
   };
 
@@ -858,7 +841,6 @@ export const AppShell = ({
   const createFolder = async (): Promise<void> => {
     const trimmed = folderCreateValue.trim();
     setFolderCreateTouched(true);
-    setFolderCreateError(null);
     if (!trimmed || !folderCreateModalSectionId) return;
 
     try {
@@ -868,7 +850,7 @@ export const AppShell = ({
       });
       closeFolderCreateModal();
     } catch (error) {
-      setFolderCreateError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'folder.create'));
     }
   };
 
@@ -1494,12 +1476,6 @@ export const AppShell = ({
             ) : null}
           </label>
 
-          {folderCreateError ? (
-            <div className="mt-3">
-              <InlineAlert tone="danger">{folderCreateError}</InlineAlert>
-            </div>
-          ) : null}
-
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeFolderCreateModal}>
               취소
@@ -1543,12 +1519,6 @@ export const AppShell = ({
             ) : null}
           </label>
 
-          {sectionCreateError ? (
-            <div className="mt-3">
-              <InlineAlert tone="danger">{sectionCreateError}</InlineAlert>
-            </div>
-          ) : null}
-
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionCreateModal}>
               취소
@@ -1591,12 +1561,6 @@ export const AppShell = ({
               <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
             ) : null}
           </label>
-
-          {sectionRenameError ? (
-            <div className="mt-3">
-              <InlineAlert tone="danger">{sectionRenameError}</InlineAlert>
-            </div>
-          ) : null}
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionRenameModal}>
@@ -1825,12 +1789,6 @@ export const AppShell = ({
           {inviteError ? (
             <div className="mt-3">
               <InlineAlert tone="danger">{inviteError}</InlineAlert>
-            </div>
-          ) : null}
-
-          {inviteSuccess ? (
-            <div className="mt-3">
-              <InlineAlert tone="success">{inviteSuccess}</InlineAlert>
             </div>
           ) : null}
 
