@@ -6,7 +6,9 @@ import {
 } from '../../api/auth/useGithubOAuthAPI';
 import { useGetProjectSyncStatus, usePostProjects } from '../../api/auth/useProjectsAPI';
 import { handleApiError } from '../../api/axios';
+import { friendlyErrorMessage } from '../../api/errorMessages';
 import type { GithubOauthDeviceStartCreateData } from '../../api/generated/data-contracts';
+import { useToast } from '../../hooks/useToast';
 import {
   clearCachedOauthFlow,
   readCachedOauthFlow,
@@ -23,6 +25,7 @@ type Props = {
 };
 
 export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element | null => {
+  const toast = useToast();
   const create = usePostProjects();
   const startGithubOauth = usePostGithubOauthDeviceStart();
 
@@ -178,6 +181,9 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
         setSelectedRepoFullName('');
         saveCachedOauthFlow(data);
         startedFlowRef.current = data.data.flowId;
+      },
+      onError: (error) => {
+        toast.error(friendlyErrorMessage(error, 'github.connect'));
       }
     });
   };
@@ -211,6 +217,9 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             {
               onSuccess: (data) => {
                 setCreatedProjectId(data.data.id);
+              },
+              onError: (error) => {
+                toast.error(friendlyErrorMessage(error, 'project.create'));
               }
             }
           );
@@ -385,14 +394,6 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           </section>
         </div>
 
-        {startGithubOauth.isError ? (
-          <div className="mt-3">
-            <InlineAlert tone="danger" title="GitHub 인증 시작 실패">
-              {handleApiError(startGithubOauth.error).message}
-            </InlineAlert>
-          </div>
-        ) : null}
-
         {oauthStatus.isError ? (
           <div className="mt-3">
             <InlineAlert tone="danger" title="GitHub 인증 상태 조회 실패">
@@ -405,14 +406,6 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           <div className="mt-3">
             <InlineAlert tone="danger" title="저장소 조회 실패">
               {handleApiError(repos.error).message}
-            </InlineAlert>
-          </div>
-        ) : null}
-
-        {create.isError ? (
-          <div className="mt-3">
-            <InlineAlert tone="danger" title="생성 실패">
-              {handleApiError(create.error).message}
             </InlineAlert>
           </div>
         ) : null}
