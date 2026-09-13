@@ -67,7 +67,11 @@ type Props = {
 
 type ProjectActionKind = 'rename' | 'invite' | 'members' | 'source';
 type ProjectModalState = { kind: ProjectActionKind; projectId: string } | null;
-type ProjectMenuAction = { key: ProjectActionKind | 'sync' | 'delete'; label: string };
+type ProjectMenuAction = {
+  key: ProjectActionKind | 'sync' | 'delete';
+  label: string;
+  ownerOnly?: boolean;
+};
 type SectionMenuAction = { key: 'rename' | 'createFolder' | 'delete'; label: string };
 type SettingsActionKind = 'profile' | 'logout';
 type SettingsMenuAction = { key: SettingsActionKind; label: string; iconName: IconName };
@@ -161,13 +165,16 @@ const getUniqueProjectName = (
   return `${base} (${idx})`;
 };
 
+// ownerOnly: 서버가 OWNER 가 아니면 403 을 돌려주는 작업이다.
+// 화면에 남겨두면 멤버가 확인창까지 거친 뒤 실패를 받는다 — 삭제는 특히 위험하다.
+// 초대·멤버 목록은 모든 멤버가 쓸 수 있다(2026-09-08 확정, A-2 BR-A2-06).
 const projectMenuActions: ProjectMenuAction[] = [
   { key: 'rename', label: '이름 바꾸기' },
-  { key: 'sync', label: '동기화' },
+  { key: 'sync', label: '동기화', ownerOnly: true },
   { key: 'invite', label: '멤버 초대하기' },
   { key: 'members', label: '멤버들' },
   { key: 'source', label: '연결된 소스' },
-  { key: 'delete', label: '삭제' }
+  { key: 'delete', label: '삭제', ownerOnly: true }
 ];
 
 const sectionMenuActions: SectionMenuAction[] = [
@@ -277,6 +284,12 @@ export const AppShell = ({
       (projectModal?.kind === 'members' || projectModal?.kind === 'invite')
   });
   const myProjectRole = modalProjectDetail.data?.data.role ?? modalProject?.role ?? null;
+  // 메뉴는 "지금 메뉴를 연 프로젝트"의 역할로 거른다. 선택된 프로젝트와 다를 수 있다.
+  const openMenuProjectRole =
+    projects.find((it) => it.id === openMenuProjectId)?.role ?? null;
+  const visibleProjectMenuActions = projectMenuActions.filter(
+    (it) => !it.ownerOnly || openMenuProjectRole === 'OWNER'
+  );
   const memberCount = modalProjectMembers.data?.data.length ?? 0;
   const isTeamFull = memberCount >= MAX_TEAM_MEMBERS;
   const inviteCode = modalProjectDetail.data?.data.inviteCode ?? '';
@@ -1669,7 +1682,7 @@ export const AppShell = ({
               aria-label="프로젝트 작업 메뉴"
               onKeyDown={handleProjectMenuKeyDown}
             >
-              {projectMenuActions.map((it, index) => (
+              {visibleProjectMenuActions.map((it, index) => (
                 <button
                   key={it.key}
                   type="button"
