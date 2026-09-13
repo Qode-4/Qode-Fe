@@ -31,8 +31,10 @@ export const useGetInviteInfo = ({
     enabled
   });
 
-export const usePostInviteJoin = () =>
-  useMutation({
+export const usePostInviteJoin = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
     mutationFn: async (inviteCode: string) => {
       const res = await apiClient.request<Envelope<InviteJoinResponse>>({
         path: `/api/invite/${inviteCode}/join`,
@@ -41,8 +43,17 @@ export const usePostInviteJoin = () =>
         format: 'json'
       });
       return res.data.data;
+    },
+    onSuccess: async (_data, inviteCode) => {
+      // 합류 직후 프로젝트 목록을 다시 읽는다. 목록에 새 프로젝트가 없는 채로
+      // 이동하면 기본 화면이 떠서 초대가 실패한 것처럼 보인다.
+      // await 하는 이유 — react-query가 이 프로미스를 기다린 뒤 호출부의 onSuccess
+      // (InvitePage의 navigate)를 부르므로, 목록이 채워진 뒤에 이동한다.
+      await qc.invalidateQueries({ queryKey: ['projects'] });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.inviteInfo(inviteCode) });
     }
   });
+};
 
 /**
  * 새 초대 링크를 만들고 이전 링크를 막는다.
