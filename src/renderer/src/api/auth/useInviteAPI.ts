@@ -4,6 +4,12 @@ import { apiClient } from '../apiClient';
 import type { InviteInfoResponse, InviteJoinResponse } from '../contracts/invite';
 import { QUERY_KEY } from '../queryKeys';
 
+/**
+ * 서버는 모든 라우트를 { ok, data } 로 감싸서 준다.
+ * 화면은 알맹이만 쓰므로 훅에서 벗겨낸다 — contracts/invite.ts 의 타입이 곧 알맹이다.
+ */
+type Envelope<T> = { ok: boolean; data: T };
+
 export const useGetInviteInfo = ({
   inviteCode,
   enabled
@@ -14,13 +20,13 @@ export const useGetInviteInfo = ({
   useQuery({
     queryKey: QUERY_KEY.inviteInfo(inviteCode),
     queryFn: async () => {
-      const res = await apiClient.request<InviteInfoResponse>({
+      const res = await apiClient.request<Envelope<InviteInfoResponse>>({
         path: `/api/invite/${inviteCode}`,
         method: 'GET',
         secure: true,
         format: 'json'
       });
-      return res.data;
+      return res.data.data;
     },
     enabled
   });
@@ -28,13 +34,13 @@ export const useGetInviteInfo = ({
 export const usePostInviteJoin = () =>
   useMutation({
     mutationFn: async (inviteCode: string) => {
-      const res = await apiClient.request<InviteJoinResponse>({
+      const res = await apiClient.request<Envelope<InviteJoinResponse>>({
         path: `/api/invite/${inviteCode}/join`,
         method: 'POST',
         secure: true,
         format: 'json'
       });
-      return res.data;
+      return res.data.data;
     }
   });
 
@@ -47,13 +53,13 @@ export const usePostInviteReissue = () => {
 
   return useMutation({
     mutationFn: async (projectId: string) => {
-      const res = await apiClient.request<{ inviteCode: string }>({
+      const res = await apiClient.request<Envelope<{ inviteCode: string }>>({
         path: `/api/projects/${projectId}/invite/reissue`,
         method: 'POST',
         secure: true,
         format: 'json'
       });
-      return res.data;
+      return res.data.data;
     },
     onSuccess: (_data, projectId) => {
       // 링크는 프로젝트 응답의 inviteCode에서 오므로 프로젝트를 다시 읽는다.
