@@ -1,5 +1,8 @@
 import { Icon } from './Icon';
 
+// 질문 최대 길이. 명세 E-1 비기능 요구사항, 서버 sendUserMessageBodySchema 와 같은 값이다.
+const MAX_LENGTH = 2000;
+
 type Props = {
   value: string;
   placeholder?: string;
@@ -38,6 +41,7 @@ export const ChatComposer = ({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        maxLength={MAX_LENGTH}
         onKeyDown={(e) => {
           if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
           e.preventDefault();
@@ -46,7 +50,11 @@ export const ChatComposer = ({
         disabled={disabled}
       />
 
-      <div className="mt-3 flex items-center justify-end">
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <span className="text-ui-12 text-red-600" role="status">
+          {value.length >= MAX_LENGTH ? '최대 2,000자까지 입력 가능합니다.' : ''}
+        </span>
+
         {/* <IconButton
           size="lg"
           name="Add_round_light"
