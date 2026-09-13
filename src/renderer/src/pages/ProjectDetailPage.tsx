@@ -10,7 +10,11 @@ import {
   type ProjectChatItem
 } from '../api/auth/useChatsAPI';
 import { QUERY_KEY } from '../api/queryKeys';
-import { useGetProject, useGetProjectSyncStatus } from '../api/auth/useProjectsAPI';
+import {
+  useGetProject,
+  useGetProjectSyncStatus,
+  usePostProjectSync
+} from '../api/auth/useProjectsAPI';
 import { useTeamChatSocket } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
@@ -18,12 +22,15 @@ import type { SourceItem } from '../api/contracts/chats';
 import { friendlyErrorMessage } from '../api/errorMessages';
 import { CreateChatModal } from '../components/feature/CreateChatModal';
 import type { IconName } from '../components/icons/iconTypes';
+import { Button } from '../components/ui/Button';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
+import { formatRelativeTime } from '../lib/relativeTime';
+import { mapSyncError } from '../lib/sync-errors';
 
 type Props = {
   location: RouteLocation;
@@ -149,13 +156,25 @@ export const ProjectDetailPage = ({
   const project = useGetProject({ projectId, enabled: Boolean(projectId) });
   const syncStatus = useGetProjectSyncStatus({ projectId, enabled: Boolean(projectId) });
   const chats = useGetProjectChats({ projectId, type: 'all', enabled: Boolean(projectId) });
+  const postProjectSync = usePostProjectSync({ projectId });
 
   const syncPhase = syncStatus.data?.data.status;
   const syncProgress = syncStatus.data?.data.latestJob?.progress ?? 0;
+  const syncErrorCode = syncStatus.data?.data.latestJob?.errorCode ?? null;
   const isAnalyzing = syncPhase === 'queued' || syncPhase === 'syncing';
+  const isSyncFailed = syncPhase === 'failed';
+  const lastSyncedAt = project.data?.data.lastSyncedAt ?? null;
 
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  const retrySync = (): void => {
+    postProjectSync.mutate(undefined, {
+      onError: (error) => {
+        toast.error(handleApiError(error).message);
+      }
+    });
+  };
   const [draft, setDraft] = useState('');
   const [streamStatus, setStreamStatus] = useState('');
   const [streamContent, setStreamContent] = useState('');
@@ -469,8 +488,35 @@ export const ProjectDetailPage = ({
       {isAnalyzing ? (
         <div className="px-4 pt-3" aria-live="polite">
           <InlineAlert tone="info" title="분석 진행 중">
-            코드 분석 진행 중 ({syncProgress}%)
+            동기화 중... ({syncProgress}%)
           </InlineAlert>
+        </div>
+      ) : null}
+
+      {isSyncFailed ? (
+        <div className="px-4 pt-3" aria-live="polite">
+          <InlineAlert tone="danger" title="동기화 실패">
+            <div className="flex flex-col gap-2">
+              <span>{mapSyncError(syncErrorCode)}</span>
+              <div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  isLoading={postProjectSync.isPending}
+                  onClick={retrySync}
+                >
+                  다시 시도
+                </Button>
+              </div>
+            </div>
+          </InlineAlert>
+        </div>
+      ) : null}
+
+      {!isAnalyzing && !isSyncFailed && lastSyncedAt ? (
+        <div className="px-4 pt-3 text-ui-12 text-zinc-500" aria-live="polite">
+          마지막 동기화: {formatRelativeTime(lastSyncedAt)}
         </div>
       ) : null}
 
