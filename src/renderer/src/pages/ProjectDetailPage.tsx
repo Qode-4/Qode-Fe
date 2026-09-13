@@ -10,7 +10,7 @@ import {
   type ProjectChatItem
 } from '../api/auth/useChatsAPI';
 import { QUERY_KEY } from '../api/queryKeys';
-import { useGetProject } from '../api/auth/useProjectsAPI';
+import { useGetProject, useGetProjectSyncStatus } from '../api/auth/useProjectsAPI';
 import { useTeamChatSocket } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
@@ -147,7 +147,12 @@ export const ProjectDetailPage = ({
   const projectId = match.matched ? match.params.projectId : '';
 
   const project = useGetProject({ projectId, enabled: Boolean(projectId) });
+  const syncStatus = useGetProjectSyncStatus({ projectId, enabled: Boolean(projectId) });
   const chats = useGetProjectChats({ projectId, type: 'all', enabled: Boolean(projectId) });
+
+  const syncPhase = syncStatus.data?.data.status;
+  const syncProgress = syncStatus.data?.data.latestJob?.progress ?? 0;
+  const isAnalyzing = syncPhase === 'queued' || syncPhase === 'syncing';
 
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -418,13 +423,57 @@ export const ProjectDetailPage = ({
   if (project.isError) {
     return (
       <InlineAlert tone="danger" title="프로젝트 조회 실패">
-        {handleApiError(project.error).message}
+        <div className="flex flex-col items-start gap-2">
+          <p>프로젝트 정보를 불러올 수 없습니다.</p>
+          <button
+            type="button"
+            onClick={() => void project.refetch()}
+            disabled={project.isFetching}
+            className="rounded-md border border-danger-line bg-white px-3 py-1 text-ui-12 font-medium text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {project.isFetching ? '다시 시도 중...' : '다시 시도'}
+          </button>
+        </div>
       </InlineAlert>
     );
   }
 
+  const isInitialProjectLoading = project.isLoading;
+  const isBackgroundProjectFetching = project.isFetching && !project.isLoading;
+
+  if (isInitialProjectLoading) {
+    return (
+      <section className="flex h-full min-h-0 flex-col items-center justify-center rounded-[16px] border border-zinc-200 bg-white">
+        <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
+          <div
+            aria-hidden="true"
+            className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-primary"
+          />
+          <p className="text-ui-12 font-medium text-zinc-500">프로젝트를 불러오는 중...</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-[16px] border border-zinc-200 bg-white">
+    <section className="relative flex h-full min-h-0 flex-col rounded-[16px] border border-zinc-200 bg-white">
+      {isBackgroundProjectFetching ? (
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 animate-pulse rounded-t-[16px] bg-primary/60"
+          role="status"
+          aria-live="polite"
+          aria-label="프로젝트 정보 갱신 중"
+        />
+      ) : null}
+
+      {isAnalyzing ? (
+        <div className="px-4 pt-3" aria-live="polite">
+          <InlineAlert tone="info" title="분석 진행 중">
+            코드 분석 진행 중 ({syncProgress}%)
+          </InlineAlert>
+        </div>
+      ) : null}
+
       <div className="px-4" role="alert" aria-live="assertive">
         {chats.isError ? (
           <div className="mb-2">

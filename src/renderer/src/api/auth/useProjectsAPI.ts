@@ -122,7 +122,7 @@ export const useGetProjectSyncStatus = (params: { projectId: string; enabled?: b
     enabled: (params.enabled ?? true) && Boolean(params.projectId),
     refetchInterval: (query) => {
       const status = query.state.data?.data.status;
-      if (status === 'queued' || status === 'syncing') return 1500;
+      if (status === 'queued' || status === 'syncing') return 500;
       return false;
     }
   });
