@@ -64,3 +64,11 @@ export const Sending: Story = {
     </div>
   )
 };
+
+export const MaxLength: Story = {
+  args: {
+    value: '가'.repeat(2000),
+    canSend: true
+  },
+  render: (args): React.JSX.Element => <StatefulComposer {...args} />
+};
