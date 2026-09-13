@@ -83,6 +83,12 @@ export interface ApiErrorResponse {
 // 에러 핸들러 유틸리티
 export const handleApiError = (error: unknown): ApiError => {
   if (axios.isAxiosError(error)) {
+    if (!error.response) {
+      return {
+        message: '네트워크 연결을 확인해주세요.',
+        code: error.code
+      };
+    }
     const data = error.response?.data as Partial<ApiErrorResponse> | undefined;
     return {
       message: data?.message || error.message || 'An error occurred',

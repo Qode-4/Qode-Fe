@@ -13,7 +13,9 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { usePostAuthLogout } from '../../api/auth/useAuthAPI';
-import { useDeleteChat } from '../../api/auth/useChatsAPI';
+import { useDeleteChat, usePatchChat } from '../../api/auth/useChatsAPI';
+import { friendlyErrorMessage } from '../../api/errorMessages';
+import { useToast } from '../../hooks/useToast';
 import {
   useDeleteProject,
   useGetProject,
@@ -43,6 +45,7 @@ import overflowIcon from '../../assets/overflow-icon.png';
 import { navigate } from '../../lib/hashRouter';
 import type { IconName } from '../icons/iconTypes';
 import { Button } from '../ui/Button';
+import { ChatItemMenu, type ChatItemMenuAction } from '../ui/ChatItemMenu';
 import { DrawerHeader } from '../ui/DrawerHeader';
 import { Icon } from '../ui/Icon';
 import { InlineAlert } from '../ui/InlineAlert';
@@ -219,16 +222,12 @@ export const AppShell = ({
   );
   const [sectionRenameValue, setSectionRenameValue] = useState('');
   const [sectionRenameTouched, setSectionRenameTouched] = useState(false);
-  const [sectionRenameError, setSectionRenameError] = useState<string | null>(null);
   const [sectionCreateModalOpen, setSectionCreateModalOpen] = useState(false);
   const [sectionCreateValue, setSectionCreateValue] = useState('');
   const [sectionCreateTouched, setSectionCreateTouched] = useState(false);
-  const [sectionCreateError, setSectionCreateError] = useState<string | null>(null);
-  const [sectionDeleteError, setSectionDeleteError] = useState<string | null>(null);
   const [folderCreateModalSectionId, setFolderCreateModalSectionId] = useState<string | null>(null);
   const [folderCreateValue, setFolderCreateValue] = useState('');
   const [folderCreateTouched, setFolderCreateTouched] = useState(false);
-  const [folderCreateError, setFolderCreateError] = useState<string | null>(null);
   const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
   const [personalChatsCollapsed, setPersonalChatsCollapsed] = useState(false);
   const [teamChatsCollapsed, setTeamChatsCollapsed] = useState(false);
@@ -241,6 +240,8 @@ export const AppShell = ({
   const [projectModal, setProjectModal] = useState<ProjectModalState>(null);
   const deleteProject = useDeleteProject();
   const deleteChat = useDeleteChat();
+  const patchChat = usePatchChat();
+  const toast = useToast();
   const postAuthLogout = usePostAuthLogout();
   const postProjectSync = usePostProjectSync({ projectId: selectedProjectId ?? '' });
   const postInviteReissue = usePostInviteReissue();
@@ -253,13 +254,15 @@ export const AppShell = ({
   const [renameValue, setRenameValue] = useState('');
   const [renameTouched, setRenameTouched] = useState(false);
   const [renameInfo, setRenameInfo] = useState<string | null>(null);
-  const [projectDeleteError, setProjectDeleteError] = useState<string | null>(null);
-  const [chatDeleteError, setChatDeleteError] = useState<string | null>(null);
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [chatRenameDraft, setChatRenameDraft] = useState('');
 
   const [inviteError, setInviteError] = useState<string | null>(null);
+
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [reissueConfirming, setReissueConfirming] = useState(false);
   const [memberActionError, setMemberActionError] = useState<string | null>(null);
+
 
   const modalProject = useMemo(
     () => projects.find((it) => it.id === projectModal?.projectId),
@@ -709,8 +712,6 @@ export const AppShell = ({
   ): void => {
     setOpenMenuProjectId(null);
     setProjectModal({ kind, projectId: project.id });
-    setProjectDeleteError(null);
-    setChatDeleteError(null);
     if (kind === 'rename') {
       setRenameValue(project.name);
       setRenameTouched(false);
@@ -719,11 +720,13 @@ export const AppShell = ({
     }
     if (kind === 'invite') {
       setInviteError(null);
+
       setInviteSuccess(null);
       setReissueConfirming(false);
     }
     if (kind === 'members') {
       setMemberActionError(null);
+
     }
   };
 
@@ -731,8 +734,6 @@ export const AppShell = ({
     setProjectModal(null);
     setRenameTouched(false);
     setInviteError(null);
-    setInviteSuccess(null);
-    setProjectDeleteError(null);
   };
 
   const applyProjectRename = (): void => {
@@ -775,7 +776,6 @@ export const AppShell = ({
     project: ProjectsListData['data'][number]
   ): Promise<void> => {
     setOpenMenuProjectId(null);
-    setProjectDeleteError(null);
     if (!window.confirm(`"${project.name}" 프로젝트를 삭제할까요?`)) return;
 
     try {
@@ -784,7 +784,7 @@ export const AppShell = ({
         navigate('/projects', { replace: true });
       }
     } catch (error) {
-      setProjectDeleteError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'project.delete'));
     }
   };
 
@@ -820,28 +820,22 @@ export const AppShell = ({
     setSectionRenameModalSectionId(section.id);
     setSectionRenameValue(section.name);
     setSectionRenameTouched(false);
-    setSectionRenameError(null);
-    setSectionDeleteError(null);
   };
 
   const closeSectionRenameModal = (): void => {
     setSectionRenameModalSectionId(null);
     setSectionRenameTouched(false);
-    setSectionRenameError(null);
   };
 
   const openSectionCreateModal = (): void => {
     setSectionCreateModalOpen(true);
     setSectionCreateValue('');
     setSectionCreateTouched(false);
-    setSectionCreateError(null);
-    setSectionDeleteError(null);
   };
 
   const closeSectionCreateModal = (): void => {
     setSectionCreateModalOpen(false);
     setSectionCreateTouched(false);
-    setSectionCreateError(null);
   };
 
   const openFolderCreateModal = (sectionId: string): void => {
@@ -849,13 +843,11 @@ export const AppShell = ({
     setFolderCreateModalSectionId(sectionId);
     setFolderCreateValue('');
     setFolderCreateTouched(false);
-    setFolderCreateError(null);
   };
 
   const closeFolderCreateModal = (): void => {
     setFolderCreateModalSectionId(null);
     setFolderCreateTouched(false);
-    setFolderCreateError(null);
   };
 
   const applySectionRename = async (): Promise<void> => {
@@ -863,7 +855,6 @@ export const AppShell = ({
 
     const trimmed = sectionRenameValue.trim();
     setSectionRenameTouched(true);
-    setSectionRenameError(null);
     if (!trimmed) return;
 
     try {
@@ -873,42 +864,39 @@ export const AppShell = ({
       });
       closeSectionRenameModal();
     } catch (error) {
-      setSectionRenameError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'section.rename'));
     }
   };
 
   const createSection = async (): Promise<void> => {
     const trimmed = sectionCreateValue.trim();
     setSectionCreateTouched(true);
-    setSectionCreateError(null);
     if (!trimmed || !selectedProjectId) return;
 
     try {
       await postSection.mutateAsync({ name: trimmed });
       closeSectionCreateModal();
     } catch (error) {
-      setSectionCreateError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'section.create'));
     }
   };
 
   const handleSectionDelete = async (sectionId: string): Promise<void> => {
     const section = sections.find((item) => item.id === sectionId);
     setOpenSectionMenuId(null);
-    setSectionDeleteError(null);
     if (!section) return;
     if (!window.confirm(`"${section.name}" 섹션을 삭제할까요?`)) return;
 
     try {
       await deleteSection.mutateAsync(sectionId);
     } catch (error) {
-      setSectionDeleteError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'section.delete'));
     }
   };
 
   const createFolder = async (): Promise<void> => {
     const trimmed = folderCreateValue.trim();
     setFolderCreateTouched(true);
-    setFolderCreateError(null);
     if (!trimmed || !folderCreateModalSectionId) return;
 
     try {
@@ -918,26 +906,65 @@ export const AppShell = ({
       });
       closeFolderCreateModal();
     } catch (error) {
-      setFolderCreateError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'folder.create'));
     }
   };
 
   const handlePersonalChatDelete = async (chat: ChatsMeListData['data'][number]): Promise<void> => {
     if (!selectedProjectId) return;
-
-    setChatDeleteError(null);
     if (!window.confirm(`"${chat.name}" 채팅을 삭제할까요?`)) return;
 
     try {
       await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
     } catch (error) {
-      setChatDeleteError(handleApiError(error).message);
+      toast.error(friendlyErrorMessage(error, 'chat.delete'));
+    }
+  };
+
+  const beginChatRename = (chat: ChatsMeListData['data'][number]): void => {
+    setEditingChatId(chat.id);
+    setChatRenameDraft(chat.name);
+  };
+
+  const cancelChatRename = (): void => {
+    setEditingChatId(null);
+    setChatRenameDraft('');
+  };
+
+  const commitChatRename = async (
+    chat: ChatsMeListData['data'][number],
+    nextName: string
+  ): Promise<void> => {
+    if (!selectedProjectId) {
+      cancelChatRename();
+      return;
+    }
+
+    const trimmed = nextName.trim();
+    if (!trimmed || trimmed === chat.name) {
+      cancelChatRename();
+      return;
+    }
+
+    try {
+      await patchChat.mutateAsync({
+        projectId: selectedProjectId,
+        chatId: chat.id,
+        name: trimmed
+      });
+      cancelChatRename();
+    } catch (error) {
+      toast.error(friendlyErrorMessage(error, 'chat.rename'));
     }
   };
 
   const requestProjectSync = (): void => {
     if (!canRequestProjectSync) return;
-    postProjectSync.mutate();
+    postProjectSync.mutate(undefined, {
+      onError: (error) => {
+        toast.error(friendlyErrorMessage(error, 'project.sync'));
+      }
+    });
   };
 
   return (
@@ -982,22 +1009,6 @@ export const AppShell = ({
                   </span>
                 </button>
               </div>
-              {projectDeleteError ? (
-                <div className="mt-1">
-                  <InlineAlert tone="danger" title="프로젝트 삭제 실패">
-                    {projectDeleteError}
-                  </InlineAlert>
-                </div>
-              ) : null}
-
-              {sectionDeleteError ? (
-                <div className="mt-1">
-                  <InlineAlert tone="danger" title="섹션 삭제 실패">
-                    {sectionDeleteError}
-                  </InlineAlert>
-                </div>
-              ) : null}
-
               {sectionsErrorMessage ? (
                 <div className="mt-1">
                   <InlineAlert tone="danger" title="섹션 조회 실패">
@@ -1148,26 +1159,77 @@ export const AppShell = ({
                   </span>
                 </button>
               </div>
-              {chatDeleteError ? (
-                <div className="mt-1">
-                  <InlineAlert tone="danger" title="채팅 삭제 실패">
-                    {chatDeleteError}
-                  </InlineAlert>
-                </div>
-              ) : null}
-
               {personalChatsCollapsed ? null : (
                 <>
                   <nav aria-label="내 채팅 목록" className="mt-0.5">
                     {personalChats.map((chat) => {
                       const isActive = activeChatId === chat.id;
+                      const isEditing = editingChatId === chat.id;
+                      const menuActions: ChatItemMenuAction[] = [
+                        {
+                          key: 'rename',
+                          label: '이름 바꾸기',
+                          iconName: 'Pencil_light',
+                          onSelect: () => beginChatRename(chat)
+                        },
+                        {
+                          key: 'delete',
+                          label: '삭제',
+                          iconName: 'Trash_light',
+                          danger: true,
+                          disabled: deleteChat.isPending,
+                          onSelect: () => {
+                            void handlePersonalChatDelete(chat);
+                          }
+                        }
+                      ];
+
+                      if (isEditing) {
+                        return (
+                          <div
+                            key={chat.id}
+                            className={[
+                              'flex h-7 w-full items-center rounded-[8px] px-2 py-[2px]',
+                              isActive ? 'bg-zinc-700' : 'bg-zinc-100'
+                            ].join(' ')}
+                          >
+                            <input
+                              autoFocus
+                              value={chatRenameDraft}
+                              maxLength={100}
+                              disabled={patchChat.isPending}
+                              onChange={(e) => setChatRenameDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  void commitChatRename(chat, chatRenameDraft);
+                                } else if (e.key === 'Escape') {
+                                  e.preventDefault();
+                                  cancelChatRename();
+                                }
+                              }}
+                              onBlur={() => {
+                                void commitChatRename(chat, chatRenameDraft);
+                              }}
+                              className={[
+                                'w-full bg-transparent outline-none',
+                                drawerTypography.listItem,
+                                isActive ? 'text-white placeholder-zinc-300' : 'text-slate-900'
+                              ].join(' ')}
+                              aria-label={`${chat.name} 이름 바꾸기`}
+                            />
+                          </div>
+                        );
+                      }
+
                       return (
-                        <div key={chat.id} className="group relative">
+                        <div key={chat.id} className="group relative min-w-0 overflow-hidden">
                           <button
                             type="button"
                             aria-current={isActive ? 'true' : undefined}
+                            title={chat.name}
                             className={[
-                              'inline-flex h-7 w-full items-center rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
+                              'flex h-7 w-full min-w-0 items-center overflow-hidden rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
                               drawerTypography.listItem,
                               isActive
                                 ? 'bg-zinc-700 text-white'
@@ -1175,31 +1237,27 @@ export const AppShell = ({
                             ].join(' ')}
                             onClick={() => onSelectChat?.(chat.id)}
                           >
-                            <span className="min-w-0 flex-1 truncate">{chat.name}</span>
+                            <span className="min-w-0 flex-1 truncate pr-6">{chat.name}</span>
                           </button>
 
-                          <button
-                            type="button"
-                            aria-label={`${chat.name} 채팅 삭제`}
+                          <div
                             className={[
-                              'absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.5 font-normal transition-opacity',
-                              drawerTypography.listItemAction,
-                              isActive
-                                ? 'text-zinc-200 hover:bg-zinc-600'
-                                : 'text-zinc-500 hover:bg-zinc-100',
-                              deleteChat.isPending
-                                ? 'pointer-events-none opacity-50'
-                                : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
+                              'absolute right-1 top-1/2 -translate-y-1/2 transition-opacity',
+                              'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
                             ].join(' ')}
-                            disabled={deleteChat.isPending}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              void handlePersonalChatDelete(chat);
-                            }}
                           >
-                            삭제
-                          </button>
+                            <ChatItemMenu
+                              triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
+                              ariaLabel={`${chat.name} 채팅 작업 메뉴`}
+                              triggerClassName={[
+                                'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
+                                isActive
+                                  ? 'text-zinc-200 hover:bg-zinc-600'
+                                  : 'text-zinc-500 hover:bg-zinc-200'
+                              ].join(' ')}
+                              actions={menuActions}
+                            />
+                          </div>
                         </div>
                       );
                     })}
@@ -1260,8 +1318,9 @@ export const AppShell = ({
                           key={chat.id}
                           type="button"
                           aria-current={isActive ? 'true' : undefined}
+                          title={chat.name}
                           className={[
-                            'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
+                            'flex h-7 w-full min-w-0 items-center gap-1 overflow-hidden rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
                             drawerTypography.listItem,
                             isActive
                               ? 'bg-zinc-700 text-white'
@@ -1324,13 +1383,6 @@ export const AppShell = ({
             <div className="px-4 pb-2" role="alert" aria-live="assertive">
               <InlineAlert tone="danger" title="동기화 상태 조회 실패">
                 {handleApiError(selectedProjectSyncStatus.error).message}
-              </InlineAlert>
-            </div>
-          ) : null}
-          {selectedProjectId && postProjectSync.isError ? (
-            <div className="px-4 pb-2" role="alert" aria-live="assertive">
-              <InlineAlert tone="danger" title="프로젝트 동기화 요청 실패">
-                {handleApiError(postProjectSync.error).message}
               </InlineAlert>
             </div>
           ) : null}
@@ -1480,12 +1532,6 @@ export const AppShell = ({
             ) : null}
           </label>
 
-          {folderCreateError ? (
-            <div className="mt-3">
-              <InlineAlert tone="danger">{folderCreateError}</InlineAlert>
-            </div>
-          ) : null}
-
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeFolderCreateModal}>
               취소
@@ -1529,12 +1575,6 @@ export const AppShell = ({
             ) : null}
           </label>
 
-          {sectionCreateError ? (
-            <div className="mt-3">
-              <InlineAlert tone="danger">{sectionCreateError}</InlineAlert>
-            </div>
-          ) : null}
-
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionCreateModal}>
               취소
@@ -1577,12 +1617,6 @@ export const AppShell = ({
               <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
             ) : null}
           </label>
-
-          {sectionRenameError ? (
-            <div className="mt-3">
-              <InlineAlert tone="danger">{sectionRenameError}</InlineAlert>
-            </div>
-          ) : null}
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionRenameModal}>

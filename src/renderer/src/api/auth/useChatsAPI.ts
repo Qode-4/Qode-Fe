@@ -27,6 +27,10 @@ type SseDonePayload = {
   status?: string;
 };
 
+type SseTitlePayload = {
+  name?: string;
+};
+
 type TeamChatMessageCreatePayload = {
   content: string;
 };
@@ -36,6 +40,7 @@ export type MessageStreamCallbacks = {
   onChunk?: (payload: SseChunkPayload) => void;
   onSources?: (payload: SseSourcesPayload) => void;
   onDone?: (payload: SseDonePayload) => void;
+  onTitle?: (name: string) => void;
   onError?: (message: string) => void;
 };
 
@@ -95,6 +100,13 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void 
 
   if (event === 'done') {
     callbacks?.onDone?.((parsed as SseDonePayload) ?? {});
+    return;
+  }
+
+  if (event === 'title') {
+    const payload = (parsed as SseTitlePayload) ?? {};
+    const name = payload.name?.trim();
+    if (name) callbacks?.onTitle?.(name);
     return;
   }
 
@@ -285,6 +297,32 @@ export const useDeleteChat = () => {
   });
 };
 
+export const usePatchChat = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ chatId, name }: { projectId: string; chatId: string; name: string }) => {
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error('채팅 이름을 입력해주세요.');
+
+      const res = await apiClient.request<{ ok: boolean; data: { id: string; name: string } }>({
+        path: `/api/chats/me/${chatId}`,
+        method: 'PATCH',
+        body: { name: trimmed },
+        type: ContentType.Json,
+        secure: true,
+        format: 'json'
+      });
+      return res.data;
+    },
+    onSuccess: (_result, variables) => {
+      void qc.invalidateQueries({
+        queryKey: QUERY_KEY.projectChatsByProject(variables.projectId)
+      });
+    }
+  });
+};
+
 export const useGetChatMessages = (params: {
   chatId: string;
   personal?: boolean;
@@ -310,27 +348,29 @@ export const useGetChatMessages = (params: {
   });
 };
 
-export const usePostPersonalChatMessageSSE = (params: { projectId: string; chatId: string }) => {
+export const usePostPersonalChatMessageSSE = (params: { projectId: string }) => {
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
+      chatId,
       content,
       callbacks
     }: {
+      chatId: string;
       content: string;
       callbacks?: MessageStreamCallbacks;
     }) => {
       return streamChatMessage({
-        path: `/api/chats/me/${params.chatId}/messages`,
+        path: `/api/chats/me/${chatId}/messages`,
         body: {
           content
         },
         callbacks
       });
     },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(params.chatId) });
+    onSuccess: (_result, variables) => {
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(variables.chatId) });
       void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
     }
   });
