@@ -318,6 +318,18 @@ export const AppShell = ({
     }
   };
 
+  const sourceGitUrl = modalProjectDetail.data?.data.gitUrl ?? '';
+
+  const copySourceGitUrl = async (): Promise<void> => {
+    if (!sourceGitUrl) return;
+    try {
+      await navigator.clipboard.writeText(sourceGitUrl);
+      toast.success('복사되었습니다');
+    } catch {
+      toast.error('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
+    }
+  };
+
   const reissueInviteLink = async (): Promise<void> => {
     if (!modalProjectId) return;
     setInviteError(null);
@@ -2016,14 +2028,49 @@ export const AppShell = ({
         widthClassName="max-w-[620px]"
       >
         <>
-          <label className="mt-3 block">
+          <div className="mt-3">
             <span className="mb-1 block text-xs font-medium text-text-soft">Git Repository</span>
-            <input
-              className="h-10 w-full rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
-              value={modalProjectDetail.data?.data.gitUrl ?? ''}
-              readOnly
-            />
-          </label>
+            <div className="flex items-center gap-2">
+              {sourceGitUrl ? (
+                <input
+                  className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
+                  value={sourceGitUrl}
+                  readOnly
+                  onFocus={(e) => e.currentTarget.select()}
+                />
+              ) : (
+                <div className="flex h-10 min-w-0 flex-1 items-center rounded-md border border-line bg-surface-muted px-3 text-sm text-text-subtle">
+                  연결된 레포지토리 정보가 없습니다.
+                </div>
+              )}
+              <button
+                type="button"
+                disabled={!sourceGitUrl}
+                onClick={() => void copySourceGitUrl()}
+                aria-label="URL 복사"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-text-base transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Icon name="Copy_light" size="sm" />
+              </button>
+              {sourceGitUrl ? (
+                <a
+                  href={sourceGitUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-line bg-surface px-3 text-xs font-semibold text-text-base transition-colors hover:bg-surface-muted"
+                >
+                  새 탭에서 열기
+                </a>
+              ) : (
+                <span
+                  aria-disabled="true"
+                  className="inline-flex h-10 shrink-0 cursor-not-allowed items-center justify-center whitespace-nowrap rounded-md border border-line bg-surface px-3 text-xs font-semibold text-text-base opacity-60"
+                >
+                  새 탭에서 열기
+                </span>
+              )}
+            </div>
+          </div>
         </>
       </OverlayModal>
     </div>
