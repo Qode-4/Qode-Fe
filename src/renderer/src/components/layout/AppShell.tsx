@@ -54,6 +54,9 @@ import { OverlayModal } from '../ui/OverlayModal';
 type Props = {
   me?: GetAuthData | null;
   projects: ProjectsListData['data'];
+  projectsError?: boolean;
+  projectsFetching?: boolean;
+  onRetryProjects?: () => void;
   sections?: SectionItem[];
   sectionsLoading?: boolean;
   sectionsErrorMessage?: string | null;
@@ -194,6 +197,9 @@ const settingsMenuActions: SettingsMenuAction[] = [
 export const AppShell = ({
   me,
   projects,
+  projectsError = false,
+  projectsFetching = false,
+  onRetryProjects,
   sections = [],
   sectionsLoading = false,
   sectionsErrorMessage = null,
@@ -263,7 +269,6 @@ export const AppShell = ({
   const [reissueConfirming, setReissueConfirming] = useState(false);
   const [memberActionError, setMemberActionError] = useState<string | null>(null);
 
-
   const modalProject = useMemo(
     () => projects.find((it) => it.id === projectModal?.projectId),
     [projects, projectModal?.projectId]
@@ -288,8 +293,7 @@ export const AppShell = ({
   });
   const myProjectRole = modalProjectDetail.data?.data.role ?? modalProject?.role ?? null;
   // 메뉴는 "지금 메뉴를 연 프로젝트"의 역할로 거른다. 선택된 프로젝트와 다를 수 있다.
-  const openMenuProjectRole =
-    projects.find((it) => it.id === openMenuProjectId)?.role ?? null;
+  const openMenuProjectRole = projects.find((it) => it.id === openMenuProjectId)?.role ?? null;
   const visibleProjectMenuActions = projectMenuActions.filter(
     (it) => !it.ownerOnly || openMenuProjectRole === 'OWNER'
   );
@@ -726,7 +730,6 @@ export const AppShell = ({
     }
     if (kind === 'members') {
       setMemberActionError(null);
-
     }
   };
 
@@ -976,6 +979,9 @@ export const AppShell = ({
             projects={projects}
             selectedProjectId={selectedProjectId}
             onOpenCreateProject={onOpenCreateProject}
+            projectsError={projectsError}
+            projectsFetching={projectsFetching}
+            onRetryProjects={onRetryProjects}
             settingsDisabled={!selectedProjectId}
             onSettingsClick={handleHeaderProjectMenuClick}
           />

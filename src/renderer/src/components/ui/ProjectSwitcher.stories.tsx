@@ -47,3 +47,17 @@ export const EmptyProjects: Story = {
     </div>
   )
 };
+
+export const FetchError: Story = {
+  args: {
+    projects: [],
+    selectedProjectId: undefined,
+    isError: true,
+    onRetry: () => undefined
+  },
+  render: (args): React.JSX.Element => (
+    <div className="w-[240px] bg-zinc-50 p-4">
+      <ProjectSwitcher {...args} />
+    </div>
+  )
+};
