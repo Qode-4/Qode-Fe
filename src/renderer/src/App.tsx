@@ -142,6 +142,11 @@ const App = (): React.JSX.Element => {
     if (!token) return;
     if (!projects.isSuccess) return;
 
+    // 초대 수락 중인 사람에게 "프로젝트를 만드세요"는 맥락에 맞지 않는다.
+    // 게다가 초대 라우트는 early return 이라 모달이 렌더되지 않아, 켜도 보이지 않는 채로
+    // 상태만 남고 합류 후 화면에 튀어나온다.
+    if (isInviteRoute) return;
+
     if (projects.data.data.length === 0) {
       if (!autoOpenedForEmptyRef.current) {
         autoOpenedForEmptyRef.current = true;
@@ -150,8 +155,13 @@ const App = (): React.JSX.Element => {
       return;
     }
 
-    autoOpenedForEmptyRef.current = false;
-  }, [token, projects.isSuccess, projects.data]);
+    // 프로젝트가 생겼으면 자동으로 열었던 모달을 닫는다.
+    // ref 만 되돌리면 모달은 열린 채로 남는다 — 초대로 합류했을 때 이 상태가 된다.
+    if (autoOpenedForEmptyRef.current) {
+      autoOpenedForEmptyRef.current = false;
+      setCreateProjectModalOpen(false);
+    }
+  }, [token, isInviteRoute, projects.isSuccess, projects.data]);
 
   useEffect(() => {
     if (!loginTransitionUserName) return;

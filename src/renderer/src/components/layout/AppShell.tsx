@@ -21,9 +21,9 @@ import {
   useGetProject,
   useGetProjectMembers,
   useGetProjectSyncStatus,
-  usePostProjectMembersInvite,
   usePostProjectSync
 } from '../../api/auth/useProjectsAPI';
+import { useDeleteProjectMember, usePostInviteReissue } from '../../api/auth/useInviteAPI';
 import {
   useDeleteSection,
   usePatchSection,
@@ -70,7 +70,11 @@ type Props = {
 
 type ProjectActionKind = 'rename' | 'invite' | 'members' | 'source';
 type ProjectModalState = { kind: ProjectActionKind; projectId: string } | null;
-type ProjectMenuAction = { key: ProjectActionKind | 'sync' | 'delete'; label: string };
+type ProjectMenuAction = {
+  key: ProjectActionKind | 'sync' | 'delete';
+  label: string;
+  ownerOnly?: boolean;
+};
 type SectionMenuAction = { key: 'rename' | 'createFolder' | 'delete'; label: string };
 type SettingsActionKind = 'profile' | 'logout';
 type SettingsMenuAction = { key: SettingsActionKind; label: string; iconName: IconName };
@@ -135,7 +139,17 @@ const UserAvatar = ({
   );
 };
 
-const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+// 팀당 최대 인원. 서버(project.service.ts MAX_TEAM_MEMBERS)와 같은 값이어야 한다.
+// 화면은 안내만 하고 실제 차단은 서버가 한다 — A-2 BR-A2-04.
+const MAX_TEAM_MEMBERS = 20;
+
+const formatJoinedAt = (value: string): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(
+    date.getDate()
+  ).padStart(2, '0')}`;
+};
 
 const getUniqueProjectName = (
   projectId: string,
@@ -154,13 +168,16 @@ const getUniqueProjectName = (
   return `${base} (${idx})`;
 };
 
+// ownerOnly: 서버가 OWNER 가 아니면 403 을 돌려주는 작업이다.
+// 화면에 남겨두면 멤버가 확인창까지 거친 뒤 실패를 받는다 — 삭제는 특히 위험하다.
+// 초대·멤버 목록은 모든 멤버가 쓸 수 있다(2026-09-08 확정, A-2 BR-A2-06).
 const projectMenuActions: ProjectMenuAction[] = [
   { key: 'rename', label: '이름 바꾸기' },
-  { key: 'sync', label: '동기화' },
+  { key: 'sync', label: '동기화', ownerOnly: true },
   { key: 'invite', label: '멤버 초대하기' },
   { key: 'members', label: '멤버들' },
   { key: 'source', label: '연결된 소스' },
-  { key: 'delete', label: '삭제' }
+  { key: 'delete', label: '삭제', ownerOnly: true }
 ];
 
 const sectionMenuActions: SectionMenuAction[] = [
@@ -227,7 +244,8 @@ export const AppShell = ({
   const toast = useToast();
   const postAuthLogout = usePostAuthLogout();
   const postProjectSync = usePostProjectSync({ projectId: selectedProjectId ?? '' });
-  const postProjectMembersInvite = usePostProjectMembersInvite();
+  const postInviteReissue = usePostInviteReissue();
+  const deleteProjectMember = useDeleteProjectMember();
   const patchSection = usePatchSection({ projectId: selectedProjectId ?? '' });
   const postSection = usePostSection({ projectId: selectedProjectId ?? '' });
   const deleteSection = useDeleteSection({ projectId: selectedProjectId ?? '' });
@@ -239,8 +257,12 @@ export const AppShell = ({
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [chatRenameDraft, setChatRenameDraft] = useState('');
 
-  const [inviteEmails, setInviteEmails] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
+
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [reissueConfirming, setReissueConfirming] = useState(false);
+  const [memberActionError, setMemberActionError] = useState<string | null>(null);
+
 
   const modalProject = useMemo(
     () => projects.find((it) => it.id === projectModal?.projectId),
@@ -254,12 +276,74 @@ export const AppShell = ({
   const sectionMenuId = openSectionMenuId ? `section-actions-menu-${openSectionMenuId}` : undefined;
   const modalProjectDetail = useGetProject({
     projectId: modalProjectId,
-    enabled: Boolean(modalProjectId) && projectModal?.kind === 'source'
+    enabled:
+      Boolean(modalProjectId) &&
+      (projectModal?.kind === 'source' || projectModal?.kind === 'invite')
   });
   const modalProjectMembers = useGetProjectMembers({
     projectId: modalProjectId,
-    enabled: Boolean(modalProjectId) && projectModal?.kind === 'members'
+    enabled:
+      Boolean(modalProjectId) &&
+      (projectModal?.kind === 'members' || projectModal?.kind === 'invite')
   });
+  const myProjectRole = modalProjectDetail.data?.data.role ?? modalProject?.role ?? null;
+  // 메뉴는 "지금 메뉴를 연 프로젝트"의 역할로 거른다. 선택된 프로젝트와 다를 수 있다.
+  const openMenuProjectRole =
+    projects.find((it) => it.id === openMenuProjectId)?.role ?? null;
+  const visibleProjectMenuActions = projectMenuActions.filter(
+    (it) => !it.ownerOnly || openMenuProjectRole === 'OWNER'
+  );
+  const memberCount = modalProjectMembers.data?.data.length ?? 0;
+  const isTeamFull = memberCount >= MAX_TEAM_MEMBERS;
+  const inviteCode = modalProjectDetail.data?.data.inviteCode ?? '';
+  // 링크는 프로젝트 응답의 inviteCode로 조합한다. 서버가 코드만 주고 주소는 화면이 만든다.
+  // ponytail: 웹(해시 라우팅) 기준이다. Electron으로 패키징하면 origin이 file:// 이 되어
+  // 링크가 깨진다 — 데스크톱에서도 쓰려면 웹 origin을 환경변수로 받아야 한다.
+  const inviteLink = inviteCode ? `${window.location.origin}/#/invite/${inviteCode}` : '';
+
+  const copyInviteLink = async (): Promise<void> => {
+    if (!inviteLink) return;
+    setInviteError(null);
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setInviteSuccess('복사했어요.');
+    } catch {
+      // 클립보드 권한이 없거나 비보안 컨텍스트면 실패한다. 조용히 넘기지 않는다.
+      setInviteSuccess(null);
+      setInviteError('복사하지 못했어요. 링크를 직접 선택해 복사해주세요.');
+    }
+  };
+
+  const reissueInviteLink = async (): Promise<void> => {
+    if (!modalProjectId) return;
+    setInviteError(null);
+    setInviteSuccess(null);
+    try {
+      await postInviteReissue.mutateAsync(modalProjectId);
+      setReissueConfirming(false);
+      setInviteSuccess('새 링크를 만들었어요. 이전 링크는 이제 쓸 수 없어요.');
+    } catch (error) {
+      setReissueConfirming(false);
+      setInviteError('링크를 다시 만들지 못했어요. 잠시 후 다시 시도해주세요.');
+      void error;
+    }
+  };
+
+  const removeMember = async (userId: string, isSelf: boolean): Promise<void> => {
+    if (!modalProjectId) return;
+    const message = isSelf
+      ? '이 프로젝트에서 나갈까요? 다시 들어오려면 초대 링크가 필요해요.'
+      : '이 멤버를 프로젝트에서 내보낼까요?';
+    if (!window.confirm(message)) return;
+
+    setMemberActionError(null);
+    try {
+      await deleteProjectMember.mutateAsync({ projectId: modalProjectId, userId });
+    } catch (error) {
+      setMemberActionError(handleApiError(error).message);
+    }
+  };
+
   const selectedProjectSyncStatus = useGetProjectSyncStatus({
     projectId: selectedProjectId ?? '',
     enabled: Boolean(selectedProjectId)
@@ -635,8 +719,14 @@ export const AppShell = ({
       return;
     }
     if (kind === 'invite') {
-      setInviteEmails('');
       setInviteError(null);
+
+      setInviteSuccess(null);
+      setReissueConfirming(false);
+    }
+    if (kind === 'members') {
+      setMemberActionError(null);
+
     }
   };
 
@@ -680,40 +770,6 @@ export const AppShell = ({
     window.setTimeout(() => {
       closeProjectModal();
     }, 250);
-  };
-
-  const sendInvite = async (): Promise<void> => {
-    const rows = inviteEmails
-      .split(',')
-      .map((it) => it.trim())
-      .filter(Boolean);
-
-    if (rows.length === 0) {
-      setInviteError('이메일을 하나 이상 입력해주세요.');
-      return;
-    }
-    if (!rows.every(isEmail)) {
-      setInviteError('이메일 형식을 확인해주세요. 쉼표(,)로 여러 명을 입력할 수 있어요.');
-      return;
-    }
-
-    setInviteError(null);
-
-    if (!modalProjectId) {
-      setInviteError('프로젝트 정보를 찾을 수 없습니다.');
-      return;
-    }
-
-    try {
-      await postProjectMembersInvite.mutateAsync({
-        projectId: modalProjectId,
-        emails: rows
-      });
-      setInviteEmails('');
-      toast.success(`${rows.length}명에게 초대 요청을 보냈어요.`);
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'invite.accept'));
-    }
   };
 
   const handleProjectDeleteFromMenu = async (
@@ -1660,7 +1716,7 @@ export const AppShell = ({
               aria-label="프로젝트 작업 메뉴"
               onKeyDown={handleProjectMenuKeyDown}
             >
-              {projectMenuActions.map((it, index) => (
+              {visibleProjectMenuActions.map((it, index) => (
                 <button
                   key={it.key}
                   type="button"
@@ -1760,31 +1816,52 @@ export const AppShell = ({
         title="멤버 추가하기"
         widthClassName="max-w-[620px]"
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void sendInvite();
-          }}
-        >
-          <p className="text-sm text-text-soft">이미 회원가입된 이메일만 초대할 수 있어요.</p>
-          <p className="text-sm text-text-soft">이메일은 쉼표로 구분할 수 있어요.</p>
-          <label className="mt-3 block" htmlFor="project-invite-emails">
-            <span className="mb-1 block text-xs font-medium text-text-soft">이메일</span>
-            <input
-              id="project-invite-emails"
+        <>
+          <div className="flex items-end justify-between gap-3">
+            <p className="text-sm text-text-soft">링크를 받은 사람은 누구나 참여할 수 있어요.</p>
+            <span
               className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                inviteError
-                  ? 'border-danger-line focus:border-danger'
-                  : 'border-line focus:border-primary'
+                'shrink-0 text-sm',
+                isTeamFull ? 'font-semibold text-danger' : 'text-text-subtle'
               ].join(' ')}
-              placeholder="email@example.com, member@example.com"
-              value={inviteEmails}
-              onChange={(e) => setInviteEmails(e.target.value)}
-              disabled={postProjectMembersInvite.isPending}
-              autoFocus
-            />
+            >
+              {memberCount} / {MAX_TEAM_MEMBERS}명
+            </span>
+          </div>
+
+          <label className="mt-3 block" htmlFor="project-invite-link">
+            <span className="mb-1 block text-xs font-medium text-text-soft">초대 링크</span>
+            {/* input 에 min-w-0 이 없으면 최소 너비가 버텨서 옆 버튼이 찌그러지고
+                "복사" 글자가 세로로 접힌다. */}
+            <div className="flex items-center gap-2">
+              <input
+                id="project-invite-link"
+                className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
+                value={inviteLink}
+                readOnly
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-10 shrink-0 whitespace-nowrap px-4"
+                disabled={!inviteLink}
+                onClick={() => void copyInviteLink()}
+              >
+                복사
+              </Button>
+            </div>
           </label>
+
+          {isTeamFull ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">
+                팀이 {MAX_TEAM_MEMBERS}명으로 꽉 찼어요. 새로 초대하려면 멤버를 내보내 자리를
+                비워주세요.
+              </InlineAlert>
+            </div>
+          ) : null}
 
           {inviteError ? (
             <div className="mt-3">
@@ -1792,15 +1869,61 @@ export const AppShell = ({
             </div>
           ) : null}
 
-          <div className="mt-4 flex items-center justify-end gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={closeProjectModal}>
-              취소
-            </Button>
-            <Button type="submit" size="sm" disabled={postProjectMembersInvite.isPending}>
-              {postProjectMembersInvite.isPending ? '전송 중...' : '초대 보내기'}
-            </Button>
-          </div>
-        </form>
+          {inviteSuccess ? (
+            <div className="mt-3">
+              <InlineAlert tone="success">{inviteSuccess}</InlineAlert>
+            </div>
+          ) : null}
+
+          {reissueConfirming ? (
+            <div className="mt-4 rounded-lg border border-line bg-surface-muted p-3">
+              <p className="text-sm text-text-base">
+                이전 링크로는 더 이상 참여할 수 없게 됩니다. 새 링크를 만들까요?
+              </p>
+              <div className="mt-3 flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setReissueConfirming(false)}
+                >
+                  취소
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={postInviteReissue.isPending}
+                  onClick={() => void reissueInviteLink()}
+                >
+                  {postInviteReissue.isPending ? '만드는 중...' : '새 링크 만들기'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setInviteError(null);
+                    setInviteSuccess(null);
+                    setReissueConfirming(true);
+                  }}
+                >
+                  새 링크 만들기
+                </Button>
+                <p className="mt-1 text-xs text-text-subtle">
+                  이전 링크는 즉시 사용할 수 없게 돼요.
+                </p>
+              </div>
+              <Button type="button" size="sm" onClick={closeProjectModal}>
+                닫기
+              </Button>
+            </div>
+          )}
+        </>
       </OverlayModal>
 
       <OverlayModal
@@ -1810,9 +1933,16 @@ export const AppShell = ({
         widthClassName="max-w-[680px]"
       >
         <>
+          {memberActionError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">{memberActionError}</InlineAlert>
+            </div>
+          ) : null}
+
           <div className="mt-3 overflow-hidden rounded-lg border border-line">
-            <div className="grid grid-cols-[1fr_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-xs font-semibold text-text-soft">
+            <div className="grid grid-cols-[1fr_120px_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-xs font-semibold text-text-soft">
               <span>멤버</span>
+              <span>역할</span>
               <span>액션</span>
             </div>
 
@@ -1820,22 +1950,55 @@ export const AppShell = ({
               <div className="px-3 py-3 text-sm text-text-subtle">멤버를 불러오는 중...</div>
             ) : null}
 
-            {modalProjectMembers.data?.data.map((member) => (
-              <div
-                key={member.id}
-                className="grid grid-cols-[1fr_160px] items-center border-b border-line-soft px-3 py-3 last:border-b-0"
-              >
-                <div>
-                  <div className="text-sm font-semibold text-text-base">{member.name}</div>
-                  <div className="text-sm text-text-subtle">{member.id}</div>
+            {modalProjectMembers.data?.data.map((member) => {
+              const isSelf = member.id === me?.id;
+              const isOwner = member.role === 'OWNER';
+              // OWNER는 나가지도 제거되지도 않는다 — 주인 없는 프로젝트를 막기 위해서다.
+              // 남을 내보내는 것은 OWNER만 할 수 있고, 본인 행은 나가기다.
+              const canRemove = !isOwner && (isSelf || myProjectRole === 'OWNER');
+
+              return (
+                <div
+                  key={member.id}
+                  className="grid grid-cols-[1fr_120px_160px] items-center border-b border-line-soft px-3 py-3 last:border-b-0"
+                >
+                  <div>
+                    <div className="text-sm font-semibold text-text-base">
+                      {member.name}
+                      {isSelf ? <span className="ml-1 text-text-subtle">(나)</span> : null}
+                    </div>
+                    <div className="text-xs text-text-subtle">
+                      {member.joinedAt ? `${formatJoinedAt(member.joinedAt)} 참여` : '참여일 미상'}
+                    </div>
+                  </div>
+                  <div>
+                    <span
+                      className={[
+                        'rounded-full px-2 py-0.5 text-xs font-medium',
+                        isOwner
+                          ? 'bg-primary-soft text-primary'
+                          : 'bg-surface-muted text-text-subtle'
+                      ].join(' ')}
+                    >
+                      {member.role}
+                    </span>
+                  </div>
+                  <div className="flex justify-end">
+                    {canRemove ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={deleteProjectMember.isPending}
+                        onClick={() => void removeMember(member.id, isSelf)}
+                      >
+                        {isSelf ? '나가기' : '프로젝트에서 제거'}
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex justify-end">
-                  <Button type="button" size="sm" variant="secondary" disabled>
-                    프로젝트에서 제거
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       </OverlayModal>
