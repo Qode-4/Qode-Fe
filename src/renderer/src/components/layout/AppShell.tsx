@@ -1797,10 +1797,12 @@ export const AppShell = ({
 
           <label className="mt-3 block" htmlFor="project-invite-link">
             <span className="mb-1 block text-xs font-medium text-text-soft">초대 링크</span>
+            {/* input 에 min-w-0 이 없으면 최소 너비가 버텨서 옆 버튼이 찌그러지고
+                "복사" 글자가 세로로 접힌다. */}
             <div className="flex items-center gap-2">
               <input
                 id="project-invite-link"
-                className="h-10 w-full rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
+                className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
                 value={inviteLink}
                 readOnly
                 onFocus={(e) => e.currentTarget.select()}
@@ -1809,6 +1811,7 @@ export const AppShell = ({
                 type="button"
                 size="sm"
                 variant="secondary"
+                className="h-10 shrink-0 whitespace-nowrap px-4"
                 disabled={!inviteLink}
                 onClick={() => void copyInviteLink()}
               >
