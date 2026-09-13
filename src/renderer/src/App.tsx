@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useGetAuthMe } from './api/auth/useAuthAPI';
 import { useGetProjectChats } from './api/auth/useChatsAPI';
-import { useGetProjects } from './api/auth/useProjectsAPI';
+import { useGetProject, useGetProjects } from './api/auth/useProjectsAPI';
 import { useGetProjectSections } from './api/auth/useSectionsAPI';
 import { authTransitionStorage } from './api/authTransitionStorage';
 import { handleApiError } from './api/axios';
+import type { ProjectsListData } from './api/generated/data-contracts';
+import { QUERY_KEY } from './api/queryKeys';
 import { tokenStorage } from './api/tokenStorage';
 import { CreateProjectModal } from './components/feature/CreateProjectModal';
 import { AppShell } from './components/layout/AppShell';
 import { InlineAlert } from './components/ui/InlineAlert';
+import { useToast } from './hooks/useToast';
 import { buildPath, matchPath, navigate, resolveNextPath } from './lib/hashRouter';
 import { applyUiFontSize, getStoredUiFontSize } from './lib/uiFontSize';
 import { useHashLocation } from './lib/useHashLocation';
@@ -36,6 +40,8 @@ const App = (): React.JSX.Element => {
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
   const projects = useGetProjects({ search: '', enabled: Boolean(token) });
   const loginTransitionUserName = authTransitionStorage.getLoginTransitionUserName();
+  const toast = useToast();
+  const queryClient = useQueryClient();
 
   const projectMatch = matchPath(location.path, '/projects/:projectId');
   const storageMatch = matchPath(location.path, '/projects/:projectId/storage');
@@ -44,6 +50,10 @@ const App = (): React.JSX.Element => {
     : storageMatch.matched
       ? storageMatch.params.projectId
       : undefined;
+  const selectedProject = useGetProject({
+    projectId: selectedProjectId ?? '',
+    enabled: Boolean(selectedProjectId)
+  });
   const sections = useGetProjectSections({
     projectId: selectedProjectId ?? '',
     enabled: Boolean(selectedProjectId)
@@ -170,6 +180,40 @@ const App = (): React.JSX.Element => {
     }
   }, [loginTransitionUserName, token, me.isSuccess, me.isError]);
 
+  // 삭제된 프로젝트로 들어오면(404): 알림, 목록 캐시에서 제거, 기본 프로젝트로 fallback
+  const handledDeletedProjectIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    if (!selectedProject.isError) return;
+    if (handledDeletedProjectIdRef.current === selectedProjectId) return;
+
+    const status = handleApiError(selectedProject.error).status;
+    if (status !== 404) return;
+
+    handledDeletedProjectIdRef.current = selectedProjectId;
+
+    toast.error('해당 프로젝트가 삭제되었습니다.');
+    queryClient.setQueriesData<ProjectsListData>({ queryKey: ['projects'] }, (old) => {
+      if (!old) return old;
+      return { ...old, data: old.data.filter((p) => p.id !== selectedProjectId) };
+    });
+    queryClient.removeQueries({ queryKey: QUERY_KEY.project(selectedProjectId) });
+    if (window.localStorage.getItem(LAST_SELECTED_PROJECT_ID_KEY) === selectedProjectId) {
+      window.localStorage.removeItem(LAST_SELECTED_PROJECT_ID_KEY);
+    }
+    navigate('/projects', { replace: true });
+  }, [selectedProjectId, selectedProject.isError, selectedProject.error, queryClient, toast]);
+
+  // 라우트가 다른 프로젝트로 바뀌면 재-감지가 가능하도록 가드를 푼다.
+  useEffect(() => {
+    if (
+      handledDeletedProjectIdRef.current &&
+      handledDeletedProjectIdRef.current !== selectedProjectId
+    ) {
+      handledDeletedProjectIdRef.current = null;
+    }
+  }, [selectedProjectId]);
+
   if (matchPath(location.path, '/login').matched) return <LoginPage location={location} />;
   if (matchPath(location.path, '/signup').matched) return <SignupPage location={location} />;
   if (matchPath(location.path, '/invite/:inviteCode').matched)
@@ -222,6 +266,11 @@ const App = (): React.JSX.Element => {
     <AppShell
       me={me.data}
       projects={projects.data?.data ?? []}
+      projectsError={projects.isError}
+      projectsFetching={projects.isFetching}
+      onRetryProjects={() => {
+        void projects.refetch();
+      }}
       sections={sections.data?.data ?? []}
       sectionsLoading={sections.isLoading}
       sectionsErrorMessage={sections.isError ? handleApiError(sections.error).message : null}

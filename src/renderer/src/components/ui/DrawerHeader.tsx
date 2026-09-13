@@ -11,6 +11,9 @@ type Props = {
   projects?: ProjectsListData['data'];
   selectedProjectId?: string;
   onOpenCreateProject?: () => void;
+  projectsError?: boolean;
+  projectsFetching?: boolean;
+  onRetryProjects?: () => void;
   settingsIconName?: IconName;
   settingsAriaLabel?: string;
   settingsDisabled?: boolean;
@@ -23,6 +26,9 @@ export const DrawerHeader = ({
   projects = [],
   selectedProjectId,
   onOpenCreateProject,
+  projectsError = false,
+  projectsFetching = false,
+  onRetryProjects,
   settingsIconName = 'Setting_line_light',
   settingsAriaLabel = '프로젝트 설정',
   settingsDisabled = false,
@@ -40,6 +46,9 @@ export const DrawerHeader = ({
         projects={projects}
         selectedProjectId={selectedProjectId}
         onOpenCreateProject={onOpenCreateProject}
+        isError={projectsError}
+        isFetching={projectsFetching}
+        onRetry={onRetryProjects}
       />
       <IconButton
         size="md"
