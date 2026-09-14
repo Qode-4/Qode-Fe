@@ -15,7 +15,7 @@ import {
   useGetProjectSyncStatus,
   usePostProjectSync
 } from '../api/auth/useProjectsAPI';
-import { useTeamChatSocket } from '../api/auth/useTeamChatSocket';
+import { useTeamChatSocket, useTeamSocketStatus } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
 import type { SourceItem } from '../api/contracts/chats';
@@ -26,6 +26,7 @@ import { Button } from '../components/ui/Button';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
+import { MarkdownAnswer } from '../components/ui/MarkdownAnswer';
 import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
@@ -109,6 +110,55 @@ const LoadingDots = (): React.JSX.Element => {
     <span aria-hidden className="inline-block w-[1.5em] text-left">
       {dots}
     </span>
+  );
+};
+
+const MessageSources = ({
+  messageId,
+  sources
+}: {
+  messageId: string;
+  sources: SourceItem[];
+}): React.JSX.Element => {
+  const [expanded, setExpanded] = useState(true);
+  const headerId = `sources-header-${messageId}`;
+  const listId = `sources-list-${messageId}`;
+  return (
+    <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
+      <button
+        type="button"
+        id={headerId}
+        aria-controls={listId}
+        aria-expanded={expanded}
+        onClick={() => setExpanded((prev) => !prev)}
+        className="flex w-full items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500 transition-colors hover:bg-zinc-50"
+      >
+        <span>참조한 소스 {sources.length}개</span>
+        <span aria-hidden className="ml-2 text-zinc-500">
+          {expanded ? '▼' : '▶'}
+        </span>
+      </button>
+      {expanded ? (
+        <div
+          id={listId}
+          role="region"
+          aria-labelledby={headerId}
+          className="divide-y divide-zinc-100"
+        >
+          {sources.map((source) => (
+            <div
+              key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
+              className="flex items-center justify-between px-3 py-1.5 text-ui-12"
+            >
+              <span className="min-w-0 flex-1 truncate text-zinc-800">{source.filePath}</span>
+              <span className="ml-3 text-ui-10 text-zinc-500">
+                {source.startLine ?? '-'}-{source.endLine ?? '-'}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 };
 
@@ -238,6 +288,8 @@ export const ProjectDetailPage = ({
     }
   });
 
+  const teamSocketStatus = useTeamSocketStatus(isTeamChat);
+
   const isSending =
     postPersonalMessage.isPending || createChat.isPending || (isTeamChat && socketIsSending);
   const canSend = Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly;
@@ -271,7 +323,7 @@ export const ProjectDetailPage = ({
       await navigator.clipboard.writeText(value);
       toast.success('복사되었습니다');
     } catch {
-      // noop
+      toast.error('복사에 실패했습니다. 텍스트를 직접 선택하여 복사해주세요.');
     }
   };
 
@@ -566,13 +618,6 @@ export const ProjectDetailPage = ({
             </InlineAlert>
           </div>
         ) : null}
-        {messages.isError ? (
-          <div className="mb-2">
-            <InlineAlert tone="danger" title="메시지 조회 실패">
-              {handleApiError(messages.error).message}
-            </InlineAlert>
-          </div>
-        ) : null}
         {isTeamChatReadOnly ? (
           <div className="mb-2">
             <InlineAlert tone="info" title="팀채팅 읽기 전용">
@@ -581,6 +626,22 @@ export const ProjectDetailPage = ({
           </div>
         ) : null}
       </div>
+      {isTeamChat && teamSocketStatus !== 'connected' ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mx-4 mb-2 flex items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-50 px-3 py-2 text-ui-12 text-zinc-700"
+        >
+          <span
+            aria-hidden="true"
+            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent"
+          />
+          <div className="min-w-0">
+            <p className="font-medium">연결이 끊어졌습니다</p>
+            <p className="text-ui-10 text-zinc-500">재연결 중...</p>
+          </div>
+        </div>
+      ) : null}
 
       {activeChat && isPersonalChat ? (
         <div className="border-b border-zinc-100 px-4 py-2 flex justify-center">
@@ -639,6 +700,23 @@ export const ProjectDetailPage = ({
             <div className="flex min-h-full flex-col gap-6 max-w-145.5 w-full">
               {messages.isLoading ? (
                 <p className="text-ui-12 font-medium text-zinc-500">메시지를 불러오는 중...</p>
+              ) : null}
+
+              {messages.isError ? (
+                <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
+                  <p className="text-ui-12 font-medium text-zinc-700">
+                    이전 대화를 불러올 수 없습니다.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void messages.refetch();
+                    }}
+                    className="text-ui-12 font-medium text-primary hover:underline"
+                  >
+                    다시 시도
+                  </button>
+                </div>
               ) : null}
 
               {displayMessageItems.map((message) => {
@@ -707,57 +785,13 @@ export const ProjectDetailPage = ({
                 }
 
                 const sources = extractSources(message);
-                const primarySource = sources[0];
 
                 return (
                   <article key={messageId} className="rounded-[12px] bg-white p-3">
-                    <div className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                      {messageContent}
-                    </div>
-
-                    {primarySource ? (
-                      <div className="mt-3 rounded-[12px] bg-zinc-100 p-3">
-                        <div className="mb-3 flex items-center justify-between">
-                          <p className="text-ui-10 font-medium text-zinc-500">Java Script</p>
-                          <MessageActionButton
-                            iconName="Copy_light"
-                            label="코드복사"
-                            onClick={() => copyText(primarySource.snippet)}
-                          />
-                        </div>
-                        <pre className="m-0 overflow-x-auto whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                          <code>{primarySource.snippet}</code>
-                        </pre>
-                      </div>
-                    ) : null}
+                    <MarkdownAnswer content={messageContent} />
 
                     {sources.length > 0 ? (
-                      <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
-                        <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500">
-                          <span>참조한 소스 {sources.length}개</span>
-                          <button
-                            type="button"
-                            className="text-zinc-500 transition-colors hover:text-zinc-700"
-                          >
-                            닫기
-                          </button>
-                        </div>
-                        <div className="divide-y divide-zinc-100">
-                          {sources.map((source) => (
-                            <div
-                              key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-                              className="flex items-center justify-between px-3 py-1.5 text-ui-12"
-                            >
-                              <span className="min-w-0 flex-1 truncate text-zinc-800">
-                                {source.filePath}
-                              </span>
-                              <span className="ml-3 text-ui-10 text-zinc-500">
-                                {source.startLine ?? '-'}-{source.endLine ?? '-'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      <MessageSources messageId={messageId} sources={sources} />
                     ) : null}
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -827,9 +861,7 @@ export const ProjectDetailPage = ({
                       </div>
                     </div>
                   ) : streamContent ? (
-                    <p className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                      {streamContent}
-                    </p>
+                    <MarkdownAnswer content={streamContent} />
                   ) : (
                     <p className="text-ui-12 leading-[1.6] text-zinc-500">
                       찾아보는 중이에요
@@ -859,7 +891,7 @@ export const ProjectDetailPage = ({
                 ? '팀채팅은 현재 읽기 전용입니다.'
                 : isTeamChat
                   ? '팀에게 메시지 보내기...'
-                  : '메시지를 입력하세요...'
+                  : '무엇이든 물어보세요!'
           }
           disabled={isTeamChatReadOnly}
           canSend={canSend}

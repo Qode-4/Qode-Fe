@@ -278,6 +278,11 @@ const App = (): React.JSX.Element => {
       onOpenCreateProject={() => setCreateProjectModalOpen(true)}
       personalChats={personalChats}
       teamChats={teamChats}
+      chatsIsLoading={chats.isLoading}
+      chatsIsError={chats.isError}
+      onRetryChats={() => {
+        void chats.refetch();
+      }}
       activeChatId={activeChatId}
       onSelectChat={setSelectedChatId}
       onCreatePersonalChat={() => setSelectedChatId(null)}
