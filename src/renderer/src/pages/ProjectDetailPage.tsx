@@ -95,6 +95,22 @@ const isUserMessageRole = (role: string): boolean => {
   return role === 'user' || role === 'USER';
 };
 
+const LoadingDots = (): React.JSX.Element => {
+  const [dots, setDots] = useState('.');
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? '.' : `${prev}.`));
+    }, 500);
+    return () => window.clearInterval(id);
+  }, []);
+  // 접미사 폭이 튀지 않게 3자리 고정 폭 확보 후 왼쪽 정렬 렌더.
+  return (
+    <span aria-hidden className="inline-block w-[1.5em] text-left">
+      {dots}
+    </span>
+  );
+};
+
 const Avatar = ({ name }: { name: string }): React.JSX.Element => {
   return (
     <div className="inline-flex size-6 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-ui-12 font-medium text-zinc-500">
@@ -179,6 +195,7 @@ export const ProjectDetailPage = ({
   const [streamStatus, setStreamStatus] = useState('');
   const [streamContent, setStreamContent] = useState('');
   const [streamSources, setStreamSources] = useState<SourceItem[]>([]);
+  const [streamError, setStreamError] = useState<string | null>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<PendingUserMessage | null>(null);
   const [headerRenameDraft, setHeaderRenameDraft] = useState('');
   const [editingHeaderChatId, setEditingHeaderChatId] = useState<string | null>(null);
@@ -366,6 +383,7 @@ export const ProjectDetailPage = ({
       setStreamStatus('요청 중...');
       setStreamContent('');
       setStreamSources([]);
+      setStreamError(null);
 
       const chatQueryKey = QUERY_KEY.projectChatsByProject(projectId);
 
@@ -402,30 +420,32 @@ export const ProjectDetailPage = ({
               // 성공적으로 응답이 끝났을 때만 draft 를 비운다.
               // 사용자가 스트리밍 중 다음 질문을 타이핑 중이면 덮어쓰지 않기 위해 매치 조건.
               setDraft((prev) => (prev === content ? '' : prev));
+              // 서버 invalidate 결과가 자리 잡을 시간을 두고 스트림 블록 정리.
+              window.setTimeout(() => {
+                setStreamStatus('');
+                setStreamContent('');
+                setStreamSources([]);
+                setPendingUserMessage((prev) =>
+                  prev?.clientId === pendingMessage.clientId ? null : prev
+                );
+              }, 500);
             },
             onError: (message) => {
-              toast.error({ title: '스트리밍 오류', description: message });
-              setPendingUserMessage((prev) => {
-                if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
-                return { ...prev, failed: true };
-              });
+              // 응답 블록에 실패 문구를 남긴다. 재시도 UI 에서 소비.
+              setStreamError(message || 'UNKNOWN');
+              setPendingUserMessage((prev) =>
+                prev?.clientId === pendingMessage.clientId ? { ...prev, failed: true } : prev
+              );
             }
           }
         },
         {
           onError: (error) => {
-            toast.error(friendlyErrorMessage(error, 'chat.send'));
-          },
-          onSettled: (_data, error) => {
-            window.setTimeout(() => {
-              setStreamStatus('');
-              setStreamContent('');
-              setStreamSources([]);
-              setPendingUserMessage((prev) => {
-                if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
-                return error ? prev : null;
-              });
-            }, 500);
+            // 스트림을 열지도 못한 실패(네트워크·HTTP 5xx 등).
+            setStreamError(handleApiError(error).message || 'UNKNOWN');
+            setPendingUserMessage((prev) =>
+              prev?.clientId === pendingMessage.clientId ? { ...prev, failed: true } : prev
+            );
           }
         }
       );
@@ -769,7 +789,7 @@ export const ProjectDetailPage = ({
                 );
               })}
 
-              {(isSending || streamContent) && activeChatId && isPersonalChat ? (
+              {(isSending || streamContent || streamError) && activeChatId && isPersonalChat ? (
                 <article
                   className="rounded-[12px] border border-zinc-200 bg-white p-3"
                   aria-live="polite"
@@ -777,10 +797,21 @@ export const ProjectDetailPage = ({
                   <p className="mb-1 text-ui-10 font-medium text-zinc-500">
                     Qode AI · {streamStatus || '스트리밍 중'}
                   </p>
-                  <p className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                    {streamContent || '답변을 생성하고 있습니다...'}
-                  </p>
-                  {streamSources.length > 0 ? (
+                  {streamError ? (
+                    <p className="text-ui-12 leading-[1.6] text-danger">
+                      답변을 가져오지 못했어요. 다시 시도해주세요.
+                    </p>
+                  ) : streamContent ? (
+                    <p className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
+                      {streamContent}
+                    </p>
+                  ) : (
+                    <p className="text-ui-12 leading-[1.6] text-zinc-500">
+                      찾아보는 중이에요
+                      <LoadingDots />
+                    </p>
+                  )}
+                  {!streamError && streamSources.length > 0 ? (
                     <p className="mt-2 text-ui-10 text-zinc-500">
                       참조 소스 {streamSources.length}개 수집됨
                     </p>
