@@ -41,7 +41,7 @@ export type MessageStreamCallbacks = {
   onSources?: (payload: SseSourcesPayload) => void;
   onDone?: (payload: SseDonePayload) => void;
   onTitle?: (name: string) => void;
-  onError?: (message: string) => void;
+  onError?: (message: string, code?: string) => void;
 };
 
 const ensureTeamChatWritable = (): void => {
@@ -115,7 +115,10 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void 
       typeof parsed === 'string'
         ? parsed
         : ((parsed as { message?: string } | null)?.message ?? '스트리밍 중 오류가 발생했습니다.');
-    callbacks?.onError?.(message);
+    // 서버가 HttpError의 details.code를 실어 보낸다(Qode-Server). 없으면 undefined 로 남는다.
+    const code =
+      typeof parsed === 'string' ? undefined : (parsed as { code?: string } | null)?.code;
+    callbacks?.onError?.(message, code);
   }
 };
 

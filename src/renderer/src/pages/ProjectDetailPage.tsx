@@ -231,6 +231,9 @@ export const ProjectDetailPage = ({
   const isAnalyzing = syncPhase === 'queued' || syncPhase === 'syncing';
   const isSyncFailed = syncPhase === 'failed';
   const lastSyncedAt = project.data?.data.lastSyncedAt ?? null;
+  // 인덱싱이 끝나기 전에는 검색할 코드가 없어 답이 근거 없이 나온다. 서버도 같은 이유로
+  // 409 SYNC_IN_PROGRESS 로 막는다(ADR-005). 화면은 그 앞에서 아예 못 보내게 한다.
+  const SYNC_IN_PROGRESS_HINT = '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.';
 
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -292,7 +295,7 @@ export const ProjectDetailPage = ({
 
   const isSending =
     postPersonalMessage.isPending || createChat.isPending || (isTeamChat && socketIsSending);
-  const canSend = Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly;
+  const canSend = Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly && !isAnalyzing;
   const teamReadOnlyReason = TEAM_CHAT_READONLY_TOOLTIP;
 
   const chatName = activeChat?.name;
@@ -485,9 +488,15 @@ export const ProjectDetailPage = ({
                 );
               }, 500);
             },
-            onError: (message) => {
+            onError: (message, code) => {
               // SSE error 이벤트 payload — 서버가 준 코드/문자열 그대로 저장.
-              setStreamError(message || 'UNKNOWN');
+              // 동기화 중 차단은 code 로 구분된다. 상태를 즉시 다시 읽어 입력창을 잠근다.
+              // 여기는 폴링 간격 사이로 빠져나간 요청의 안전망이고, 정상 흐름에서는
+              // 입력창이 먼저 잠겨 도달하지 않는다.
+              if (code === 'SYNC_IN_PROGRESS') {
+                void syncStatus.refetch();
+              }
+              setStreamError(code ?? message ?? 'UNKNOWN');
               setPendingUserMessage((prev) =>
                 prev?.clientId === pendingMessage.clientId ? { ...prev, failed: true } : prev
               );
@@ -885,17 +894,25 @@ export const ProjectDetailPage = ({
         <ChatComposer
           value={draft}
           placeholder={
-            !activeChatId
-              ? '새 대화를 시작해보세요...'
-              : isTeamChatReadOnly
-                ? '팀채팅은 현재 읽기 전용입니다.'
-                : isTeamChat
-                  ? '팀에게 메시지 보내기...'
-                  : '무엇이든 물어보세요!'
+            isAnalyzing
+              ? `동기화 중... (${syncProgress}%)`
+              : !activeChatId
+                ? '새 대화를 시작해보세요...'
+                : isTeamChatReadOnly
+                  ? '팀채팅은 현재 읽기 전용입니다.'
+                  : isTeamChat
+                    ? '팀에게 메시지 보내기...'
+                    : '무엇이든 물어보세요!'
           }
-          disabled={isTeamChatReadOnly}
+          disabled={isTeamChatReadOnly || isAnalyzing}
           canSend={canSend}
-          sendDisabledReason={isTeamChatReadOnly ? teamReadOnlyReason : undefined}
+          sendDisabledReason={
+            isAnalyzing
+              ? SYNC_IN_PROGRESS_HINT
+              : isTeamChatReadOnly
+                ? teamReadOnlyReason
+                : undefined
+          }
           isSending={isSending}
           onChange={setDraft}
           onSend={() => {

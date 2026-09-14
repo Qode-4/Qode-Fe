@@ -72,3 +72,19 @@ export const MaxLength: Story = {
   },
   render: (args): React.JSX.Element => <StatefulComposer {...args} />
 };
+
+// 동기화(인덱싱) 중에는 입력 자체를 막는다. 검색할 코드가 아직 없어서다 → ADR-005
+export const Syncing: Story = {
+  args: {
+    value: '',
+    placeholder: '동기화 중... (42%)',
+    disabled: true,
+    canSend: false,
+    sendDisabledReason: '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.'
+  },
+  render: (args): React.JSX.Element => (
+    <div className="w-[406px]">
+      <ChatComposer {...args} onChange={() => undefined} onSend={() => undefined} />
+    </div>
+  )
+};
