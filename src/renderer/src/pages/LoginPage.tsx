@@ -171,7 +171,11 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
 
             {login.isError ? (
               <p className="text-center text-xs font-medium text-danger" role="alert">
-                {handleApiError(login.error).message}
+                {(() => {
+                  const info = handleApiError(login.error);
+                  if (info.status === 401) return '이메일 또는 비밀번호를 확인해주세요.';
+                  return info.message;
+                })()}
               </p>
             ) : null}
           </form>

@@ -1,23 +1,36 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetChatMessages,
   useGetProjectChats,
+  usePatchChat,
   usePostMessageShare,
   usePostPersonalChatMessageSSE,
-  usePostProjectChats
+  usePostProjectChats,
+  type ProjectChatItem
 } from '../api/auth/useChatsAPI';
-import { useGetProject } from '../api/auth/useProjectsAPI';
+import { QUERY_KEY } from '../api/queryKeys';
+import {
+  useGetProject,
+  useGetProjectSyncStatus,
+  usePostProjectSync
+} from '../api/auth/useProjectsAPI';
 import { useTeamChatSocket, useTeamSocketStatus } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
 import type { SourceItem } from '../api/contracts/chats';
+import { friendlyErrorMessage } from '../api/errorMessages';
 import { CreateChatModal } from '../components/feature/CreateChatModal';
 import type { IconName } from '../components/icons/iconTypes';
+import { Button } from '../components/ui/Button';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
+import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
+import { formatRelativeTime } from '../lib/relativeTime';
+import { mapSyncError } from '../lib/sync-errors';
 
 type Props = {
   location: RouteLocation;
@@ -25,6 +38,7 @@ type Props = {
   meName?: string;
   meId?: string;
   createChatModalType: 'personal' | 'team' | null;
+  onSelectChat: (chatId: string) => void;
   onCloseCreateChatModal: () => void;
 };
 
@@ -133,22 +147,41 @@ export const ProjectDetailPage = ({
   meName,
   meId,
   createChatModalType,
+  onSelectChat,
   onCloseCreateChatModal
 }: Props): React.JSX.Element => {
   const match = useMemo(() => matchPath(location.path, '/projects/:projectId'), [location.path]);
   const projectId = match.matched ? match.params.projectId : '';
 
   const project = useGetProject({ projectId, enabled: Boolean(projectId) });
+  const syncStatus = useGetProjectSyncStatus({ projectId, enabled: Boolean(projectId) });
   const chats = useGetProjectChats({ projectId, type: 'all', enabled: Boolean(projectId) });
+  const postProjectSync = usePostProjectSync({ projectId });
 
+  const syncPhase = syncStatus.data?.data.status;
+  const syncProgress = syncStatus.data?.data.latestJob?.progress ?? 0;
+  const syncErrorCode = syncStatus.data?.data.latestJob?.errorCode ?? null;
+  const isAnalyzing = syncPhase === 'queued' || syncPhase === 'syncing';
+  const isSyncFailed = syncPhase === 'failed';
+  const lastSyncedAt = project.data?.data.lastSyncedAt ?? null;
+
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const retrySync = (): void => {
+    postProjectSync.mutate(undefined, {
+      onError: (error) => {
+        toast.error(handleApiError(error).message);
+      }
+    });
+  };
   const [draft, setDraft] = useState('');
   const [streamStatus, setStreamStatus] = useState('');
   const [streamContent, setStreamContent] = useState('');
   const [streamSources, setStreamSources] = useState<SourceItem[]>([]);
-  const [streamError, setStreamError] = useState<string | null>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<PendingUserMessage | null>(null);
-  const [copyToastVisible, setCopyToastVisible] = useState(false);
-  const copyToastTimeoutRef = useRef<number | null>(null);
+  const [headerRenameDraft, setHeaderRenameDraft] = useState('');
+  const [editingHeaderChatId, setEditingHeaderChatId] = useState<string | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const messagesBottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -167,15 +200,13 @@ export const ProjectDetailPage = ({
     enabled: Boolean(activeChatId)
   });
 
-  const postPersonalMessage = usePostPersonalChatMessageSSE({
-    projectId,
-    chatId: activeChatId || '__empty__'
-  });
+  const postPersonalMessage = usePostPersonalChatMessageSSE({ projectId });
   const postShare = usePostMessageShare({
     projectId,
     chatId: activeChatId || '__empty__'
   });
   const createChat = usePostProjectChats({ projectId });
+  const patchChat = usePatchChat();
 
   const {
     sendMessage: socketSendMessage,
@@ -189,9 +220,9 @@ export const ProjectDetailPage = ({
 
   const teamSocketStatus = useTeamSocketStatus(isTeamChat);
 
-  const isSending = isPersonalChat ? postPersonalMessage.isPending : socketIsSending;
-  const canSend =
-    Boolean(activeChatId) && Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly;
+  const isSending =
+    postPersonalMessage.isPending || createChat.isPending || (isTeamChat && socketIsSending);
+  const canSend = Boolean(draft.trim()) && !isSending && !isTeamChatReadOnly;
   const teamReadOnlyReason = TEAM_CHAT_READONLY_TOOLTIP;
 
   const chatName = activeChat?.name;
@@ -217,34 +248,57 @@ export const ProjectDetailPage = ({
     ];
   }, [activeChatId, meId, messageItems, pendingUserMessage]);
 
-  useEffect(() => {
-    return () => {
-      if (copyToastTimeoutRef.current !== null) {
-        window.clearTimeout(copyToastTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const showCopyToast = (): void => {
-    setCopyToastVisible(true);
-    if (copyToastTimeoutRef.current !== null) {
-      window.clearTimeout(copyToastTimeoutRef.current);
-    }
-
-    copyToastTimeoutRef.current = window.setTimeout(() => {
-      setCopyToastVisible(false);
-      copyToastTimeoutRef.current = null;
-    }, 1500);
-  };
-
   const copyText = async (value: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(value);
-      showCopyToast();
+      toast.success('복사되었습니다');
     } catch {
       // noop
     }
   };
+
+  const isEditingHeaderTitle = Boolean(activeChatId) && editingHeaderChatId === activeChatId;
+
+  const beginHeaderRename = (): void => {
+    if (!activeChat) return;
+    setHeaderRenameDraft(activeChat.name);
+    setEditingHeaderChatId(activeChat.id);
+  };
+
+  const cancelHeaderRename = (): void => {
+    setEditingHeaderChatId(null);
+    setHeaderRenameDraft('');
+  };
+
+  const commitHeaderRename = async (nextName: string): Promise<void> => {
+    if (!activeChat || !projectId) {
+      cancelHeaderRename();
+      return;
+    }
+
+    const trimmed = nextName.trim();
+    if (!trimmed || trimmed === activeChat.name) {
+      cancelHeaderRename();
+      return;
+    }
+
+    try {
+      await patchChat.mutateAsync({
+        projectId,
+        chatId: activeChat.id,
+        name: trimmed
+      });
+      cancelHeaderRename();
+    } catch (error) {
+      toast.error(friendlyErrorMessage(error, 'chat.rename'));
+    }
+  };
+
+  useEffect(() => {
+    if (socketSendError) {
+      toast.error({ title: '전송 실패', description: socketSendError });
+    }
+  }, [socketSendError, toast]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
     if (messagesBottomRef.current) {
@@ -267,28 +321,58 @@ export const ProjectDetailPage = ({
     return () => window.cancelAnimationFrame(frameId);
   }, [activeChatId, displayMessageItems.length, streamContent, streamStatus]);
 
-  const sendMessage = (): void => {
-    if (!canSend || !activeChatId) return;
+  const sendMessage = async (): Promise<void> => {
+    if (!canSend) return;
 
     const content = draft.trim();
     setDraft('');
 
+    const wasAutoCreate = !activeChatId;
+    let targetChatId = activeChatId;
+
+    if (wasAutoCreate) {
+      const tempName = content.split('\n')[0].trim().slice(0, 30) || '새 대화';
+      try {
+        const created = await createChat.mutateAsync({ type: 'personal', name: tempName });
+        const newId = (created as { data?: { id?: string } })?.data?.id;
+        if (!newId) {
+          setDraft(content);
+          toast.error({
+            title: '채팅 생성 실패',
+            description: '채팅을 만들지 못했어요. 잠시 후 다시 시도해주세요.'
+          });
+          return;
+        }
+        targetChatId = newId;
+        onSelectChat(newId);
+      } catch (error) {
+        setDraft(content);
+        toast.error(friendlyErrorMessage(error, 'chat.create'));
+        return;
+      }
+    }
+
+    // 자동 생성이었다면 개인 채팅이 확정, 아니면 기존 활성 채팅 타입을 따름
+    const isPersonalTarget = wasAutoCreate || isPersonalChat;
+
     const pendingMessage: PendingUserMessage = {
       clientId: `pending-user-${Date.now()}`,
-      chatId: activeChatId,
+      chatId: targetChatId,
       content,
       failed: false
     };
     setPendingUserMessage(pendingMessage);
 
-    if (isPersonalChat) {
+    if (isPersonalTarget) {
       setStreamStatus('요청 중...');
       setStreamContent('');
       setStreamSources([]);
-      setStreamError(null);
+
+      const chatQueryKey = QUERY_KEY.projectChatsByProject(projectId);
 
       postPersonalMessage.mutate(
         {
+          chatId: targetChatId,
           content,
           callbacks: {
             onStatus: (payload) => {
@@ -301,11 +385,24 @@ export const ProjectDetailPage = ({
             onSources: (payload) => {
               setStreamSources(payload.sources ?? []);
             },
+            onTitle: (name) => {
+              queryClient.setQueriesData<{ data: ProjectChatItem[] }>(
+                { queryKey: chatQueryKey },
+                (old) => {
+                  if (!old) return old;
+                  return {
+                    ...old,
+                    data: old.data.map((c) => (c.id === targetChatId ? { ...c, name } : c))
+                  };
+                }
+              );
+              void queryClient.invalidateQueries({ queryKey: chatQueryKey });
+            },
             onDone: () => {
               setStreamStatus('완료');
             },
             onError: (message) => {
-              setStreamError(message);
+              toast.error({ title: '스트리밍 오류', description: message });
               setPendingUserMessage((prev) => {
                 if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
                 return { ...prev, failed: true };
@@ -314,6 +411,9 @@ export const ProjectDetailPage = ({
           }
         },
         {
+          onError: (error) => {
+            toast.error(friendlyErrorMessage(error, 'chat.send'));
+          },
           onSettled: (_data, error) => {
             window.setTimeout(() => {
               setStreamStatus('');
@@ -344,49 +444,89 @@ export const ProjectDetailPage = ({
   if (project.isError) {
     return (
       <InlineAlert tone="danger" title="프로젝트 조회 실패">
-        {handleApiError(project.error).message}
+        <div className="flex flex-col items-start gap-2">
+          <p>프로젝트 정보를 불러올 수 없습니다.</p>
+          <button
+            type="button"
+            onClick={() => void project.refetch()}
+            disabled={project.isFetching}
+            className="rounded-md border border-danger-line bg-white px-3 py-1 text-ui-12 font-medium text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {project.isFetching ? '다시 시도 중...' : '다시 시도'}
+          </button>
+        </div>
       </InlineAlert>
     );
   }
 
+  const isInitialProjectLoading = project.isLoading;
+  const isBackgroundProjectFetching = project.isFetching && !project.isLoading;
+
+  if (isInitialProjectLoading) {
+    return (
+      <section className="flex h-full min-h-0 flex-col items-center justify-center rounded-[16px] border border-zinc-200 bg-white">
+        <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
+          <div
+            aria-hidden="true"
+            className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-primary"
+          />
+          <p className="text-ui-12 font-medium text-zinc-500">프로젝트를 불러오는 중...</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-[16px] border border-zinc-200 bg-white">
-      <div
-        role="status"
-        aria-live="polite"
-        aria-hidden={!copyToastVisible}
-        className={`pointer-events-none fixed right-6 top-6 z-50 rounded-[10px] border border-zinc-200 bg-zinc-900 px-3 py-2 text-ui-12 font-medium text-white shadow-lg transition-all duration-200 ${
-          copyToastVisible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
-        }`}
-      >
-        복사되었습니다
-      </div>
+    <section className="relative flex h-full min-h-0 flex-col rounded-[16px] border border-zinc-200 bg-white">
+      {isBackgroundProjectFetching ? (
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 animate-pulse rounded-t-[16px] bg-primary/60"
+          role="status"
+          aria-live="polite"
+          aria-label="프로젝트 정보 갱신 중"
+        />
+      ) : null}
+
+      {isAnalyzing ? (
+        <div className="px-4 pt-3" aria-live="polite">
+          <InlineAlert tone="info" title="분석 진행 중">
+            동기화 중... ({syncProgress}%)
+          </InlineAlert>
+        </div>
+      ) : null}
+
+      {isSyncFailed ? (
+        <div className="px-4 pt-3" aria-live="polite">
+          <InlineAlert tone="danger" title="동기화 실패">
+            <div className="flex flex-col gap-2">
+              <span>{mapSyncError(syncErrorCode)}</span>
+              <div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  isLoading={postProjectSync.isPending}
+                  onClick={retrySync}
+                >
+                  다시 시도
+                </Button>
+              </div>
+            </div>
+          </InlineAlert>
+        </div>
+      ) : null}
+
+      {!isAnalyzing && !isSyncFailed && lastSyncedAt ? (
+        <div className="px-4 pt-3 text-ui-12 text-zinc-500" aria-live="polite">
+          마지막 동기화: {formatRelativeTime(lastSyncedAt)}
+        </div>
+      ) : null}
+
       <div className="px-4" role="alert" aria-live="assertive">
         {chats.isError ? (
           <div className="mb-2">
             <InlineAlert tone="danger" title="채팅 목록 조회 실패">
               {handleApiError(chats.error).message}
-            </InlineAlert>
-          </div>
-        ) : null}
-        {socketSendError ? (
-          <div className="mb-2">
-            <InlineAlert tone="danger" title="메시지 전송 실패">
-              {socketSendError}
-            </InlineAlert>
-          </div>
-        ) : null}
-        {postPersonalMessage.isError ? (
-          <div className="mb-2">
-            <InlineAlert tone="danger" title="SSE 전송 실패">
-              {postPersonalMessage.error.message}
-            </InlineAlert>
-          </div>
-        ) : null}
-        {streamError ? (
-          <div className="mb-2">
-            <InlineAlert tone="danger" title="스트리밍 오류">
-              {streamError}
             </InlineAlert>
           </div>
         ) : null}
@@ -414,57 +554,123 @@ export const ProjectDetailPage = ({
           </div>
         </div>
       ) : null}
+
+      {activeChat && isPersonalChat ? (
+        <div className="border-b border-zinc-100 px-4 py-2 flex justify-center">
+          <div className="max-w-145.5 w-full">
+            {isEditingHeaderTitle ? (
+              <input
+                autoFocus
+                value={headerRenameDraft}
+                maxLength={100}
+                disabled={patchChat.isPending}
+                onChange={(e) => setHeaderRenameDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void commitHeaderRename(headerRenameDraft);
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelHeaderRename();
+                  }
+                }}
+                onBlur={() => {
+                  void commitHeaderRename(headerRenameDraft);
+                }}
+                className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1 text-ui-14 font-medium text-zinc-900 outline-none focus:border-primary"
+                aria-label={`${activeChat.name} 이름 바꾸기`}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={beginHeaderRename}
+                className="w-full truncate rounded-md px-2 py-1 text-left text-ui-14 font-medium text-zinc-900 transition-colors hover:bg-zinc-100"
+                title="클릭하여 채팅 이름 바꾸기"
+                aria-label={`${activeChat.name} — 이름 바꾸기`}
+              >
+                {activeChat.name}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       <div className="min-h-0 flex-1 pt-[12px]">
         <div
           ref={messagesViewportRef}
           className="h-full overflow-y-auto px-3 pb-3 flex justify-center"
         >
-          <div className="flex min-h-full flex-col gap-6 max-w-145.5 w-full">
-            {messages.isLoading ? (
-              <p className="text-ui-12 font-medium text-zinc-500">메시지를 불러오는 중...</p>
-            ) : null}
+          {!activeChatId ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
+              <p className="text-ui-12 font-medium text-zinc-400">현재 프로젝트</p>
+              <h2 className="text-2xl font-semibold text-zinc-800">
+                {project.data?.data.name ?? '프로젝트'}
+              </h2>
+              <p className="text-ui-14 text-zinc-500">메시지를 입력하면 새 대화가 시작돼요.</p>
+            </div>
+          ) : (
+            <div className="flex min-h-full flex-col gap-6 max-w-145.5 w-full">
+              {messages.isLoading ? (
+                <p className="text-ui-12 font-medium text-zinc-500">메시지를 불러오는 중...</p>
+              ) : null}
 
-            {messages.isError ? (
-              <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
-                <p className="text-ui-12 font-medium text-zinc-700">
-                  이전 대화를 불러올 수 없습니다.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void messages.refetch();
-                  }}
-                  className="text-ui-12 font-medium text-primary hover:underline"
-                >
-                  다시 시도
-                </button>
-              </div>
-            ) : null}
+              {messages.isError ? (
+                <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
+                  <p className="text-ui-12 font-medium text-zinc-700">
+                    이전 대화를 불러올 수 없습니다.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void messages.refetch();
+                    }}
+                    className="text-ui-12 font-medium text-primary hover:underline"
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : null}
 
-            {displayMessageItems.map((message) => {
-              const messageId = getMessageId(message);
-              const messageRole = getMessageRole(message);
-              const messageContent = getMessageContent(message);
-              const isLocalFailed = isLocalFailedMessage(message);
+              {displayMessageItems.map((message) => {
+                const messageId = getMessageId(message);
+                const messageRole = getMessageRole(message);
+                const messageContent = getMessageContent(message);
+                const isLocalFailed = isLocalFailedMessage(message);
 
-              // ── 팀 채팅 렌더링 ──────────────────────────────────────────────
-              if (isTeamChat) {
-                // TeamChatMessage shape: { userId, userName, content, createdAt } — role 필드 없음
-                const msgUserId = getTeamMessageUserId(message);
-                const senderName = getTeamMessageUserName(message);
-                const createdAt = getMessageCreatedAt(message);
-                const timeLabel = formatMessageTime(createdAt);
-                const isPendingMine = Boolean((message as { __isMe?: boolean }).__isMe);
-                const isMe = isPendingMine || Boolean(meId && msgUserId === meId);
+                // ── 팀 채팅 렌더링 ──────────────────────────────────────────────
+                if (isTeamChat) {
+                  // TeamChatMessage shape: { userId, userName, content, createdAt } — role 필드 없음
+                  const msgUserId = getTeamMessageUserId(message);
+                  const senderName = getTeamMessageUserName(message);
+                  const createdAt = getMessageCreatedAt(message);
+                  const timeLabel = formatMessageTime(createdAt);
+                  const isPendingMine = Boolean((message as { __isMe?: boolean }).__isMe);
+                  const isMe = isPendingMine || Boolean(meId && msgUserId === meId);
 
-                if (isMe) {
+                  if (isMe) {
+                    return (
+                      <div key={messageId} className="flex items-end justify-end gap-2">
+                        <div className="flex flex-col items-end gap-0.5 w-full">
+                          {isLocalFailed ? (
+                            <p className="text-ui-10 font-medium text-red-500">전송 실패</p>
+                          ) : null}
+                          <div className="max-w-[70%] rounded-xl bg-zinc-700 px-3 py-2.5 text-ui-12 font-medium text-white">
+                            {messageContent}
+                          </div>
+                          {timeLabel ? (
+                            <p className="text-ui-10 text-zinc-400">{timeLabel}</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
-                    <div key={messageId} className="flex items-end justify-end gap-2">
-                      <div className="flex flex-col items-end gap-0.5 w-full">
-                        {isLocalFailed ? (
-                          <p className="text-ui-10 font-medium text-red-500">전송 실패</p>
-                        ) : null}
-                        <div className="max-w-[70%] rounded-xl bg-zinc-700 px-3 py-2.5 text-ui-12 font-medium text-white">
+                    <div key={messageId} className="flex items-end gap-2">
+                      <Avatar name={senderName} />
+                      <div className="flex flex-col gap-0.5 w-full">
+                        <p className="text-ui-10 font-medium text-zinc-500">{senderName}</p>
+                        <div className="max-w-[70%] w-fit rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-ui-12 text-zinc-800">
                           {messageContent}
                         </div>
                         {timeLabel ? <p className="text-ui-10 text-zinc-400">{timeLabel}</p> : null}
@@ -473,142 +679,139 @@ export const ProjectDetailPage = ({
                   );
                 }
 
+                // ── 개인 채팅 렌더링 ────────────────────────────────────────────
+                if (isUserMessageRole(messageRole)) {
+                  return (
+                    <div key={messageId} className="flex items-end justify-end gap-3">
+                      <div className="flex flex-col items-end">
+                        <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-ui-12 font-medium text-zinc-800">
+                          {messageContent}
+                        </div>
+                        {isLocalFailed ? (
+                          <p className="mt-1 text-ui-10 font-medium text-red-500">전송 실패</p>
+                        ) : null}
+                      </div>
+                      <Avatar name={myAvatarName} />
+                    </div>
+                  );
+                }
+
+                const sources = extractSources(message);
+                const primarySource = sources[0];
+
                 return (
-                  <div key={messageId} className="flex items-end gap-2">
-                    <Avatar name={senderName} />
-                    <div className="flex flex-col gap-0.5 w-full">
-                      <p className="text-ui-10 font-medium text-zinc-500">{senderName}</p>
-                      <div className="max-w-[70%] w-fit rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-ui-12 text-zinc-800">
-                        {messageContent}
-                      </div>
-                      {timeLabel ? <p className="text-ui-10 text-zinc-400">{timeLabel}</p> : null}
+                  <article key={messageId} className="rounded-[12px] bg-white p-3">
+                    <div className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
+                      {messageContent}
                     </div>
-                  </div>
-                );
-              }
 
-              // ── 개인 채팅 렌더링 ────────────────────────────────────────────
-              if (isUserMessageRole(messageRole)) {
-                return (
-                  <div key={messageId} className="flex items-end justify-end gap-3">
-                    <div className="flex flex-col items-end">
-                      <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-ui-12 font-medium text-zinc-800">
-                        {messageContent}
+                    {primarySource ? (
+                      <div className="mt-3 rounded-[12px] bg-zinc-100 p-3">
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="text-ui-10 font-medium text-zinc-500">Java Script</p>
+                          <MessageActionButton
+                            iconName="Copy_light"
+                            label="코드복사"
+                            onClick={() => copyText(primarySource.snippet)}
+                          />
+                        </div>
+                        <pre className="m-0 overflow-x-auto whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
+                          <code>{primarySource.snippet}</code>
+                        </pre>
                       </div>
-                      {isLocalFailed ? (
-                        <p className="mt-1 text-ui-10 font-medium text-red-500">전송 실패</p>
-                      ) : null}
-                    </div>
-                    <Avatar name={myAvatarName} />
-                  </div>
-                );
-              }
+                    ) : null}
 
-              const sources = extractSources(message);
-              const primarySource = sources[0];
-
-              return (
-                <article key={messageId} className="rounded-[12px] bg-white p-3">
-                  <div className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                    {messageContent}
-                  </div>
-
-                  {primarySource ? (
-                    <div className="mt-3 rounded-[12px] bg-zinc-100 p-3">
-                      <div className="mb-3 flex items-center justify-between">
-                        <p className="text-ui-10 font-medium text-zinc-500">Java Script</p>
-                        <MessageActionButton
-                          iconName="Copy_light"
-                          label="코드복사"
-                          onClick={() => copyText(primarySource.snippet)}
-                        />
-                      </div>
-                      <pre className="m-0 overflow-x-auto whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                        <code>{primarySource.snippet}</code>
-                      </pre>
-                    </div>
-                  ) : null}
-
-                  {sources.length > 0 ? (
-                    <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
-                      <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500">
-                        <span>참조한 소스 {sources.length}개</span>
-                        <button
-                          type="button"
-                          className="text-zinc-500 transition-colors hover:text-zinc-700"
-                        >
-                          닫기
-                        </button>
-                      </div>
-                      <div className="divide-y divide-zinc-100">
-                        {sources.map((source) => (
-                          <div
-                            key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-                            className="flex items-center justify-between px-3 py-1.5 text-ui-12"
+                    {sources.length > 0 ? (
+                      <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
+                        <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500">
+                          <span>참조한 소스 {sources.length}개</span>
+                          <button
+                            type="button"
+                            className="text-zinc-500 transition-colors hover:text-zinc-700"
                           >
-                            <span className="min-w-0 flex-1 truncate text-zinc-800">
-                              {source.filePath}
-                            </span>
-                            <span className="ml-3 text-ui-10 text-zinc-500">
-                              {source.startLine ?? '-'}-{source.endLine ?? '-'}
-                            </span>
-                          </div>
-                        ))}
+                            닫기
+                          </button>
+                        </div>
+                        <div className="divide-y divide-zinc-100">
+                          {sources.map((source) => (
+                            <div
+                              key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
+                              className="flex items-center justify-between px-3 py-1.5 text-ui-12"
+                            >
+                              <span className="min-w-0 flex-1 truncate text-zinc-800">
+                                {source.filePath}
+                              </span>
+                              <span className="ml-3 text-ui-10 text-zinc-500">
+                                {source.startLine ?? '-'}-{source.endLine ?? '-'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
+                    ) : null}
+
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <MessageActionButton
+                        iconName="Copy_light"
+                        label="복사"
+                        onClick={() => copyText(messageContent)}
+                      />
+                      <MessageActionButton
+                        iconName="shared"
+                        label="팀 공유"
+                        disabled={postShare.isPending || !API_CAPABILITIES.messageShareEnabled}
+                        disabledReason={
+                          !API_CAPABILITIES.messageShareEnabled ? teamReadOnlyReason : undefined
+                        }
+                        onClick={() =>
+                          postShare.mutate(
+                            {
+                              messageId,
+                              body: { comment: `${chatName}에서 공유한 답변입니다.` }
+                            },
+                            {
+                              onSuccess: () => {
+                                toast.success('팀에 공유했어요');
+                              },
+                              onError: (error) => {
+                                toast.error(friendlyErrorMessage(error, 'message.share'));
+                              }
+                            }
+                          )
+                        }
+                      />
+                      <MessageActionButton
+                        iconName="create_box"
+                        label="팀 채팅 생성"
+                        disabled
+                        disabledReason={teamReadOnlyReason}
+                      />
                     </div>
-                  ) : null}
+                  </article>
+                );
+              })}
 
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <MessageActionButton
-                      iconName="Copy_light"
-                      label="복사"
-                      onClick={() => copyText(messageContent)}
-                    />
-                    <MessageActionButton
-                      iconName="shared"
-                      label="팀 공유"
-                      disabled={postShare.isPending || !API_CAPABILITIES.messageShareEnabled}
-                      disabledReason={
-                        !API_CAPABILITIES.messageShareEnabled ? teamReadOnlyReason : undefined
-                      }
-                      onClick={() =>
-                        postShare.mutate({
-                          messageId,
-                          body: { comment: `${chatName}에서 공유한 답변입니다.` }
-                        })
-                      }
-                    />
-                    <MessageActionButton
-                      iconName="create_box"
-                      label="팀 채팅 생성"
-                      disabled
-                      disabledReason={teamReadOnlyReason}
-                    />
-                  </div>
-                </article>
-              );
-            })}
-
-            {(isSending || streamContent) && activeChatId && isPersonalChat ? (
-              <article
-                className="rounded-[12px] border border-zinc-200 bg-white p-3"
-                aria-live="polite"
-              >
-                <p className="mb-1 text-ui-10 font-medium text-zinc-500">
-                  Qode AI · {streamStatus || '스트리밍 중'}
-                </p>
-                <p className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                  {streamContent || '답변을 생성하고 있습니다...'}
-                </p>
-                {streamSources.length > 0 ? (
-                  <p className="mt-2 text-ui-10 text-zinc-500">
-                    참조 소스 {streamSources.length}개 수집됨
+              {(isSending || streamContent) && activeChatId && isPersonalChat ? (
+                <article
+                  className="rounded-[12px] border border-zinc-200 bg-white p-3"
+                  aria-live="polite"
+                >
+                  <p className="mb-1 text-ui-10 font-medium text-zinc-500">
+                    Qode AI · {streamStatus || '스트리밍 중'}
                   </p>
-                ) : null}
-              </article>
-            ) : null}
-            <div ref={messagesBottomRef} aria-hidden />
-          </div>
+                  <p className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
+                    {streamContent || '답변을 생성하고 있습니다...'}
+                  </p>
+                  {streamSources.length > 0 ? (
+                    <p className="mt-2 text-ui-10 text-zinc-500">
+                      참조 소스 {streamSources.length}개 수집됨
+                    </p>
+                  ) : null}
+                </article>
+              ) : null}
+              <div ref={messagesBottomRef} aria-hidden />
+            </div>
+          )}
         </div>
       </div>
 
@@ -617,19 +820,21 @@ export const ProjectDetailPage = ({
           value={draft}
           placeholder={
             !activeChatId
-              ? '채팅을 선택하세요...'
+              ? '새 대화를 시작해보세요...'
               : isTeamChatReadOnly
                 ? '팀채팅은 현재 읽기 전용입니다.'
                 : isTeamChat
                   ? '팀에게 메시지 보내기...'
                   : '메시지를 입력하세요...'
           }
-          disabled={!activeChatId || isTeamChatReadOnly}
+          disabled={isTeamChatReadOnly}
           canSend={canSend}
           sendDisabledReason={isTeamChatReadOnly ? teamReadOnlyReason : undefined}
           isSending={isSending}
           onChange={setDraft}
-          onSend={sendMessage}
+          onSend={() => {
+            void sendMessage();
+          }}
         />
       </footer>
 

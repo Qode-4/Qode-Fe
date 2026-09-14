@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { usePatchStorageItemTitle } from '../../../api/auth/useStorageItemsAPI';
-import { handleApiError } from '../../../api/axios';
+import { friendlyErrorMessage } from '../../../api/errorMessages';
 import type { StorageItem } from '../../../api/contracts/storageItems';
+import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../ui/Button';
-import { InlineAlert } from '../../ui/InlineAlert';
 import { OverlayModal } from '../../ui/OverlayModal';
 
 type Props = {
@@ -19,6 +19,7 @@ export const EditStorageItemTitleModal = ({
   item,
   onClose
 }: Props): React.JSX.Element | null => {
+  const toast = useToast();
   const [title, setTitle] = useState('');
   const [touched, setTouched] = useState(false);
   const [lastItemId, setLastItemId] = useState<string | null>(null);
@@ -52,7 +53,10 @@ export const EditStorageItemTitleModal = ({
     patch.mutate(
       { id: item.id, body: { title: trimmed } },
       {
-        onSuccess: () => resetAndClose()
+        onSuccess: () => resetAndClose(),
+        onError: (error) => {
+          toast.error(friendlyErrorMessage(error, 'storage.rename'));
+        }
       }
     );
   };
@@ -82,14 +86,6 @@ export const EditStorageItemTitleModal = ({
           />
           {titleError ? <span className="mt-1 block text-xs text-danger">{titleError}</span> : null}
         </label>
-
-        {patch.isError ? (
-          <div className="mt-3">
-            <InlineAlert tone="danger" title="수정 실패">
-              {handleApiError(patch.error).message}
-            </InlineAlert>
-          </div>
-        ) : null}
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={resetAndClose}>

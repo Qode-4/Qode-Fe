@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useGetAuthMe } from './api/auth/useAuthAPI';
 import { useGetProjectChats } from './api/auth/useChatsAPI';
-import { useGetProjects } from './api/auth/useProjectsAPI';
+import { useGetProject, useGetProjects } from './api/auth/useProjectsAPI';
 import { useGetProjectSections } from './api/auth/useSectionsAPI';
 import { authTransitionStorage } from './api/authTransitionStorage';
 import { handleApiError } from './api/axios';
+import type { ProjectsListData } from './api/generated/data-contracts';
+import { QUERY_KEY } from './api/queryKeys';
 import { tokenStorage } from './api/tokenStorage';
 import { CreateProjectModal } from './components/feature/CreateProjectModal';
 import { AppShell } from './components/layout/AppShell';
 import { InlineAlert } from './components/ui/InlineAlert';
+import { useToast } from './hooks/useToast';
 import { buildPath, matchPath, navigate, resolveNextPath } from './lib/hashRouter';
 import { applyUiFontSize, getStoredUiFontSize } from './lib/uiFontSize';
 import { useHashLocation } from './lib/useHashLocation';
@@ -36,6 +40,8 @@ const App = (): React.JSX.Element => {
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
   const projects = useGetProjects({ search: '', enabled: Boolean(token) });
   const loginTransitionUserName = authTransitionStorage.getLoginTransitionUserName();
+  const toast = useToast();
+  const queryClient = useQueryClient();
 
   const projectMatch = matchPath(location.path, '/projects/:projectId');
   const storageMatch = matchPath(location.path, '/projects/:projectId/storage');
@@ -44,6 +50,10 @@ const App = (): React.JSX.Element => {
     : storageMatch.matched
       ? storageMatch.params.projectId
       : undefined;
+  const selectedProject = useGetProject({
+    projectId: selectedProjectId ?? '',
+    enabled: Boolean(selectedProjectId)
+  });
   const sections = useGetProjectSections({
     projectId: selectedProjectId ?? '',
     enabled: Boolean(selectedProjectId)
@@ -63,9 +73,24 @@ const App = (): React.JSX.Element => {
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [createChatModalType, setCreateChatModalType] = useState<'personal' | 'team' | null>(null);
+  const autoSelectedForProjectRef = useRef<string | null>(null);
 
   const activeChatId =
     selectedChatId && allChats.some((it) => it.id === selectedChatId) ? selectedChatId : '';
+
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    if (autoSelectedForProjectRef.current === selectedProjectId) return;
+    if (allChats.length === 0) return;
+
+    const mostRecent = [...allChats].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+    if (!mostRecent) return;
+
+    autoSelectedForProjectRef.current = selectedProjectId;
+    // 프로젝트 진입/전환 시 1회 초기 선택 — ref 가드로 재실행 억제
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedChatId(mostRecent.id);
+  }, [selectedProjectId, allChats]);
 
   useEffect(() => {
     if (!window.location.hash) navigate('/login', { replace: true });
@@ -127,6 +152,11 @@ const App = (): React.JSX.Element => {
     if (!token) return;
     if (!projects.isSuccess) return;
 
+    // 초대 수락 중인 사람에게 "프로젝트를 만드세요"는 맥락에 맞지 않는다.
+    // 게다가 초대 라우트는 early return 이라 모달이 렌더되지 않아, 켜도 보이지 않는 채로
+    // 상태만 남고 합류 후 화면에 튀어나온다.
+    if (isInviteRoute) return;
+
     if (projects.data.data.length === 0) {
       if (!autoOpenedForEmptyRef.current) {
         autoOpenedForEmptyRef.current = true;
@@ -135,8 +165,13 @@ const App = (): React.JSX.Element => {
       return;
     }
 
-    autoOpenedForEmptyRef.current = false;
-  }, [token, projects.isSuccess, projects.data]);
+    // 프로젝트가 생겼으면 자동으로 열었던 모달을 닫는다.
+    // ref 만 되돌리면 모달은 열린 채로 남는다 — 초대로 합류했을 때 이 상태가 된다.
+    if (autoOpenedForEmptyRef.current) {
+      autoOpenedForEmptyRef.current = false;
+      setCreateProjectModalOpen(false);
+    }
+  }, [token, isInviteRoute, projects.isSuccess, projects.data]);
 
   useEffect(() => {
     if (!loginTransitionUserName) return;
@@ -144,6 +179,40 @@ const App = (): React.JSX.Element => {
       authTransitionStorage.clearLoginTransitionUserName();
     }
   }, [loginTransitionUserName, token, me.isSuccess, me.isError]);
+
+  // 삭제된 프로젝트로 들어오면(404): 알림, 목록 캐시에서 제거, 기본 프로젝트로 fallback
+  const handledDeletedProjectIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    if (!selectedProject.isError) return;
+    if (handledDeletedProjectIdRef.current === selectedProjectId) return;
+
+    const status = handleApiError(selectedProject.error).status;
+    if (status !== 404) return;
+
+    handledDeletedProjectIdRef.current = selectedProjectId;
+
+    toast.error('해당 프로젝트가 삭제되었습니다.');
+    queryClient.setQueriesData<ProjectsListData>({ queryKey: ['projects'] }, (old) => {
+      if (!old) return old;
+      return { ...old, data: old.data.filter((p) => p.id !== selectedProjectId) };
+    });
+    queryClient.removeQueries({ queryKey: QUERY_KEY.project(selectedProjectId) });
+    if (window.localStorage.getItem(LAST_SELECTED_PROJECT_ID_KEY) === selectedProjectId) {
+      window.localStorage.removeItem(LAST_SELECTED_PROJECT_ID_KEY);
+    }
+    navigate('/projects', { replace: true });
+  }, [selectedProjectId, selectedProject.isError, selectedProject.error, queryClient, toast]);
+
+  // 라우트가 다른 프로젝트로 바뀌면 재-감지가 가능하도록 가드를 푼다.
+  useEffect(() => {
+    if (
+      handledDeletedProjectIdRef.current &&
+      handledDeletedProjectIdRef.current !== selectedProjectId
+    ) {
+      handledDeletedProjectIdRef.current = null;
+    }
+  }, [selectedProjectId]);
 
   if (matchPath(location.path, '/login').matched) return <LoginPage location={location} />;
   if (matchPath(location.path, '/signup').matched) return <SignupPage location={location} />;
@@ -197,6 +266,11 @@ const App = (): React.JSX.Element => {
     <AppShell
       me={me.data}
       projects={projects.data?.data ?? []}
+      projectsError={projects.isError}
+      projectsFetching={projects.isFetching}
+      onRetryProjects={() => {
+        void projects.refetch();
+      }}
       sections={sections.data?.data ?? []}
       sectionsLoading={sections.isLoading}
       sectionsErrorMessage={sections.isError ? handleApiError(sections.error).message : null}
@@ -211,7 +285,7 @@ const App = (): React.JSX.Element => {
       }}
       activeChatId={activeChatId}
       onSelectChat={setSelectedChatId}
-      onCreatePersonalChat={() => setCreateChatModalType('personal')}
+      onCreatePersonalChat={() => setSelectedChatId(null)}
       onCreateTeamChat={() => setCreateChatModalType('team')}
     >
       {projects.isError ? (
@@ -235,6 +309,7 @@ const App = (): React.JSX.Element => {
           meName={me.data?.name}
           meId={me.data?.id}
           createChatModalType={createChatModalType}
+          onSelectChat={setSelectedChatId}
           onCloseCreateChatModal={() => setCreateChatModalType(null)}
         />
       ) : null}
