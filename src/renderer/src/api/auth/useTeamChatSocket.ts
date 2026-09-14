@@ -44,9 +44,6 @@ export const useTeamChatSocket = (
 
     socket.emit('room:join', chatId);
 
-
-    
-
     const handleMessage = (message: TeamChatSocketMessage): void => {
       setIsSending(false);
       setSendError(null);
@@ -66,7 +63,7 @@ export const useTeamChatSocket = (
     socket.on('team:message:receive', handleMessage);
     socket.on('team:message:error', handleError);
     socket.on('team:message:sent', handleMessage);
-    
+
     return () => {
       socket.off('team:message:receive', handleMessage);
       socket.off('team:message:error', handleError);
@@ -86,4 +83,34 @@ export const useTeamChatSocket = (
   );
 
   return { sendMessage, isSending, sendError };
+};
+
+export type TeamSocketStatus = 'connected' | 'disconnected' | 'reconnecting';
+
+export const useTeamSocketStatus = (enabled: boolean): TeamSocketStatus => {
+  const [status, setStatus] = useState<TeamSocketStatus>(() =>
+    getSocket().connected ? 'connected' : 'disconnected'
+  );
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const socket = getSocket();
+
+    const onConnect = (): void => setStatus('connected');
+    const onDisconnect = (): void => setStatus('disconnected');
+    const onReconnectAttempt = (): void => setStatus('reconnecting');
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.io.on('reconnect_attempt', onReconnectAttempt);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.io.off('reconnect_attempt', onReconnectAttempt);
+    };
+  }, [enabled]);
+
+  return status;
 };
