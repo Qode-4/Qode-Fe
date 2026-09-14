@@ -26,6 +26,7 @@ import { Button } from '../components/ui/Button';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
+import { MarkdownAnswer } from '../components/ui/MarkdownAnswer';
 import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
@@ -673,9 +674,7 @@ export const ProjectDetailPage = ({
 
                 return (
                   <article key={messageId} className="rounded-[12px] bg-white p-3">
-                    <div className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                      {messageContent}
-                    </div>
+                    <MarkdownAnswer content={messageContent} />
 
                     {primarySource ? (
                       <div className="mt-3 rounded-[12px] bg-zinc-100 p-3">
@@ -771,9 +770,13 @@ export const ProjectDetailPage = ({
                   <p className="mb-1 text-ui-10 font-medium text-zinc-500">
                     Qode AI · {streamStatus || '스트리밍 중'}
                   </p>
-                  <p className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                    {streamContent || '답변을 생성하고 있습니다...'}
-                  </p>
+                  {streamContent ? (
+                    <MarkdownAnswer content={streamContent} />
+                  ) : (
+                    <p className="text-ui-12 leading-[1.6] text-zinc-500">
+                      답변을 생성하고 있습니다...
+                    </p>
+                  )}
                   {streamSources.length > 0 ? (
                     <p className="mt-2 text-ui-10 text-zinc-500">
                       참조 소스 {streamSources.length}개 수집됨
