@@ -8,7 +8,7 @@ const meta = {
   tags: ['autodocs'],
   args: {
     value: '',
-    placeholder: '메시지를 입력하세요...',
+    placeholder: '무엇이든 물어보세요!',
     disabled: false,
     canSend: false,
     isSending: false

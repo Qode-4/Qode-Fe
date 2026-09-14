@@ -825,7 +825,7 @@ export const ProjectDetailPage = ({
                 ? '팀채팅은 현재 읽기 전용입니다.'
                 : isTeamChat
                   ? '팀에게 메시지 보내기...'
-                  : '메시지를 입력하세요...'
+                  : '무엇이든 물어보세요!'
           }
           disabled={isTeamChatReadOnly}
           canSend={canSend}
