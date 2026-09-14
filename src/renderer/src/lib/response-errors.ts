@@ -2,7 +2,7 @@
 // HTTP·네트워크 예외에서 온다. 자동 재시도는 안 하고 화면 재시도 버튼과 세트로 소비.
 import type { AxiosError } from 'axios';
 
-export type ResponseErrorKind = 'server' | 'timeout' | 'network' | 'unknown';
+export type ResponseErrorKind = 'server' | 'timeout' | 'network' | 'sync' | 'unknown';
 
 export type ResponseError = {
   kind: ResponseErrorKind;
@@ -55,6 +55,10 @@ export const classifyResponseError = (input: unknown): ResponseError => {
   }
 
   if (typeof input === 'string') {
+    // 동기화 중 차단(ADR-005). 고장이 아니라 상태라서 따로 분류한다.
+    if (input === 'SYNC_IN_PROGRESS') {
+      return { kind: 'sync', code: 'SYNC_IN_PROGRESS' };
+    }
     const lower = input.toLowerCase();
     if (TIMEOUT_HINTS.some((h) => lower.includes(h))) {
       return { kind: 'timeout', code: 'TIMEOUT' };
@@ -81,6 +85,8 @@ export const mapResponseError = (input: unknown): string => {
       return '응답 시간이 초과되었습니다.';
     case 'network':
       return '네트워크 연결을 확인해주세요.';
+    case 'sync':
+      return '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.';
     default:
       return `예상치 못한 오류가 발생했습니다. (코드: ${err.code})`;
   }
