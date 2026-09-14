@@ -24,6 +24,11 @@ type Props = {
   onClose: () => void;
 };
 
+// 명세 A-3. 서버 project.schema.ts 의 createProjectBodySchema 와 같은 값이다.
+const PROJECT_NAME_MIN = 2;
+const PROJECT_NAME_MAX = 50;
+const PROJECT_DESCRIPTION_MAX = 200;
+
 export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element | null => {
   const toast = useToast();
   const create = usePostProjects();
@@ -65,7 +70,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     [repoItems, selectedRepoFullName]
   );
 
-  const hasProjectInfo = Boolean(name.trim());
+  const hasProjectInfo = name.trim().length >= PROJECT_NAME_MIN;
   const isAuthorized = oauthStatus.data?.data.status === 'authorized';
   const hasRepo = Boolean(selectedRepo);
   const waitingAuth = Boolean(activeOauthFlow?.data.flowId) && !isAuthorized;
@@ -73,6 +78,10 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
   const nameError = useMemo(() => {
     if (!touched.name) return '';
     if (!name.trim()) return '프로젝트 이름을 입력해주세요.';
+    // 서버 createProjectBodySchema 와 같은 한도다(명세 A-3). maxLength 가 51자째를
+    // 막아주지만 2자 미만은 입력 단계에서 막을 수 없어 문구로 알린다.
+    if (name.trim().length < PROJECT_NAME_MIN)
+      return `프로젝트 이름은 ${PROJECT_NAME_MIN}자 이상이어야 합니다.`;
     return '';
   }, [name, touched.name]);
 
@@ -247,6 +256,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                     : 'border-[#737983] focus:border-primary'
                 ].join(' ')}
                 value={name}
+                maxLength={PROJECT_NAME_MAX}
                 onChange={(e) => setName(e.target.value)}
                 onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
                 placeholder="예) Qode-Fe"
@@ -263,6 +273,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                 id="create-project-description"
                 className="h-10 w-full rounded-md border border-[#737983] bg-surface px-3 text-base text-text-base outline-none focus:border-primary"
                 value={description}
+                maxLength={PROJECT_DESCRIPTION_MAX}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="예) 고객 대시보드 개선 프로젝트"
               />
