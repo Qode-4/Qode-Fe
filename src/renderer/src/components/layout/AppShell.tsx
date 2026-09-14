@@ -64,6 +64,9 @@ type Props = {
   onOpenCreateProject?: () => void;
   personalChats?: ChatsMeListData['data'];
   teamChats?: ChatsMeListData['data'];
+  chatsIsLoading?: boolean;
+  chatsIsError?: boolean;
+  onRetryChats?: () => void;
   activeChatId?: string;
   onSelectChat?: (chatId: string) => void;
   onCreatePersonalChat?: () => void;
@@ -216,6 +219,9 @@ export const AppShell = ({
   onOpenCreateProject,
   personalChats = [],
   teamChats = [],
+  chatsIsLoading = false,
+  chatsIsError = false,
+  onRetryChats,
   activeChatId,
   onSelectChat,
   onCreatePersonalChat,
@@ -1188,6 +1194,32 @@ export const AppShell = ({
               </div>
               {personalChatsCollapsed ? null : (
                 <>
+                  {chatsIsError ? (
+                    <div
+                      className={[
+                        'mt-1 flex flex-col items-start gap-1 px-3 py-2',
+                        drawerTypography.emptyState
+                      ].join(' ')}
+                    >
+                      <p className="text-text-subtle">채팅 목록을 불러올 수 없습니다.</p>
+                      <button
+                        type="button"
+                        onClick={onRetryChats}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        다시 시도
+                      </button>
+                    </div>
+                  ) : !chatsIsLoading && personalChats.length === 0 ? (
+                    <p
+                      className={[
+                        'mt-1 px-3 py-2 font-normal text-text-subtle',
+                        drawerTypography.emptyState
+                      ].join(' ')}
+                    >
+                      아직 채팅이 없습니다. 새 채팅을 시작해보세요!
+                    </p>
+                  ) : null}
                   <nav aria-label="내 채팅 목록" className="mt-0.5">
                     {personalChats.map((chat) => {
                       const isActive = activeChatId === chat.id;
@@ -1337,6 +1369,32 @@ export const AppShell = ({
 
               {teamChatsCollapsed ? null : (
                 <>
+                  {chatsIsError ? (
+                    <div
+                      className={[
+                        'mt-1 flex flex-col items-start gap-1 px-3 py-2',
+                        drawerTypography.emptyState
+                      ].join(' ')}
+                    >
+                      <p className="text-text-subtle">채팅 목록을 불러올 수 없습니다.</p>
+                      <button
+                        type="button"
+                        onClick={onRetryChats}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        다시 시도
+                      </button>
+                    </div>
+                  ) : !chatsIsLoading && teamChats.length === 0 ? (
+                    <p
+                      className={[
+                        'mt-1 px-3 py-2 font-normal text-text-subtle',
+                        drawerTypography.emptyState
+                      ].join(' ')}
+                    >
+                      아직 채팅이 없습니다. 새 채팅을 시작해보세요!
+                    </p>
+                  ) : null}
                   <nav aria-label="팀 채팅 목록" className="mt-0.5">
                     {teamChats.map((chat) => {
                       const isActive = activeChatId === chat.id;
