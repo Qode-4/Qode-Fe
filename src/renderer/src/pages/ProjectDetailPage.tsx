@@ -30,6 +30,7 @@ import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
 import { formatRelativeTime } from '../lib/relativeTime';
+import { mapResponseError } from '../lib/response-errors';
 import { mapSyncError } from '../lib/sync-errors';
 
 type Props = {
@@ -195,7 +196,9 @@ export const ProjectDetailPage = ({
   const [streamStatus, setStreamStatus] = useState('');
   const [streamContent, setStreamContent] = useState('');
   const [streamSources, setStreamSources] = useState<SourceItem[]>([]);
-  const [streamError, setStreamError] = useState<string | null>(null);
+  // streamError 는 원인(SSE 문자열 payload | mutation 에서 온 Error) 그대로 보관.
+  // mapResponseError 가 axios/Error/string 을 다 소화하므로 분류는 렌더 시 위임한다.
+  const [streamError, setStreamError] = useState<unknown>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<PendingUserMessage | null>(null);
   const [headerRenameDraft, setHeaderRenameDraft] = useState('');
   const [editingHeaderChatId, setEditingHeaderChatId] = useState<string | null>(null);
@@ -431,7 +434,7 @@ export const ProjectDetailPage = ({
               }, 500);
             },
             onError: (message) => {
-              // 응답 블록에 실패 문구를 남긴다. 재시도 UI 에서 소비.
+              // SSE error 이벤트 payload — 서버가 준 코드/문자열 그대로 저장.
               setStreamError(message || 'UNKNOWN');
               setPendingUserMessage((prev) =>
                 prev?.clientId === pendingMessage.clientId ? { ...prev, failed: true } : prev
@@ -441,8 +444,8 @@ export const ProjectDetailPage = ({
         },
         {
           onError: (error) => {
-            // 스트림을 열지도 못한 실패(네트워크·HTTP 5xx 등).
-            setStreamError(handleApiError(error).message || 'UNKNOWN');
+            // 스트림을 열지도 못한 실패(네트워크·HTTP 5xx 등). Axios 에러 객체 그대로 저장.
+            setStreamError(error);
             setPendingUserMessage((prev) =>
               prev?.clientId === pendingMessage.clientId ? { ...prev, failed: true } : prev
             );
@@ -455,6 +458,15 @@ export const ProjectDetailPage = ({
       // 팀채팅은 fire-and-forget — 서버가 소켓으로 되돌려주면 성공으로 간주. draft 즉시 정리.
       setDraft((prev) => (prev === content ? '' : prev));
     }
+  };
+
+  const retryLastFailedMessage = (): void => {
+    const failedContent = pendingUserMessage?.failed ? pendingUserMessage.content : null;
+    if (!failedContent) return;
+    // 실패 표식과 에러 UI 를 먼저 정리한 뒤 같은 content 로 재전송.
+    setStreamError(null);
+    setPendingUserMessage(null);
+    void sendMessage(failedContent);
   };
 
   if (!projectId) {
@@ -798,9 +810,22 @@ export const ProjectDetailPage = ({
                     Qode AI · {streamStatus || '스트리밍 중'}
                   </p>
                   {streamError ? (
-                    <p className="text-ui-12 leading-[1.6] text-danger">
-                      답변을 가져오지 못했어요. 다시 시도해주세요.
-                    </p>
+                    <div className="flex flex-col gap-2">
+                      <p className="text-ui-12 leading-[1.6] text-danger">
+                        {mapResponseError(streamError)}
+                      </p>
+                      <div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={!pendingUserMessage?.failed || isSending}
+                          onClick={retryLastFailedMessage}
+                        >
+                          재시도
+                        </Button>
+                      </div>
+                    </div>
                   ) : streamContent ? (
                     <p className="whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
                       {streamContent}
