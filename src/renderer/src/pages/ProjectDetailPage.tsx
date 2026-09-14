@@ -96,6 +96,55 @@ const isUserMessageRole = (role: string): boolean => {
   return role === 'user' || role === 'USER';
 };
 
+const MessageSources = ({
+  messageId,
+  sources
+}: {
+  messageId: string;
+  sources: SourceItem[];
+}): React.JSX.Element => {
+  const [expanded, setExpanded] = useState(true);
+  const headerId = `sources-header-${messageId}`;
+  const listId = `sources-list-${messageId}`;
+  return (
+    <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
+      <button
+        type="button"
+        id={headerId}
+        aria-controls={listId}
+        aria-expanded={expanded}
+        onClick={() => setExpanded((prev) => !prev)}
+        className="flex w-full items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500 transition-colors hover:bg-zinc-50"
+      >
+        <span>참조한 소스 {sources.length}개</span>
+        <span aria-hidden className="ml-2 text-zinc-500">
+          {expanded ? '▼' : '▶'}
+        </span>
+      </button>
+      {expanded ? (
+        <div
+          id={listId}
+          role="region"
+          aria-labelledby={headerId}
+          className="divide-y divide-zinc-100"
+        >
+          {sources.map((source) => (
+            <div
+              key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
+              className="flex items-center justify-between px-3 py-1.5 text-ui-12"
+            >
+              <span className="min-w-0 flex-1 truncate text-zinc-800">{source.filePath}</span>
+              <span className="ml-3 text-ui-10 text-zinc-500">
+                {source.startLine ?? '-'}-{source.endLine ?? '-'}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 const Avatar = ({ name }: { name: string }): React.JSX.Element => {
   return (
     <div className="inline-flex size-6 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-ui-12 font-medium text-zinc-500">
@@ -676,32 +725,7 @@ export const ProjectDetailPage = ({
                     <MarkdownAnswer content={messageContent} />
 
                     {sources.length > 0 ? (
-                      <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
-                        <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500">
-                          <span>참조한 소스 {sources.length}개</span>
-                          <button
-                            type="button"
-                            className="text-zinc-500 transition-colors hover:text-zinc-700"
-                          >
-                            닫기
-                          </button>
-                        </div>
-                        <div className="divide-y divide-zinc-100">
-                          {sources.map((source) => (
-                            <div
-                              key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-                              className="flex items-center justify-between px-3 py-1.5 text-ui-12"
-                            >
-                              <span className="min-w-0 flex-1 truncate text-zinc-800">
-                                {source.filePath}
-                              </span>
-                              <span className="ml-3 text-ui-10 text-zinc-500">
-                                {source.startLine ?? '-'}-{source.endLine ?? '-'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      <MessageSources messageId={messageId} sources={sources} />
                     ) : null}
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
