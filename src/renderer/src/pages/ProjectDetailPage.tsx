@@ -670,27 +670,10 @@ export const ProjectDetailPage = ({
                 }
 
                 const sources = extractSources(message);
-                const primarySource = sources[0];
 
                 return (
                   <article key={messageId} className="rounded-[12px] bg-white p-3">
                     <MarkdownAnswer content={messageContent} />
-
-                    {primarySource ? (
-                      <div className="mt-3 rounded-[12px] bg-zinc-100 p-3">
-                        <div className="mb-3 flex items-center justify-between">
-                          <p className="text-ui-10 font-medium text-zinc-500">Java Script</p>
-                          <MessageActionButton
-                            iconName="Copy_light"
-                            label="코드복사"
-                            onClick={() => copyText(primarySource.snippet)}
-                          />
-                        </div>
-                        <pre className="m-0 overflow-x-auto whitespace-pre-wrap text-ui-12 leading-[1.6] text-zinc-800">
-                          <code>{primarySource.snippet}</code>
-                        </pre>
-                      </div>
-                    ) : null}
 
                     {sources.length > 0 ? (
                       <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
