@@ -319,11 +319,14 @@ export const ProjectDetailPage = ({
     return () => window.cancelAnimationFrame(frameId);
   }, [activeChatId, displayMessageItems.length, streamContent, streamStatus]);
 
-  const sendMessage = async (): Promise<void> => {
-    if (!canSend) return;
-
-    const content = draft.trim();
-    setDraft('');
+  const sendMessage = async (overrideContent?: string): Promise<void> => {
+    const isRetry = overrideContent !== undefined;
+    if (!isRetry && !canSend) return;
+    if (isSending) return;
+    const content = (overrideContent ?? draft).trim();
+    if (!content) return;
+    // draft 는 전송 트리거에서 지우지 않는다 — 실패 시 사용자가 텍스트를 잃지 않도록
+    // 성공(onDone) 시점에 지운다. 재시도는 override 로 들어와 draft 를 건드리지 않는다.
 
     const wasAutoCreate = !activeChatId;
     let targetChatId = activeChatId;
@@ -334,7 +337,6 @@ export const ProjectDetailPage = ({
         const created = await createChat.mutateAsync({ type: 'personal', name: tempName });
         const newId = (created as { data?: { id?: string } })?.data?.id;
         if (!newId) {
-          setDraft(content);
           toast.error({
             title: '채팅 생성 실패',
             description: '채팅을 만들지 못했어요. 잠시 후 다시 시도해주세요.'
@@ -344,7 +346,6 @@ export const ProjectDetailPage = ({
         targetChatId = newId;
         onSelectChat(newId);
       } catch (error) {
-        setDraft(content);
         toast.error(friendlyErrorMessage(error, 'chat.create'));
         return;
       }
@@ -398,6 +399,9 @@ export const ProjectDetailPage = ({
             },
             onDone: () => {
               setStreamStatus('완료');
+              // 성공적으로 응답이 끝났을 때만 draft 를 비운다.
+              // 사용자가 스트리밍 중 다음 질문을 타이핑 중이면 덮어쓰지 않기 위해 매치 조건.
+              setDraft((prev) => (prev === content ? '' : prev));
             },
             onError: (message) => {
               toast.error({ title: '스트리밍 오류', description: message });
@@ -428,6 +432,8 @@ export const ProjectDetailPage = ({
     } else {
       // 팀채팅: 소켓으로 전송, onReceive 콜백에서 pending 제거
       socketSendMessage(content);
+      // 팀채팅은 fire-and-forget — 서버가 소켓으로 되돌려주면 성공으로 간주. draft 즉시 정리.
+      setDraft((prev) => (prev === content ? '' : prev));
     }
   };
 
