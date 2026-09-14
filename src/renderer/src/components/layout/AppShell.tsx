@@ -121,12 +121,21 @@ const UserAvatar = ({
 }): React.JSX.Element => {
   const initial = name.trim().charAt(0).toUpperCase() || '?';
   const sizeClassName = avatarSizeClassMap[size];
+  // avatarUrl이 바뀌면 실패 플래그를 초기화한다 — 이전 URL 실패가 새 URL을 가리면 안 된다.
+  // useEffect 대신 렌더 중 파생 상태 조정 패턴 (React 공식 권장).
+  const [imgFailed, setImgFailed] = useState(false);
+  const [prevAvatarUrl, setPrevAvatarUrl] = useState(avatarUrl);
+  if (avatarUrl !== prevAvatarUrl) {
+    setPrevAvatarUrl(avatarUrl);
+    setImgFailed(false);
+  }
 
-  if (avatarUrl) {
+  if (avatarUrl && !imgFailed) {
     return (
       <img
         src={avatarUrl}
         alt={`${name} 프로필 이미지`}
+        onError={() => setImgFailed(true)}
         className={`inline-flex shrink-0 rounded-full border border-zinc-200 object-cover ${sizeClassName}`}
       />
     );
@@ -1957,67 +1966,89 @@ export const AppShell = ({
             </div>
           ) : null}
 
-          <div className="mt-3 overflow-hidden rounded-lg border border-line">
-            <div className="grid grid-cols-[1fr_120px_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-xs font-semibold text-text-soft">
-              <span>멤버</span>
-              <span>역할</span>
-              <span>액션</span>
-            </div>
-
-            {modalProjectMembers.isLoading ? (
-              <div className="px-3 py-3 text-sm text-text-subtle">멤버를 불러오는 중...</div>
-            ) : null}
-
-            {modalProjectMembers.data?.data.map((member) => {
-              const isSelf = member.id === me?.id;
-              const isOwner = member.role === 'OWNER';
-              // OWNER는 나가지도 제거되지도 않는다 — 주인 없는 프로젝트를 막기 위해서다.
-              // 남을 내보내는 것은 OWNER만 할 수 있고, 본인 행은 나가기다.
-              const canRemove = !isOwner && (isSelf || myProjectRole === 'OWNER');
-
-              return (
-                <div
-                  key={member.id}
-                  className="grid grid-cols-[1fr_120px_160px] items-center border-b border-line-soft px-3 py-3 last:border-b-0"
+          {modalProjectMembers.isError ? (
+            <div className="mt-3 rounded-lg border border-danger-line bg-danger-bg p-3">
+              <p className="text-sm text-danger">멤버 목록을 불러올 수 없습니다.</p>
+              <div className="mt-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  isLoading={modalProjectMembers.isFetching}
+                  onClick={() => void modalProjectMembers.refetch()}
                 >
-                  <div>
-                    <div className="text-sm font-semibold text-text-base">
-                      {member.name}
-                      {isSelf ? <span className="ml-1 text-text-subtle">(나)</span> : null}
+                  다시 시도
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 overflow-hidden rounded-lg border border-line">
+              <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-xs font-semibold text-text-soft">
+                <div>멤버</div>
+                <div className="text-center">역할</div>
+                <div className="text-right">액션</div>
+              </div>
+
+              {modalProjectMembers.isLoading ? (
+                <div className="px-3 py-3 text-sm text-text-subtle">멤버를 불러오는 중...</div>
+              ) : null}
+
+              {modalProjectMembers.data?.data.map((member) => {
+                const isSelf = member.id === me?.id;
+                const isOwner = member.role === 'OWNER';
+                // OWNER는 나가지도 제거되지도 않는다 — 주인 없는 프로젝트를 막기 위해서다.
+                // 남을 내보내는 것은 OWNER만 할 수 있고, 본인 행은 나가기다.
+                const canRemove = !isOwner && (isSelf || myProjectRole === 'OWNER');
+
+                return (
+                  <div
+                    key={member.id}
+                    className="grid grid-cols-[minmax(0,1fr)_120px_160px] items-center border-b border-line-soft px-3 py-3 last:border-b-0"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size="sm" />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-text-base">
+                          {member.name}
+                          {isSelf ? <span className="ml-1 text-text-subtle">(나)</span> : null}
+                        </div>
+                        <div className="text-xs text-text-subtle">
+                          {member.joinedAt
+                            ? `${formatJoinedAt(member.joinedAt)} 참여`
+                            : '참여일 미상'}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-text-subtle">
-                      {member.joinedAt ? `${formatJoinedAt(member.joinedAt)} 참여` : '참여일 미상'}
-                    </div>
-                  </div>
-                  <div>
-                    <span
-                      className={[
-                        'rounded-full px-2 py-0.5 text-xs font-medium',
-                        isOwner
-                          ? 'bg-primary-soft text-primary'
-                          : 'bg-surface-muted text-text-subtle'
-                      ].join(' ')}
-                    >
-                      {member.role}
-                    </span>
-                  </div>
-                  <div className="flex justify-end">
-                    {canRemove ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        disabled={deleteProjectMember.isPending}
-                        onClick={() => void removeMember(member.id, isSelf)}
+                    <div className="text-center">
+                      <span
+                        className={[
+                          'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                          isOwner
+                            ? 'bg-primary-soft text-primary'
+                            : 'bg-surface-muted text-text-subtle'
+                        ].join(' ')}
                       >
-                        {isSelf ? '나가기' : '프로젝트에서 제거'}
-                      </Button>
-                    ) : null}
+                        {member.role}
+                      </span>
+                    </div>
+                    <div className="flex justify-end">
+                      {canRemove ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={deleteProjectMember.isPending}
+                          onClick={() => void removeMember(member.id, isSelf)}
+                        >
+                          {isSelf ? '나가기' : '프로젝트에서 제거'}
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </>
       </OverlayModal>
 
