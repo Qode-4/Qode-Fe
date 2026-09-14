@@ -31,6 +31,7 @@ import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
 import { formatRelativeTime } from '../lib/relativeTime';
+import { mapResponseError } from '../lib/response-errors';
 import { mapSyncError } from '../lib/sync-errors';
 
 type Props = {
@@ -94,6 +95,22 @@ const isLocalFailedMessage = (message: unknown): boolean => {
 
 const isUserMessageRole = (role: string): boolean => {
   return role === 'user' || role === 'USER';
+};
+
+const LoadingDots = (): React.JSX.Element => {
+  const [dots, setDots] = useState('.');
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? '.' : `${prev}.`));
+    }, 500);
+    return () => window.clearInterval(id);
+  }, []);
+  // 접미사 폭이 튀지 않게 3자리 고정 폭 확보 후 왼쪽 정렬 렌더.
+  return (
+    <span aria-hidden className="inline-block w-[1.5em] text-left">
+      {dots}
+    </span>
+  );
 };
 
 const MessageSources = ({
@@ -229,6 +246,9 @@ export const ProjectDetailPage = ({
   const [streamStatus, setStreamStatus] = useState('');
   const [streamContent, setStreamContent] = useState('');
   const [streamSources, setStreamSources] = useState<SourceItem[]>([]);
+  // streamError 는 원인(SSE 문자열 payload | mutation 에서 온 Error) 그대로 보관.
+  // mapResponseError 가 axios/Error/string 을 다 소화하므로 분류는 렌더 시 위임한다.
+  const [streamError, setStreamError] = useState<unknown>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<PendingUserMessage | null>(null);
   const [headerRenameDraft, setHeaderRenameDraft] = useState('');
   const [editingHeaderChatId, setEditingHeaderChatId] = useState<string | null>(null);
@@ -371,11 +391,14 @@ export const ProjectDetailPage = ({
     return () => window.cancelAnimationFrame(frameId);
   }, [activeChatId, displayMessageItems.length, streamContent, streamStatus]);
 
-  const sendMessage = async (): Promise<void> => {
-    if (!canSend) return;
-
-    const content = draft.trim();
-    setDraft('');
+  const sendMessage = async (overrideContent?: string): Promise<void> => {
+    const isRetry = overrideContent !== undefined;
+    if (!isRetry && !canSend) return;
+    if (isSending) return;
+    const content = (overrideContent ?? draft).trim();
+    if (!content) return;
+    // draft 는 전송 트리거에서 지우지 않는다 — 실패 시 사용자가 텍스트를 잃지 않도록
+    // 성공(onDone) 시점에 지운다. 재시도는 override 로 들어와 draft 를 건드리지 않는다.
 
     const wasAutoCreate = !activeChatId;
     let targetChatId = activeChatId;
@@ -386,7 +409,6 @@ export const ProjectDetailPage = ({
         const created = await createChat.mutateAsync({ type: 'personal', name: tempName });
         const newId = (created as { data?: { id?: string } })?.data?.id;
         if (!newId) {
-          setDraft(content);
           toast.error({
             title: '채팅 생성 실패',
             description: '채팅을 만들지 못했어요. 잠시 후 다시 시도해주세요.'
@@ -396,7 +418,6 @@ export const ProjectDetailPage = ({
         targetChatId = newId;
         onSelectChat(newId);
       } catch (error) {
-        setDraft(content);
         toast.error(friendlyErrorMessage(error, 'chat.create'));
         return;
       }
@@ -417,6 +438,7 @@ export const ProjectDetailPage = ({
       setStreamStatus('요청 중...');
       setStreamContent('');
       setStreamSources([]);
+      setStreamError(null);
 
       const chatQueryKey = QUERY_KEY.projectChatsByProject(projectId);
 
@@ -450,37 +472,53 @@ export const ProjectDetailPage = ({
             },
             onDone: () => {
               setStreamStatus('완료');
+              // 성공적으로 응답이 끝났을 때만 draft 를 비운다.
+              // 사용자가 스트리밍 중 다음 질문을 타이핑 중이면 덮어쓰지 않기 위해 매치 조건.
+              setDraft((prev) => (prev === content ? '' : prev));
+              // 서버 invalidate 결과가 자리 잡을 시간을 두고 스트림 블록 정리.
+              window.setTimeout(() => {
+                setStreamStatus('');
+                setStreamContent('');
+                setStreamSources([]);
+                setPendingUserMessage((prev) =>
+                  prev?.clientId === pendingMessage.clientId ? null : prev
+                );
+              }, 500);
             },
             onError: (message) => {
-              toast.error({ title: '스트리밍 오류', description: message });
-              setPendingUserMessage((prev) => {
-                if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
-                return { ...prev, failed: true };
-              });
+              // SSE error 이벤트 payload — 서버가 준 코드/문자열 그대로 저장.
+              setStreamError(message || 'UNKNOWN');
+              setPendingUserMessage((prev) =>
+                prev?.clientId === pendingMessage.clientId ? { ...prev, failed: true } : prev
+              );
             }
           }
         },
         {
           onError: (error) => {
-            toast.error(friendlyErrorMessage(error, 'chat.send'));
-          },
-          onSettled: (_data, error) => {
-            window.setTimeout(() => {
-              setStreamStatus('');
-              setStreamContent('');
-              setStreamSources([]);
-              setPendingUserMessage((prev) => {
-                if (!prev || prev.clientId !== pendingMessage.clientId) return prev;
-                return error ? prev : null;
-              });
-            }, 500);
+            // 스트림을 열지도 못한 실패(네트워크·HTTP 5xx 등). Axios 에러 객체 그대로 저장.
+            setStreamError(error);
+            setPendingUserMessage((prev) =>
+              prev?.clientId === pendingMessage.clientId ? { ...prev, failed: true } : prev
+            );
           }
         }
       );
     } else {
       // 팀채팅: 소켓으로 전송, onReceive 콜백에서 pending 제거
       socketSendMessage(content);
+      // 팀채팅은 fire-and-forget — 서버가 소켓으로 되돌려주면 성공으로 간주. draft 즉시 정리.
+      setDraft((prev) => (prev === content ? '' : prev));
     }
+  };
+
+  const retryLastFailedMessage = (): void => {
+    const failedContent = pendingUserMessage?.failed ? pendingUserMessage.content : null;
+    if (!failedContent) return;
+    // 실패 표식과 에러 UI 를 먼저 정리한 뒤 같은 content 로 재전송.
+    setStreamError(null);
+    setPendingUserMessage(null);
+    void sendMessage(failedContent);
   };
 
   if (!projectId) {
@@ -797,7 +835,7 @@ export const ProjectDetailPage = ({
                 );
               })}
 
-              {(isSending || streamContent) && activeChatId && isPersonalChat ? (
+              {(isSending || streamContent || streamError) && activeChatId && isPersonalChat ? (
                 <article
                   className="rounded-[12px] border border-zinc-200 bg-white p-3"
                   aria-live="polite"
@@ -805,14 +843,32 @@ export const ProjectDetailPage = ({
                   <p className="mb-1 text-ui-10 font-medium text-zinc-500">
                     Qode AI · {streamStatus || '스트리밍 중'}
                   </p>
-                  {streamContent ? (
+                  {streamError ? (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-ui-12 leading-[1.6] text-danger">
+                        {mapResponseError(streamError)}
+                      </p>
+                      <div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={!pendingUserMessage?.failed || isSending}
+                          onClick={retryLastFailedMessage}
+                        >
+                          재시도
+                        </Button>
+                      </div>
+                    </div>
+                  ) : streamContent ? (
                     <MarkdownAnswer content={streamContent} />
                   ) : (
                     <p className="text-ui-12 leading-[1.6] text-zinc-500">
-                      답변을 생성하고 있습니다...
+                      찾아보는 중이에요
+                      <LoadingDots />
                     </p>
                   )}
-                  {streamSources.length > 0 ? (
+                  {!streamError && streamSources.length > 0 ? (
                     <p className="mt-2 text-ui-10 text-zinc-500">
                       참조 소스 {streamSources.length}개 수집됨
                     </p>
