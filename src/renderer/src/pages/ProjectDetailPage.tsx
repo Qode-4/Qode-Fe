@@ -252,7 +252,7 @@ export const ProjectDetailPage = ({
       await navigator.clipboard.writeText(value);
       toast.success('복사되었습니다');
     } catch {
-      // noop
+      toast.error('복사에 실패했습니다. 텍스트를 직접 선택하여 복사해주세요.');
     }
   };
 
