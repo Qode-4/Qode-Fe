@@ -1,4 +1,8 @@
+import { useLayoutEffect, useRef } from 'react';
 import { Icon } from './Icon';
+
+// 질문 최대 길이. 명세 E-1 비기능 요구사항, 서버 sendUserMessageBodySchema 와 같은 값이다.
+const MAX_LENGTH = 2000;
 
 type Props = {
   value: string;
@@ -13,9 +17,11 @@ type Props = {
   onAttach?: () => void;
 };
 
+const MAX_ROWS = 5;
+
 export const ChatComposer = ({
   value,
-  placeholder = '메시지를 입력하세요...',
+  placeholder = '무엇이든 물어보세요!',
   disabled,
   canSend,
   sendDisabledReason,
@@ -25,6 +31,22 @@ export const ChatComposer = ({
   onSend
   // onAttach
 }: Props): React.JSX.Element => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const styles = window.getComputedStyle(el);
+    const lineHeight = parseFloat(styles.lineHeight);
+    const paddingTop = parseFloat(styles.paddingTop);
+    const paddingBottom = parseFloat(styles.paddingBottom);
+    const maxHeight = lineHeight * MAX_ROWS + paddingTop + paddingBottom;
+    const nextHeight = Math.min(el.scrollHeight, maxHeight);
+    el.style.height = `${nextHeight}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [value]);
+
   return (
     <div
       className={[
@@ -33,11 +55,14 @@ export const ChatComposer = ({
       ].join(' ')}
     >
       <textarea
+        ref={textareaRef}
+        rows={1}
         aria-label="메시지 입력"
-        className="block h-18 w-full resize-none bg-transparent text-ui-12 leading-[1.6] text-zinc-800 outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed"
+        className="block w-full resize-none bg-transparent text-ui-12 leading-[1.6] text-zinc-800 outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        maxLength={MAX_LENGTH}
         onKeyDown={(e) => {
           if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
           e.preventDefault();
@@ -46,7 +71,11 @@ export const ChatComposer = ({
         disabled={disabled}
       />
 
-      <div className="mt-3 flex items-center justify-end">
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <span className="text-ui-12 text-red-600" role="status">
+          {value.length >= MAX_LENGTH ? '최대 2,000자까지 입력 가능합니다.' : ''}
+        </span>
+
         {/* <IconButton
           size="lg"
           name="Add_round_light"

@@ -6,8 +6,10 @@ import {
 } from '../../../api/auth/useGithubOAuthAPI';
 import { usePostStorageItem } from '../../../api/auth/useStorageItemsAPI';
 import { handleApiError } from '../../../api/axios';
+import { friendlyErrorMessage } from '../../../api/errorMessages';
 import type { CreateStorageItemBody } from '../../../api/contracts/storageItems';
 import type { GithubOauthDeviceStartCreateData } from '../../../api/generated/data-contracts';
+import { useToast } from '../../../hooks/useToast';
 import {
   readCachedOauthFlow,
   saveCachedOauthFlow,
@@ -28,6 +30,7 @@ export const AddGithubRepoModal = ({
   projectId,
   onClose
 }: Props): React.JSX.Element | null => {
+  const toast = useToast();
   const post = usePostStorageItem({ projectId });
   const startGithubOauth = usePostGithubOauthDeviceStart();
 
@@ -164,6 +167,9 @@ export const AddGithubRepoModal = ({
         setSelectedRepoFullName('');
         saveCachedOauthFlow(data);
         startedFlowRef.current = data.data.flowId;
+      },
+      onError: (error) => {
+        toast.error(friendlyErrorMessage(error, 'github.connect'));
       }
     });
   };
@@ -185,7 +191,10 @@ export const AddGithubRepoModal = ({
     };
 
     post.mutate(body, {
-      onSuccess: () => closeAndReset()
+      onSuccess: () => closeAndReset(),
+      onError: (error) => {
+        toast.error(friendlyErrorMessage(error, 'storage.create'));
+      }
     });
   };
 
@@ -354,14 +363,6 @@ export const AddGithubRepoModal = ({
           </section>
         </div>
 
-        {startGithubOauth.isError ? (
-          <div className="mt-3">
-            <InlineAlert tone="danger" title="GitHub 인증 시작 실패">
-              {handleApiError(startGithubOauth.error).message}
-            </InlineAlert>
-          </div>
-        ) : null}
-
         {oauthStatus.isError ? (
           <div className="mt-3">
             <InlineAlert tone="danger" title="GitHub 인증 상태 조회 실패">
@@ -374,14 +375,6 @@ export const AddGithubRepoModal = ({
           <div className="mt-3">
             <InlineAlert tone="danger" title="저장소 조회 실패">
               {handleApiError(repos.error).message}
-            </InlineAlert>
-          </div>
-        ) : null}
-
-        {post.isError ? (
-          <div className="mt-3">
-            <InlineAlert tone="danger" title="등록 실패">
-              {handleApiError(post.error).message}
             </InlineAlert>
           </div>
         ) : null}

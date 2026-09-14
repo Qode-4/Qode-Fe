@@ -43,6 +43,14 @@ docs-private/
 .claude/
 .superpowers/
 
+# 로컬에서 만든 웹 배포 산출물.
+# VITE_API_BASE_URL 이 빌드 시점에 박히므로 로컬 빌드본을 올리면 운영이
+# localhost 를 때린다(CSP 까지 localhost 만 허용이라 API 가 전부 차단된다).
+# 배포는 CI 로만 한다 — .github/workflows/web-deploy-ec2.yml 이 secrets 로
+# .env 를 새로 만들어 빌드한다.
+web-dist.tar.gz
+*.tar.gz
+
 # Electron-builder artifacts (in case output is configured outside dist/)
 *.dmg
 *.exe

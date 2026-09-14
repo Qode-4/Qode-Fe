@@ -65,7 +65,13 @@ export const useGetProject = (params: { projectId: string; enabled?: boolean }) 
       const res = await apiClient.projectsDetail(params.projectId, { secure: true });
       return res.data;
     },
-    enabled: (params.enabled ?? true) && Boolean(params.projectId)
+    enabled: (params.enabled ?? true) && Boolean(params.projectId),
+    // 삭제된 프로젝트(404)는 재시도하지 않는다 — App.tsx가 즉시 fallback 처리.
+    retry: (failureCount, error) => {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 404) return false;
+      return failureCount < 3;
+    }
   });
 
 export const usePatchProjectGit = (params: { projectId: string }) => {
@@ -116,7 +122,7 @@ export const useGetProjectSyncStatus = (params: { projectId: string; enabled?: b
     enabled: (params.enabled ?? true) && Boolean(params.projectId),
     refetchInterval: (query) => {
       const status = query.state.data?.data.status;
-      if (status === 'queued' || status === 'syncing') return 1500;
+      if (status === 'queued' || status === 'syncing') return 500;
       return false;
     }
   });

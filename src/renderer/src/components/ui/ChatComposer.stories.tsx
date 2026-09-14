@@ -8,7 +8,7 @@ const meta = {
   tags: ['autodocs'],
   args: {
     value: '',
-    placeholder: '메시지를 입력하세요...',
+    placeholder: '무엇이든 물어보세요!',
     disabled: false,
     canSend: false,
     isSending: false
@@ -61,6 +61,30 @@ export const Sending: Story = {
         onSend={() => undefined}
         onAttach={() => undefined}
       />
+    </div>
+  )
+};
+
+export const MaxLength: Story = {
+  args: {
+    value: '가'.repeat(2000),
+    canSend: true
+  },
+  render: (args): React.JSX.Element => <StatefulComposer {...args} />
+};
+
+// 동기화(인덱싱) 중에는 입력 자체를 막는다. 검색할 코드가 아직 없어서다 → ADR-005
+export const Syncing: Story = {
+  args: {
+    value: '',
+    placeholder: '동기화 중... (42%)',
+    disabled: true,
+    canSend: false,
+    sendDisabledReason: '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.'
+  },
+  render: (args): React.JSX.Element => (
+    <div className="w-[406px]">
+      <ChatComposer {...args} onChange={() => undefined} onSend={() => undefined} />
     </div>
   )
 };
