@@ -99,7 +99,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
                 inputMode="email"
                 placeholder="이메일로 계속하세요."
                 className={[
-                  'h-10 w-full rounded-xl border bg-surface px-3 text-base font-medium transition-colors',
+                  'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
                   'placeholder:text-text-soft',
                   'focus-visible:border-2 focus-visible:outline-none',
                   shouldShowEmailError
@@ -135,7 +135,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
                   autoComplete="current-password"
                   placeholder="비밀번호를 입력하세요."
                   className={[
-                    'h-10 w-full rounded-xl border bg-surface px-3 text-base font-medium transition-colors',
+                    'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
                     'placeholder:text-text-soft',
                     'focus-visible:border-2 focus-visible:outline-none',
                     shouldShowPasswordError
@@ -159,7 +159,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
 
             <button
               type="submit"
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary px-3 text-base font-medium text-primary-foreground transition-colors hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-3 text-base font-medium text-primary-foreground transition-colors hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-60"
               disabled={login.isPending}
               aria-busy={login.isPending || undefined}
             >
