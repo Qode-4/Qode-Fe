@@ -1322,7 +1322,7 @@ export const AppShell = ({
                       {isActive ? (
                         <span
                           aria-hidden="true"
-                          className="pointer-events-none absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full bg-accent"
+                          className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-accent"
                         />
                       ) : null}
                       <button
@@ -1424,7 +1424,7 @@ export const AppShell = ({
                       {isActive ? (
                         <span
                           aria-hidden="true"
-                          className="pointer-events-none absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full bg-accent"
+                          className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-accent"
                         />
                       ) : null}
                       <button
