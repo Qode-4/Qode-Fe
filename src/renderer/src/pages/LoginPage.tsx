@@ -48,17 +48,17 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
     <div className="flex h-full items-center justify-center bg-surface-muted px-4">
       <div className="flex w-full max-w-[520px] flex-col items-center gap-8">
         <div className="flex flex-col items-center gap-3 text-center">
-          <h1 className="whitespace-pre-line text-ui-32 font-medium leading-[1.4] text-zinc-900">
+          <h1 className="whitespace-pre-line text-ui-32 font-medium leading-[1.4] text-text-base">
             코드가 궁금할 때,
             {'\n'}
             큐오드에 물어보세요!
           </h1>
-          <p className="text-base font-medium leading-[1.6] text-zinc-700">
+          <p className="text-base font-medium leading-[1.6] text-text-subtle">
             Code를 기반으로 기획자, 디자이너, 개발자 모두 같은 언어로 이야기하세요.
           </p>
         </div>
 
-        <div className="w-full max-w-[360px] rounded-[24px] border border-line bg-surface p-6 shadow-[2px_10px_32.9px_0_rgba(0,0,0,0.08)]">
+        <div className="w-full max-w-[360px] rounded-[20px] border border-line bg-surface p-6">
           <form
             className="space-y-6"
             onSubmit={(e) => {
@@ -100,11 +100,11 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
                 placeholder="이메일로 계속하세요."
                 className={[
                   'h-10 w-full rounded-xl border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-zinc-400',
+                  'placeholder:text-text-soft',
                   'focus-visible:border-2 focus-visible:outline-none',
                   shouldShowEmailError
                     ? 'border-danger text-danger focus-visible:border-danger'
-                    : 'border-zinc-300 text-zinc-900 focus-visible:border-sky-600 '
+                    : 'border-control-line text-text-base focus-visible:border-text-base '
                 ].join(' ')}
                 aria-invalid={shouldShowEmailError}
                 aria-describedby={shouldShowEmailError ? 'login-email-error' : undefined}
@@ -136,11 +136,11 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
                   placeholder="비밀번호를 입력하세요."
                   className={[
                     'h-10 w-full rounded-xl border bg-surface px-3 text-base font-medium transition-colors',
-                    'placeholder:text-zinc-400',
+                    'placeholder:text-text-soft',
                     'focus-visible:border-2 focus-visible:outline-none',
                     shouldShowPasswordError
                       ? 'border-danger-line text-danger focus-visible:border-danger'
-                      : 'border-zinc-300 text-zinc-900 focus-visible:border-sky-600'
+                      : 'border-control-line text-text-base focus-visible:border-text-base'
                   ].join(' ')}
                   aria-invalid={shouldShowPasswordError}
                   aria-describedby={shouldShowPasswordError ? 'login-password-error' : undefined}
@@ -159,7 +159,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
 
             <button
               type="submit"
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-zinc-800 px-3 text-base font-medium text-white transition-colors hover:bg-zinc-900  disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary px-3 text-base font-medium text-primary-foreground transition-colors hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-60"
               disabled={login.isPending}
               aria-busy={login.isPending || undefined}
             >
@@ -180,7 +180,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
             ) : null}
           </form>
 
-          <p className="mt-5 text-center text-sm text-zinc-600">
+          <p className="mt-5 text-center text-sm text-text-subtle">
             계정이 없나요? <Link to={buildPath('/signup', { next })}>회원가입하기</Link>
           </p>
         </div>

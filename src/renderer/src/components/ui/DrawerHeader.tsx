@@ -2,7 +2,6 @@ import type { MouseEventHandler, ReactNode } from 'react';
 import type { ProjectsListData } from '../../api/generated/data-contracts';
 import type { IconName } from '../icons/iconTypes';
 import { IconButton } from './IconButton';
-import { Logo } from './Logo';
 import { ProjectSwitcher } from './ProjectSwitcher';
 
 type Props = {
@@ -35,28 +34,27 @@ export const DrawerHeader = ({
   onSettingsClick
 }: Props): React.JSX.Element => {
   return (
-    <header
-      className={['inline-flex h-10 w-[220px] items-center gap-2 pl-4 pr-0', className ?? ''].join(
-        ' '
-      )}
-    >
-      <span className="shrink-0">{logo ?? <Logo ariaLabel="Qode" />}</span>
-      <ProjectSwitcher
-        className="flex-1"
-        projects={projects}
-        selectedProjectId={selectedProjectId}
-        onOpenCreateProject={onOpenCreateProject}
-        isError={projectsError}
-        isFetching={projectsFetching}
-        onRetry={onRetryProjects}
-      />
-      <IconButton
-        size="md"
-        name={settingsIconName}
-        aria-label={settingsAriaLabel}
-        disabled={settingsDisabled}
-        onClick={onSettingsClick}
-      />
+    <header className={['flex w-full flex-col gap-5 px-4 pt-6 pb-2', className ?? ''].join(' ')}>
+      <span className="text-2xl font-medium tracking-tight text-text-base">{logo ?? 'Qode'}</span>
+      <div className="flex min-w-0 items-center gap-2">
+        <ProjectSwitcher
+          className="flex-1"
+          projects={projects}
+          selectedProjectId={selectedProjectId}
+          onOpenCreateProject={onOpenCreateProject}
+          isError={projectsError}
+          isFetching={projectsFetching}
+          onRetry={onRetryProjects}
+        />
+        <IconButton
+          className="size-9 shrink-0 rounded-md border border-line bg-surface"
+          size="md"
+          name={settingsIconName}
+          aria-label={settingsAriaLabel}
+          disabled={settingsDisabled}
+          onClick={onSettingsClick}
+        />
+      </div>
     </header>
   );
 };

@@ -124,18 +124,26 @@ const MessageSources = ({
   const headerId = `sources-header-${messageId}`;
   const listId = `sources-list-${messageId}`;
   return (
-    <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
+    <div className="mt-3 rounded-[8px] border border-line bg-surface">
       <button
         type="button"
         id={headerId}
         aria-controls={listId}
         aria-expanded={expanded}
         onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500 transition-colors hover:bg-zinc-50"
+        className="flex w-full items-center justify-between px-3 py-2 text-ui-12 text-text-subtle transition-colors hover:bg-surface-muted"
       >
-        <span>참조한 소스 {sources.length}개</span>
-        <span aria-hidden className="ml-2 text-zinc-500">
-          {expanded ? '▼' : '▶'}
+        <span className="inline-flex items-center gap-1">
+          <span
+            aria-hidden
+            className={[
+              'text-[11px] leading-none text-text-soft transition-transform',
+              expanded ? '' : '-rotate-90'
+            ].join(' ')}
+          >
+            ▾
+          </span>
+          <span>참조한 소스 {sources.length}개</span>
         </span>
       </button>
       {expanded ? (
@@ -143,16 +151,16 @@ const MessageSources = ({
           id={listId}
           role="region"
           aria-labelledby={headerId}
-          className="divide-y divide-zinc-100"
+          className="border-t border-line-soft"
         >
           {sources.map((source) => (
             <div
               key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-              className="flex items-center justify-between px-3 py-1.5 text-ui-12"
+              className="flex items-center justify-center px-3 py-1.5 text-ui-12"
             >
-              <span className="min-w-0 flex-1 truncate text-zinc-800">{source.filePath}</span>
-              <span className="ml-3 text-ui-10 text-zinc-500">
-                {source.startLine ?? '-'}-{source.endLine ?? '-'}
+              <span className="truncate text-text-subtle">{source.filePath}</span>
+              <span className="ml-3 text-ui-12 text-text-soft">
+                ({source.startLine ?? '-'}-{source.endLine ?? '-'})
               </span>
             </div>
           ))}
@@ -164,7 +172,7 @@ const MessageSources = ({
 
 const Avatar = ({ name }: { name: string }): React.JSX.Element => {
   return (
-    <div className="inline-flex size-6 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-ui-12 font-medium text-zinc-500">
+    <div className="inline-flex size-6 items-center justify-center rounded-full border border-line bg-surface-muted text-ui-12 font-medium text-text-soft">
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -188,11 +196,11 @@ const MessageActionButton = ({
   const button = (
     <button
       type="button"
-      className="flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-text-soft transition-colors hover:bg-surface-muted hover:text-text-base disabled:cursor-not-allowed disabled:opacity-50"
       disabled={disabled}
       onClick={onClick}
     >
-      <Icon name={iconName} size="sm" decorative className="text-zinc-500" />
+      <Icon name={iconName} size="sm" decorative className="text-text-soft" />
       <span>{label}</span>
     </button>
   );
@@ -299,7 +307,6 @@ export const ProjectDetailPage = ({
   const teamReadOnlyReason = TEAM_CHAT_READONLY_TOOLTIP;
 
   const chatName = activeChat?.name;
-  const myAvatarName = meName || '나';
   const messageItems = useMemo(() => {
     const payload = messages.data;
     return payload?.data ?? [];
@@ -547,7 +554,7 @@ export const ProjectDetailPage = ({
             type="button"
             onClick={() => void project.refetch()}
             disabled={project.isFetching}
-            className="rounded-md border border-danger-line bg-white px-3 py-1 text-ui-12 font-medium text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md border border-danger-line bg-surface px-3 py-1 text-ui-12 font-medium text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-60"
           >
             {project.isFetching ? '다시 시도 중...' : '다시 시도'}
           </button>
@@ -561,23 +568,23 @@ export const ProjectDetailPage = ({
 
   if (isInitialProjectLoading) {
     return (
-      <section className="flex h-full min-h-0 flex-col items-center justify-center rounded-[16px] border border-zinc-200 bg-white">
+      <section className="flex h-full min-h-0 flex-col items-center justify-center bg-surface">
         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
           <div
             aria-hidden="true"
-            className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-primary"
+            className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-primary"
           />
-          <p className="text-ui-12 font-medium text-zinc-500">프로젝트를 불러오는 중...</p>
+          <p className="text-ui-12 font-medium text-text-soft">프로젝트를 불러오는 중...</p>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col rounded-[16px] border border-zinc-200 bg-white">
+    <section className="relative flex h-full min-h-0 flex-col bg-surface">
       {isBackgroundProjectFetching ? (
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 animate-pulse rounded-t-[16px] bg-primary/60"
+          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 animate-pulse bg-primary/60"
           role="status"
           aria-live="polite"
           aria-label="프로젝트 정보 갱신 중"
@@ -614,7 +621,7 @@ export const ProjectDetailPage = ({
       ) : null}
 
       {!isAnalyzing && !isSyncFailed && lastSyncedAt ? (
-        <div className="px-4 pt-3 text-ui-12 text-zinc-500" aria-live="polite">
+        <div className="px-4 pt-3 text-ui-12 text-text-soft" aria-live="polite">
           마지막 동기화: {formatRelativeTime(lastSyncedAt)}
         </div>
       ) : null}
@@ -639,22 +646,22 @@ export const ProjectDetailPage = ({
         <div
           role="status"
           aria-live="polite"
-          className="mx-4 mb-2 flex items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-50 px-3 py-2 text-ui-12 text-zinc-700"
+          className="mx-4 mb-2 flex items-center gap-2 rounded-[10px] border border-line bg-surface-muted px-3 py-2 text-ui-12 text-text-subtle"
         >
           <span
             aria-hidden="true"
-            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent"
+            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-text-soft border-t-transparent"
           />
           <div className="min-w-0">
             <p className="font-medium">연결이 끊어졌습니다</p>
-            <p className="text-ui-10 text-zinc-500">재연결 중...</p>
+            <p className="text-ui-10 text-text-soft">재연결 중...</p>
           </div>
         </div>
       ) : null}
 
       {activeChat && isPersonalChat ? (
-        <div className="border-b border-zinc-100 px-4 py-2 flex justify-center">
-          <div className="max-w-145.5 w-full">
+        <div className="flex justify-center border-b border-line-soft px-6 py-3">
+          <div className="w-full max-w-[48rem]">
             {isEditingHeaderTitle ? (
               <input
                 autoFocus
@@ -674,14 +681,14 @@ export const ProjectDetailPage = ({
                 onBlur={() => {
                   void commitHeaderRename(headerRenameDraft);
                 }}
-                className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1 text-ui-14 font-medium text-zinc-900 outline-none focus:border-primary"
+                className="w-full rounded-md border border-control-line bg-surface px-2 py-1 text-ui-20 font-semibold text-text-base outline-none focus:border-primary"
                 aria-label={`${activeChat.name} 이름 바꾸기`}
               />
             ) : (
               <button
                 type="button"
                 onClick={beginHeaderRename}
-                className="w-full truncate rounded-md px-2 py-1 text-left text-ui-14 font-medium text-zinc-900 transition-colors hover:bg-zinc-100"
+                className="w-full truncate rounded-md px-2 py-1 text-left text-ui-20 font-semibold text-text-base transition-colors hover:bg-surface-muted"
                 title="클릭하여 채팅 이름 바꾸기"
                 aria-label={`${activeChat.name} — 이름 바꾸기`}
               >
@@ -692,28 +699,28 @@ export const ProjectDetailPage = ({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 pt-[12px]">
+      <div className="min-h-0 flex-1 pt-4">
         <div
           ref={messagesViewportRef}
-          className="h-full overflow-y-auto px-3 pb-3 flex justify-center"
+          className="h-full overflow-y-auto px-6 pb-4 flex justify-center"
         >
           {!activeChatId ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-              <p className="text-ui-12 font-medium text-zinc-400">현재 프로젝트</p>
-              <h2 className="text-2xl font-semibold text-zinc-800">
+              <p className="text-ui-12 font-medium text-text-soft">현재 프로젝트</p>
+              <h2 className="text-ui-20 font-semibold text-text-base">
                 {project.data?.data.name ?? '프로젝트'}
               </h2>
-              <p className="text-ui-14 text-zinc-500">메시지를 입력하면 새 대화가 시작돼요.</p>
+              <p className="text-ui-14 text-text-soft">메시지를 입력하면 새 대화가 시작돼요.</p>
             </div>
           ) : (
-            <div className="flex min-h-full flex-col gap-6 max-w-145.5 w-full">
+            <div className="flex min-h-full w-full max-w-[48rem] flex-col gap-6">
               {messages.isLoading ? (
-                <p className="text-ui-12 font-medium text-zinc-500">메시지를 불러오는 중...</p>
+                <p className="text-ui-12 font-medium text-text-soft">메시지를 불러오는 중...</p>
               ) : null}
 
               {messages.isError ? (
                 <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
-                  <p className="text-ui-12 font-medium text-zinc-700">
+                  <p className="text-ui-12 font-medium text-text-subtle">
                     이전 대화를 불러올 수 없습니다.
                   </p>
                   <button
@@ -721,7 +728,7 @@ export const ProjectDetailPage = ({
                     onClick={() => {
                       void messages.refetch();
                     }}
-                    className="text-ui-12 font-medium text-primary hover:underline"
+                    className="text-ui-12 font-medium text-accent-strong hover:underline"
                   >
                     다시 시도
                   </button>
@@ -749,13 +756,13 @@ export const ProjectDetailPage = ({
                       <div key={messageId} className="flex items-end justify-end gap-2">
                         <div className="flex flex-col items-end gap-0.5 w-full">
                           {isLocalFailed ? (
-                            <p className="text-ui-10 font-medium text-red-500">전송 실패</p>
+                            <p className="text-ui-10 font-medium text-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl bg-zinc-700 px-3 py-2.5 text-ui-12 font-medium text-white">
+                          <div className="max-w-[70%] rounded-xl border border-line bg-surface-muted px-3 py-2.5 text-ui-16 font-medium text-text-base">
                             {messageContent}
                           </div>
                           {timeLabel ? (
-                            <p className="text-ui-10 text-zinc-400">{timeLabel}</p>
+                            <p className="text-ui-10 text-text-soft">{timeLabel}</p>
                           ) : null}
                         </div>
                       </div>
@@ -766,11 +773,13 @@ export const ProjectDetailPage = ({
                     <div key={messageId} className="flex items-end gap-2">
                       <Avatar name={senderName} />
                       <div className="flex flex-col gap-0.5 w-full">
-                        <p className="text-ui-10 font-medium text-zinc-500">{senderName}</p>
-                        <div className="max-w-[70%] w-fit rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-ui-12 text-zinc-800">
+                        <p className="text-ui-10 font-medium text-text-soft">{senderName}</p>
+                        <div className="max-w-[70%] w-fit rounded-xl border border-line bg-surface px-3 py-2.5 text-ui-16 text-text-base">
                           {messageContent}
                         </div>
-                        {timeLabel ? <p className="text-ui-10 text-zinc-400">{timeLabel}</p> : null}
+                        {timeLabel ? (
+                          <p className="text-ui-10 text-text-soft">{timeLabel}</p>
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -779,16 +788,15 @@ export const ProjectDetailPage = ({
                 // ── 개인 채팅 렌더링 ────────────────────────────────────────────
                 if (isUserMessageRole(messageRole)) {
                   return (
-                    <div key={messageId} className="flex items-end justify-end gap-3">
-                      <div className="flex flex-col items-end">
-                        <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-ui-12 font-medium text-zinc-800">
+                    <div key={messageId} className="flex items-end justify-end">
+                      <div className="flex max-w-[70%] flex-col items-end">
+                        <div className="rounded-[12px] bg-surface-muted px-3 py-3 text-ui-16 font-medium text-text-base">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (
-                          <p className="mt-1 text-ui-10 font-medium text-red-500">전송 실패</p>
+                          <p className="mt-1 text-ui-10 font-medium text-danger">전송 실패</p>
                         ) : null}
                       </div>
-                      <Avatar name={myAvatarName} />
                     </div>
                   );
                 }
@@ -796,7 +804,16 @@ export const ProjectDetailPage = ({
                 const sources = extractSources(message);
 
                 return (
-                  <article key={messageId} className="rounded-[12px] bg-white p-3">
+                  <article key={messageId} className="rounded-[12px] bg-surface p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span
+                        aria-hidden="true"
+                        className="inline-flex size-7 items-center justify-center rounded-full bg-primary text-ui-14 font-semibold text-primary-foreground"
+                      >
+                        Q
+                      </span>
+                      <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
+                    </div>
                     <MarkdownAnswer content={messageContent} />
 
                     {sources.length > 0 ? (
@@ -846,12 +863,21 @@ export const ProjectDetailPage = ({
 
               {(isSending || streamContent || streamError) && activeChatId && isPersonalChat ? (
                 <article
-                  className="rounded-[12px] border border-zinc-200 bg-white p-3"
+                  className="rounded-[12px] border border-line bg-surface p-3"
                   aria-live="polite"
                 >
-                  <p className="mb-1 text-ui-10 font-medium text-zinc-500">
-                    Qode AI · {streamStatus || '스트리밍 중'}
-                  </p>
+                  <div className="mb-2 flex items-center gap-2">
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex size-7 items-center justify-center rounded-full bg-primary text-ui-14 font-semibold text-primary-foreground"
+                    >
+                      Q
+                    </span>
+                    <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
+                    <span className="text-ui-10 text-text-soft">
+                      · {streamStatus || '스트리밍 중'}
+                    </span>
+                  </div>
                   {streamError ? (
                     <div className="flex flex-col gap-2">
                       <p className="text-ui-12 leading-[1.6] text-danger">
@@ -872,13 +898,13 @@ export const ProjectDetailPage = ({
                   ) : streamContent ? (
                     <MarkdownAnswer content={streamContent} />
                   ) : (
-                    <p className="text-ui-12 leading-[1.6] text-zinc-500">
+                    <p className="text-ui-12 leading-[1.6] text-text-soft">
                       찾아보는 중이에요
                       <LoadingDots />
                     </p>
                   )}
                   {!streamError && streamSources.length > 0 ? (
-                    <p className="mt-2 text-ui-10 text-zinc-500">
+                    <p className="mt-2 text-ui-10 text-text-soft">
                       참조 소스 {streamSources.length}개 수집됨
                     </p>
                   ) : null}
@@ -890,7 +916,7 @@ export const ProjectDetailPage = ({
         </div>
       </div>
 
-      <footer className="shrink-0 px-3 pb-3 flex justify-center">
+      <footer className="shrink-0 px-6 pb-6 flex justify-center">
         <ChatComposer
           value={draft}
           placeholder={

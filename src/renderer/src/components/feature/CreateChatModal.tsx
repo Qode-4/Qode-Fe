@@ -55,7 +55,7 @@ export const CreateChatModal = ({
               'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
               nameError
                 ? 'border-danger-line focus:border-danger'
-                : 'border-[#737983] focus:border-primary'
+                : 'border-control-line focus:border-primary'
             ].join(' ')}
             value={name}
             onChange={(e) => setName(e.target.value)}

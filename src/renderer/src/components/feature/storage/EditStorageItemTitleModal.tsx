@@ -77,7 +77,7 @@ export const EditStorageItemTitleModal = ({
               'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
               titleError
                 ? 'border-danger-line focus:border-danger'
-                : 'border-[#737983] focus:border-primary'
+                : 'border-control-line focus:border-primary'
             ].join(' ')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}

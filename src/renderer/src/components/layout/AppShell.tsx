@@ -31,7 +31,7 @@ import {
   usePostSection
 } from '../../api/auth/useSectionsAPI';
 import { handleApiError } from '../../api/axios';
-import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../../api/capabilities';
+import { API_CAPABILITIES } from '../../api/capabilities';
 import type { SectionItem } from '../../api/contracts/sections';
 import type {
   ChatsMeListData,
@@ -43,6 +43,7 @@ import { QUERY_KEY } from '../../api/queryKeys';
 import { tokenStorage } from '../../api/tokenStorage';
 import overflowIcon from '../../assets/overflow-icon.png';
 import { navigate } from '../../lib/hashRouter';
+import { formatRelativeTime } from '../../lib/relativeTime';
 import type { IconName } from '../icons/iconTypes';
 import { Button } from '../ui/Button';
 import { ChatItemMenu, type ChatItemMenuAction } from '../ui/ChatItemMenu';
@@ -98,9 +99,9 @@ const avatarSizeClassMap: Record<AvatarSize, string> = {
 };
 
 const drawerTypography = {
-  sectionTitle: 'text-ui-10',
+  sectionTitle: 'text-ui-12',
   emptyState: 'text-ui-12',
-  listItem: 'text-ui-12',
+  listItem: 'text-ui-14',
   listItemAction: 'text-ui-10',
   settingsName: 'text-ui-12',
   settingsEmail: 'text-ui-11',
@@ -113,14 +114,18 @@ const drawerTypography = {
   fontSizeOption: 'text-ui-11'
 } as const;
 
+type AvatarVariant = 'default' | 'brand';
+
 const UserAvatar = ({
   name,
   avatarUrl,
-  size
+  size,
+  variant = 'default'
 }: {
   name: string;
   avatarUrl?: string | null;
   size: AvatarSize;
+  variant?: AvatarVariant;
 }): React.JSX.Element => {
   const initial = name.trim().charAt(0).toUpperCase() || '?';
   const sizeClassName = avatarSizeClassMap[size];
@@ -139,14 +144,19 @@ const UserAvatar = ({
         src={avatarUrl}
         alt={`${name} 프로필 이미지`}
         onError={() => setImgFailed(true)}
-        className={`inline-flex shrink-0 rounded-full border border-zinc-200 object-cover ${sizeClassName}`}
+        className={`inline-flex shrink-0 rounded-full border border-line object-cover ${sizeClassName}`}
       />
     );
   }
 
+  const fallbackClassName =
+    variant === 'brand'
+      ? 'bg-primary font-semibold text-primary-foreground'
+      : 'border border-line bg-surface-muted font-medium text-text-soft';
+
   return (
     <div
-      className={`inline-flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 font-medium text-zinc-500 ${sizeClassName}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full ${fallbackClassName} ${sizeClassName}`}
       aria-hidden="true"
     >
       {initial}
@@ -250,8 +260,6 @@ export const AppShell = ({
   const [folderCreateValue, setFolderCreateValue] = useState('');
   const [folderCreateTouched, setFolderCreateTouched] = useState(false);
   const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
-  const [personalChatsCollapsed, setPersonalChatsCollapsed] = useState(false);
-  const [teamChatsCollapsed, setTeamChatsCollapsed] = useState(false);
   const [openSettingsMenu, setOpenSettingsMenu] = useState(false);
   const [settingsMenuPos, setSettingsMenuPos] = useState<{ left: number } | null>(null);
   const settingsMenuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -310,7 +318,7 @@ export const AppShell = ({
   // 메뉴는 "지금 메뉴를 연 프로젝트"의 역할로 거른다. 선택된 프로젝트와 다를 수 있다.
   const openMenuProjectRole = projects.find((it) => it.id === openMenuProjectId)?.role ?? null;
   const visibleProjectMenuActions = projectMenuActions.filter(
-    (it) => !it.ownerOnly || openMenuProjectRole === 'OWNER'
+    (it) => it.key !== 'sync' && (!it.ownerOnly || openMenuProjectRole === 'OWNER')
   );
   const memberCount = modalProjectMembers.data?.data.length ?? 0;
   const isTeamFull = memberCount >= MAX_TEAM_MEMBERS;
@@ -390,6 +398,16 @@ export const AppShell = ({
       : selectedProjectSyncStatusValue === 'failed'
         ? '동기화 다시 시도'
         : '동기화';
+  const selectedProjectLastSyncedAt =
+    projects.find((project) => project.id === selectedProjectId)?.lastSyncedAt ?? null;
+  const syncStatusInlineText =
+    isSyncInProgress || postProjectSync.isPending
+      ? '동기화 진행 중'
+      : selectedProjectSyncStatusValue === 'failed'
+        ? '지난 동기화 실패'
+        : selectedProjectLastSyncedAt
+          ? `마지막 동기화: ${formatRelativeTime(selectedProjectLastSyncedAt)}`
+          : '동기화 이력 없음';
   useEffect(() => {
     const onPointerDown = (e: MouseEvent): void => {
       const target = e.target as HTMLElement | null;
@@ -998,9 +1016,12 @@ export const AppShell = ({
   };
 
   return (
-    <div className="h-full w-full bg-zinc-50">
-      <div className="grid h-full grid-cols-[240px_1fr]">
-        <aside aria-label="사이드바 네비게이션" className="flex min-h-0 flex-col  bg-zinc-50">
+    <div className="h-full w-full bg-app-bg">
+      <div className="grid h-full grid-cols-[240px_minmax(0,1fr)]">
+        <aside
+          aria-label="사이드바 네비게이션"
+          className="flex min-h-0 flex-col border-r border-line bg-sidebar"
+        >
           <DrawerHeader
             className="w-full"
             projects={projects}
@@ -1013,7 +1034,29 @@ export const AppShell = ({
             onSettingsClick={handleHeaderProjectMenuClick}
           />
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <section className="px-4 pt-4">
+            {projects.find((project) => project.id === selectedProjectId)?.role === 'OWNER' ? (
+              <div className="flex items-center gap-2 px-4 pt-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!canRequestProjectSync}
+                  onClick={requestProjectSync}
+                  aria-busy={isSyncInProgress || postProjectSync.isPending}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Icon name="Refresh_light" size="sm" decorative />
+                    {syncMenuLabel}
+                  </span>
+                </Button>
+                <span
+                  className="min-w-0 flex-1 truncate text-ui-12 text-text-soft"
+                  aria-live="polite"
+                >
+                  {syncStatusInlineText}
+                </span>
+              </div>
+            ) : null}
+            <section hidden className="px-4 pt-4">
               <div className="inline-flex w-full items-center justify-between gap-2">
                 <p
                   className={[
@@ -1027,7 +1070,7 @@ export const AppShell = ({
                   type="button"
                   aria-label={sectionsCollapsed ? '섹션 펼치기' : '섹션 접기'}
                   aria-expanded={!sectionsCollapsed}
-                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 active:bg-zinc-200"
+                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-text-soft transition-colors hover:bg-surface-muted hover:text-text-subtle active:bg-line"
                   onClick={() => setSectionsCollapsed((prev) => !prev)}
                 >
                   <span
@@ -1055,7 +1098,7 @@ export const AppShell = ({
                   {sectionsErrorMessage ? null : sectionsLoading ? (
                     <div
                       className={[
-                        'flex h-24 items-center justify-center text-center font-normal leading-[1.6] text-zinc-500',
+                        'flex h-24 items-center justify-center text-center font-normal leading-[1.6] text-text-soft',
                         drawerTypography.emptyState
                       ].join(' ')}
                     >
@@ -1069,14 +1112,14 @@ export const AppShell = ({
                             className={[
                               'inline-flex h-7 w-full items-center gap-1 rounded-[8px] pl-2 py-[2px] font-normal no-underline transition-colors',
                               drawerTypography.listItem,
-                              'text-slate-900'
+                              'text-text-base'
                             ].join(' ')}
                           >
                             <Icon
                               name="dot_round_fill"
                               size="sm"
                               decorative
-                              className="text-zinc-400"
+                              className="text-text-soft"
                             />
                             <span className="min-w-0 flex-1 truncate">{section.name}</span>
                             <button
@@ -1094,8 +1137,8 @@ export const AppShell = ({
                               className={[
                                 'inline-flex shrink-0 items-center justify-center rounded-[4px] p-1 transition-opacity',
                                 openSectionMenuId === section.id
-                                  ? 'bg-zinc-200 opacity-100'
-                                  : 'opacity-0 hover:bg-zinc-200 group-hover:opacity-100 group-focus-within:opacity-100'
+                                  ? 'bg-line opacity-100'
+                                  : 'opacity-0 hover:bg-line group-hover:opacity-100 group-focus-within:opacity-100'
                               ].join(' ')}
                               onClick={(e) => {
                                 e.preventDefault();
@@ -1107,7 +1150,7 @@ export const AppShell = ({
                                 name="Setting_line_light"
                                 size="sm"
                                 decorative
-                                className="text-zinc-500"
+                                className="text-text-soft"
                               />
                             </button>
                           </div>
@@ -1117,7 +1160,7 @@ export const AppShell = ({
                               <div
                                 key={folder.id}
                                 className={[
-                                  'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal text-slate-700 transition-colors hover:bg-zinc-100',
+                                  'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal text-text-subtle transition-colors hover:bg-surface-muted',
                                   drawerTypography.listItem
                                 ].join(' ')}
                               >
@@ -1135,7 +1178,7 @@ export const AppShell = ({
                               type="button"
                               onClick={() => openFolderCreateModal(section.id)}
                               className={[
-                                'inline-flex h-7 items-center gap-1 pl-3 pr-2 py-[2px] font-normal text-zinc-400 transition-colors hover:text-zinc-600',
+                                'inline-flex h-7 items-center gap-1 pl-3 pr-2 py-[2px] font-normal text-text-soft transition-colors hover:text-text-subtle',
                                 drawerTypography.listItem
                               ].join(' ')}
                             >
@@ -1152,7 +1195,7 @@ export const AppShell = ({
                     type="button"
                     onClick={openSectionCreateModal}
                     className={[
-                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-zinc-400 transition-colors hover:text-zinc-600',
+                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-text-soft transition-colors hover:text-text-subtle',
                       drawerTypography.listItem
                     ].join(' ')}
                   >
@@ -1175,166 +1218,149 @@ export const AppShell = ({
                 </p>
                 <button
                   type="button"
-                  aria-label={personalChatsCollapsed ? '내 채팅 펼치기' : '내 채팅 접기'}
-                  aria-expanded={!personalChatsCollapsed}
-                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 active:bg-zinc-200"
-                  onClick={() => setPersonalChatsCollapsed((prev) => !prev)}
+                  aria-label="새 채팅 만들기"
+                  disabled={!selectedProjectId}
+                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-text-soft transition-colors hover:bg-surface-muted hover:text-text-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={onCreatePersonalChat}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={
-                      personalChatsCollapsed
-                        ? '-rotate-90 text-[11px] leading-none transition-transform'
-                        : 'text-[11px] leading-none transition-transform'
-                    }
-                  >
-                    ▾
+                  <span aria-hidden="true" className="text-[16px] leading-none">
+                    +
                   </span>
                 </button>
               </div>
-              {personalChatsCollapsed ? null : (
-                <>
-                  {chatsIsError ? (
-                    <div
-                      className={[
-                        'mt-1 flex flex-col items-start gap-1 px-3 py-2',
-                        drawerTypography.emptyState
-                      ].join(' ')}
-                    >
-                      <p className="text-text-subtle">채팅 목록을 불러올 수 없습니다.</p>
-                      <button
-                        type="button"
-                        onClick={onRetryChats}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        다시 시도
-                      </button>
-                    </div>
-                  ) : !chatsIsLoading && personalChats.length === 0 ? (
-                    <p
-                      className={[
-                        'mt-1 px-3 py-2 font-normal text-text-subtle',
-                        drawerTypography.emptyState
-                      ].join(' ')}
-                    >
-                      아직 채팅이 없습니다. 새 채팅을 시작해보세요!
-                    </p>
-                  ) : null}
-                  <nav aria-label="내 채팅 목록" className="mt-0.5">
-                    {personalChats.map((chat) => {
-                      const isActive = activeChatId === chat.id;
-                      const isEditing = editingChatId === chat.id;
-                      const menuActions: ChatItemMenuAction[] = [
-                        {
-                          key: 'rename',
-                          label: '이름 바꾸기',
-                          iconName: 'Pencil_light',
-                          onSelect: () => beginChatRename(chat)
-                        },
-                        {
-                          key: 'delete',
-                          label: '삭제',
-                          iconName: 'Trash_light',
-                          danger: true,
-                          disabled: deleteChat.isPending,
-                          onSelect: () => {
-                            void handlePersonalChatDelete(chat);
-                          }
-                        }
-                      ];
-
-                      if (isEditing) {
-                        return (
-                          <div
-                            key={chat.id}
-                            className={[
-                              'flex h-7 w-full items-center rounded-[8px] px-2 py-[2px]',
-                              isActive ? 'bg-zinc-700' : 'bg-zinc-100'
-                            ].join(' ')}
-                          >
-                            <input
-                              autoFocus
-                              value={chatRenameDraft}
-                              maxLength={100}
-                              disabled={patchChat.isPending}
-                              onChange={(e) => setChatRenameDraft(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  void commitChatRename(chat, chatRenameDraft);
-                                } else if (e.key === 'Escape') {
-                                  e.preventDefault();
-                                  cancelChatRename();
-                                }
-                              }}
-                              onBlur={() => {
-                                void commitChatRename(chat, chatRenameDraft);
-                              }}
-                              className={[
-                                'w-full bg-transparent outline-none',
-                                drawerTypography.listItem,
-                                isActive ? 'text-white placeholder-zinc-300' : 'text-slate-900'
-                              ].join(' ')}
-                              aria-label={`${chat.name} 이름 바꾸기`}
-                            />
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div key={chat.id} className="group relative min-w-0 overflow-hidden">
-                          <button
-                            type="button"
-                            aria-current={isActive ? 'true' : undefined}
-                            title={chat.name}
-                            className={[
-                              'flex h-7 w-full min-w-0 items-center overflow-hidden rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
-                              drawerTypography.listItem,
-                              isActive
-                                ? 'bg-zinc-700 text-white'
-                                : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
-                            ].join(' ')}
-                            onClick={() => onSelectChat?.(chat.id)}
-                          >
-                            <span className="min-w-0 flex-1 truncate pr-6">{chat.name}</span>
-                          </button>
-
-                          <div
-                            className={[
-                              'absolute right-1 top-1/2 -translate-y-1/2 transition-opacity',
-                              'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
-                            ].join(' ')}
-                          >
-                            <ChatItemMenu
-                              triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
-                              ariaLabel={`${chat.name} 채팅 작업 메뉴`}
-                              triggerClassName={[
-                                'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
-                                isActive
-                                  ? 'text-zinc-200 hover:bg-zinc-600'
-                                  : 'text-zinc-500 hover:bg-zinc-200'
-                              ].join(' ')}
-                              actions={menuActions}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </nav>
-
+              {chatsIsError ? (
+                <div
+                  className={[
+                    'mt-1 flex flex-col items-start gap-1 px-3 py-2',
+                    drawerTypography.emptyState
+                  ].join(' ')}
+                >
+                  <p className="text-text-subtle">채팅 목록을 불러올 수 없습니다.</p>
                   <button
                     type="button"
-                    onClick={onCreatePersonalChat}
-                    className={[
-                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-zinc-400 transition-colors hover:text-zinc-600',
-                      drawerTypography.listItem
-                    ].join(' ')}
+                    onClick={onRetryChats}
+                    className="font-medium text-accent-strong hover:underline"
                   >
-                    <span className="text-[18px] leading-none">+</span>
-                    <span>추가</span>
+                    다시 시도
                   </button>
-                </>
-              )}
+                </div>
+              ) : !chatsIsLoading && personalChats.length === 0 ? (
+                <p
+                  className={[
+                    'mt-1 px-3 py-2 font-normal text-text-subtle',
+                    drawerTypography.emptyState
+                  ].join(' ')}
+                >
+                  아직 채팅이 없습니다. 새 채팅을 시작해보세요!
+                </p>
+              ) : null}
+              <nav aria-label="내 채팅 목록" className="mt-0.5">
+                {personalChats.map((chat) => {
+                  const isActive = activeChatId === chat.id;
+                  const isEditing = editingChatId === chat.id;
+                  const menuActions: ChatItemMenuAction[] = [
+                    {
+                      key: 'rename',
+                      label: '이름 바꾸기',
+                      iconName: 'Pencil_light',
+                      onSelect: () => beginChatRename(chat)
+                    },
+                    {
+                      key: 'delete',
+                      label: '삭제',
+                      iconName: 'Trash_light',
+                      danger: true,
+                      disabled: deleteChat.isPending,
+                      onSelect: () => {
+                        void handlePersonalChatDelete(chat);
+                      }
+                    }
+                  ];
+
+                  if (isEditing) {
+                    return (
+                      <div
+                        key={chat.id}
+                        className={[
+                          'flex h-7 w-full items-center rounded-[8px] px-2 py-[2px]',
+                          isActive ? 'bg-primary-soft' : 'bg-surface-muted'
+                        ].join(' ')}
+                      >
+                        <input
+                          autoFocus
+                          value={chatRenameDraft}
+                          maxLength={100}
+                          disabled={patchChat.isPending}
+                          onChange={(e) => setChatRenameDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              void commitChatRename(chat, chatRenameDraft);
+                            } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              cancelChatRename();
+                            }
+                          }}
+                          onBlur={() => {
+                            void commitChatRename(chat, chatRenameDraft);
+                          }}
+                          className={[
+                            'w-full bg-transparent outline-none',
+                            drawerTypography.listItem,
+                            'text-text-base placeholder:text-text-soft'
+                          ].join(' ')}
+                          aria-label={`${chat.name} 이름 바꾸기`}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={chat.id} className="group relative min-w-0 overflow-hidden">
+                      {isActive ? (
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full bg-accent"
+                        />
+                      ) : null}
+                      <button
+                        type="button"
+                        aria-current={isActive ? 'true' : undefined}
+                        title={chat.name}
+                        className={[
+                          'flex h-7 w-full min-w-0 items-center overflow-hidden rounded-[6px] px-2 py-[2px] text-left transition-colors',
+                          drawerTypography.listItem,
+                          isActive
+                            ? 'bg-primary-soft font-medium text-text-base'
+                            : 'font-normal text-text-base hover:bg-surface-muted active:bg-line'
+                        ].join(' ')}
+                        onClick={() => onSelectChat?.(chat.id)}
+                      >
+                        <span className="min-w-0 flex-1 truncate pr-6">{chat.name}</span>
+                      </button>
+
+                      <div
+                        className={[
+                          'absolute right-1 top-1/2 -translate-y-1/2 transition-opacity',
+                          'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
+                        ].join(' ')}
+                      >
+                        <ChatItemMenu
+                          triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
+                          ariaLabel={`${chat.name} 채팅 작업 메뉴`}
+                          triggerClassName={[
+                            'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
+                            isActive
+                              ? 'text-text-base hover:bg-line'
+                              : 'text-text-soft hover:bg-line'
+                          ].join(' ')}
+                          actions={menuActions}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </nav>
             </section>
 
             <section className="px-4 pb-4">
@@ -1347,109 +1373,88 @@ export const AppShell = ({
                 >
                   팀 채팅
                 </p>
-                <button
-                  type="button"
-                  aria-label={teamChatsCollapsed ? '팀 채팅 펼치기' : '팀 채팅 접기'}
-                  aria-expanded={!teamChatsCollapsed}
-                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 active:bg-zinc-200"
-                  onClick={() => setTeamChatsCollapsed((prev) => !prev)}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={
-                      teamChatsCollapsed
-                        ? '-rotate-90 text-[11px] leading-none transition-transform'
-                        : 'text-[11px] leading-none transition-transform'
-                    }
-                  >
-                    ▾
-                  </span>
-                </button>
-              </div>
-
-              {teamChatsCollapsed ? null : (
-                <>
-                  {chatsIsError ? (
-                    <div
-                      className={[
-                        'mt-1 flex flex-col items-start gap-1 px-3 py-2',
-                        drawerTypography.emptyState
-                      ].join(' ')}
-                    >
-                      <p className="text-text-subtle">채팅 목록을 불러올 수 없습니다.</p>
-                      <button
-                        type="button"
-                        onClick={onRetryChats}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        다시 시도
-                      </button>
-                    </div>
-                  ) : !chatsIsLoading && teamChats.length === 0 ? (
-                    <p
-                      className={[
-                        'mt-1 px-3 py-2 font-normal text-text-subtle',
-                        drawerTypography.emptyState
-                      ].join(' ')}
-                    >
-                      아직 채팅이 없습니다. 새 채팅을 시작해보세요!
-                    </p>
-                  ) : null}
-                  <nav aria-label="팀 채팅 목록" className="mt-0.5">
-                    {teamChats.map((chat) => {
-                      const isActive = activeChatId === chat.id;
-                      return (
-                        <button
-                          key={chat.id}
-                          type="button"
-                          aria-current={isActive ? 'true' : undefined}
-                          title={chat.name}
-                          className={[
-                            'flex h-7 w-full min-w-0 items-center gap-1 overflow-hidden rounded-[8px] px-2 py-[2px] text-left font-normal transition-colors',
-                            drawerTypography.listItem,
-                            isActive
-                              ? 'bg-zinc-700 text-white'
-                              : 'text-slate-900 hover:bg-zinc-100 active:bg-zinc-200'
-                          ].join(' ')}
-                          onClick={() => onSelectChat?.(chat.id)}
-                        >
-                          <span className="min-w-0 flex-1 truncate">{chat.name}</span>
-                        </button>
-                      );
-                    })}
-                  </nav>
-
+                {API_CAPABILITIES.teamChatWritable ? (
                   <button
                     type="button"
-                    onClick={API_CAPABILITIES.teamChatWritable ? onCreateTeamChat : undefined}
-                    title={
-                      !API_CAPABILITIES.teamChatWritable ? TEAM_CHAT_READONLY_TOOLTIP : undefined
-                    }
-                    disabled={!API_CAPABILITIES.teamChatWritable}
-                    className={[
-                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-zinc-400 transition-colors hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50',
-                      drawerTypography.listItem
-                    ].join(' ')}
+                    aria-label="새 팀 채팅 만들기"
+                    disabled={!selectedProjectId}
+                    className="inline-flex items-center justify-center rounded-[4px] p-1 text-text-soft transition-colors hover:bg-surface-muted hover:text-text-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={onCreateTeamChat}
                   >
-                    <span className="text-[18px] leading-none">+</span>
-                    <span>추가</span>
+                    <span aria-hidden="true" className="text-[16px] leading-none">
+                      +
+                    </span>
                   </button>
-                </>
-              )}
+                ) : null}
+              </div>
+
+              {chatsIsError ? (
+                <div
+                  className={[
+                    'mt-1 flex flex-col items-start gap-1 px-3 py-2',
+                    drawerTypography.emptyState
+                  ].join(' ')}
+                >
+                  <p className="text-text-subtle">채팅 목록을 불러올 수 없습니다.</p>
+                  <button
+                    type="button"
+                    onClick={onRetryChats}
+                    className="font-medium text-accent-strong hover:underline"
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : !chatsIsLoading && teamChats.length === 0 ? (
+                <p
+                  className={[
+                    'mt-1 px-3 py-2 font-normal text-text-subtle',
+                    drawerTypography.emptyState
+                  ].join(' ')}
+                >
+                  아직 채팅이 없습니다. 새 채팅을 시작해보세요!
+                </p>
+              ) : null}
+              <nav aria-label="팀 채팅 목록" className="mt-0.5">
+                {teamChats.map((chat) => {
+                  const isActive = activeChatId === chat.id;
+                  return (
+                    <div key={chat.id} className="relative min-w-0 overflow-hidden">
+                      {isActive ? (
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full bg-accent"
+                        />
+                      ) : null}
+                      <button
+                        type="button"
+                        aria-current={isActive ? 'true' : undefined}
+                        title={chat.name}
+                        className={[
+                          'flex h-7 w-full min-w-0 items-center gap-1 overflow-hidden rounded-[6px] px-2 py-[2px] text-left transition-colors',
+                          drawerTypography.listItem,
+                          isActive
+                            ? 'bg-primary-soft font-medium text-text-base'
+                            : 'font-normal text-text-base hover:bg-surface-muted active:bg-line'
+                        ].join(' ')}
+                        onClick={() => onSelectChat?.(chat.id)}
+                      >
+                        <span className="min-w-0 flex-1 truncate">{chat.name}</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </nav>
             </section>
           </div>
           <div className="px-2">
             <div
-              className="mt-auto flex items-center gap-2 border-t border-zinc-200 p-4"
+              className="mt-auto flex items-center gap-2 border-t border-line p-4"
               aria-label="프로필"
             >
-              <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" />
-              <div className="min-w-0 flex-1 gap-0.5">
-                <p className="truncate font-semibold text-zinc-800 text-[14px]">{userName}</p>
-                <p className={['truncate text-zinc-400', drawerTypography.settingsEmail].join(' ')}>
-                  {userEmail}
-                </p>
-              </div>
+              <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" variant="brand" />
+              <p className="min-w-0 flex-1 truncate font-semibold text-text-base text-[14px]">
+                {userName}
+              </p>
               <button
                 type="button"
                 data-settings-trigger
@@ -1463,9 +1468,9 @@ export const AppShell = ({
           </div>
         </aside>
 
-        <main className="flex min-h-0 flex-col overflow-hidden bg-zinc-50 p-2">
+        <main className="flex min-h-0 flex-col overflow-hidden bg-surface">
           {selectedProjectId && selectedProjectSyncStatus.isError ? (
-            <div className="px-4 pb-2" role="alert" aria-live="assertive">
+            <div className="px-6 pt-3" role="alert" aria-live="assertive">
               <InlineAlert tone="danger" title="동기화 상태 조회 실패">
                 {handleApiError(selectedProjectSyncStatus.error).message}
               </InlineAlert>
@@ -1479,7 +1484,7 @@ export const AppShell = ({
         ? createPortal(
             <div
               data-settings-menu
-              className="fixed z-50 w-[196px] rounded-[12px] border border-zinc-200 bg-white p-1 shadow-[0px_4px_18.7px_0px_rgba(0,0,0,0.08)]"
+              className="fixed z-50 w-[196px] rounded-[12px] border border-line bg-surface p-1 shadow-none"
               style={{ bottom: FLOATING_PANEL_BOTTOM, left: settingsMenuPos.left }}
               role="menu"
               aria-label="설정 메뉴"
@@ -1490,21 +1495,23 @@ export const AppShell = ({
                 <div className="min-w-0">
                   <p
                     className={[
-                      'truncate font-semibold text-zinc-800',
+                      'truncate font-semibold text-text-base',
                       drawerTypography.settingsName
                     ].join(' ')}
                   >
                     {userName}
                   </p>
                   <p
-                    className={['truncate text-zinc-400', drawerTypography.settingsEmail].join(' ')}
+                    className={['truncate text-text-soft', drawerTypography.settingsEmail].join(
+                      ' '
+                    )}
                   >
                     {userEmail}
                   </p>
                 </div>
               </div>
 
-              <div role="separator" className="mx-1 my-1 border-t border-zinc-100" />
+              <div role="separator" className="mx-1 my-1 border-t border-line-soft" />
 
               {settingsMenuActions.map((it, index) => (
                 <button
@@ -1516,12 +1523,12 @@ export const AppShell = ({
                     settingsMenuItemRefs.current[index] = el;
                   }}
                   className={[
-                    'flex h-6 w-full items-center gap-1 rounded-[8px] px-2 py-0.5 text-left font-normal text-zinc-700 hover:bg-zinc-100',
+                    'flex h-6 w-full items-center gap-1 rounded-[8px] px-2 py-0.5 text-left font-normal text-text-subtle hover:bg-surface-muted',
                     drawerTypography.settingsMenuItem
                   ].join(' ')}
                   onClick={() => handleSettingsAction(it.key)}
                 >
-                  <Icon name={it.iconName} size={16} decorative className="text-zinc-700" />
+                  <Icon name={it.iconName} size={16} decorative className="text-text-subtle" />
                   <span>{it.label}</span>
                 </button>
               ))}
@@ -1535,7 +1542,7 @@ export const AppShell = ({
             <div
               id={sectionMenuId}
               data-section-actions-menu
-              className="fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-lg"
+              className="fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none"
               style={{ top: sectionMenuPos.top, left: sectionMenuPos.left }}
               role="menu"
               aria-label="섹션 작업 메뉴"
@@ -1718,17 +1725,17 @@ export const AppShell = ({
         ? createPortal(
             <section
               data-profile-settings-dialog
-              className="fixed z-50 w-[240px] rounded-[12px] border border-zinc-200 bg-white shadow-[0px_4px_18.7px_0px_rgba(0,0,0,0.08)]"
+              className="fixed z-50 w-[240px] rounded-[12px] border border-line bg-surface shadow-none"
               style={{ bottom: FLOATING_PANEL_BOTTOM, left: profileDialogPos.left }}
               role="dialog"
               aria-modal="false"
               aria-labelledby={profileSettingsTitleId}
             >
-              <div className="border-b border-zinc-200 px-3 py-2">
+              <div className="border-b border-line px-3 py-2">
                 <h2
                   id={profileSettingsTitleId}
                   className={[
-                    'font-semibold leading-[1.6] text-zinc-700',
+                    'font-semibold leading-[1.6] text-text-subtle',
                     drawerTypography.profileTitle
                   ].join(' ')}
                 >
@@ -1744,13 +1751,13 @@ export const AppShell = ({
                       value={userName}
                       readOnly
                       className={[
-                        'h-6 w-full rounded-[8px] border border-zinc-300 bg-white px-2 font-medium text-zinc-700 outline-none',
+                        'h-6 w-full rounded-[8px] border border-control-line bg-surface px-2 font-medium text-text-subtle outline-none',
                         drawerTypography.profileInput
                       ].join(' ')}
                     />
                     <p
                       className={[
-                        'mt-0.5 truncate font-medium text-zinc-400',
+                        'mt-0.5 truncate font-medium text-text-soft',
                         drawerTypography.profileEmail
                       ].join(' ')}
                     >
@@ -1765,7 +1772,7 @@ export const AppShell = ({
                   <button
                     type="button"
                     className={[
-                      'h-6 flex-1 rounded-[8px] bg-white font-medium text-zinc-500 hover:bg-zinc-100 active:bg-zinc-200',
+                      'h-6 flex-1 rounded-[8px] bg-surface font-medium text-text-soft hover:bg-surface-muted active:bg-line',
                       drawerTypography.profileButton
                     ].join(' ')}
                     onClick={handleProfileDialogCancel}
@@ -1795,7 +1802,7 @@ export const AppShell = ({
             <div
               id={projectMenuId}
               data-project-actions-menu
-              className="fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-lg"
+              className="fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none"
               style={{ top: menuPos.top, left: menuPos.left }}
               role="menu"
               aria-label="프로젝트 작업 메뉴"
@@ -2082,7 +2089,7 @@ export const AppShell = ({
                         className={[
                           'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
                           isOwner
-                            ? 'bg-primary-soft text-primary'
+                            ? 'bg-primary-soft text-accent-strong'
                             : 'bg-surface-muted text-text-subtle'
                         ].join(' ')}
                       >

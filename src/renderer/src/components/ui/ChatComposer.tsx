@@ -50,7 +50,7 @@ export const ChatComposer = ({
   return (
     <div
       className={[
-        'rounded-xl border border-zinc-200 bg-white p-3 shadow-[0px_4px_18.7px_0px_rgba(0,0,0,0.08)] max-w-145.5 w-full',
+        'rounded-[12px] border border-control-line bg-surface p-4 shadow-none max-w-[48rem] w-full',
         className ?? ''
       ].join(' ')}
     >
@@ -58,7 +58,7 @@ export const ChatComposer = ({
         ref={textareaRef}
         rows={1}
         aria-label="메시지 입력"
-        className="block w-full resize-none bg-transparent text-ui-12 leading-[1.6] text-zinc-800 outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed"
+        className="block w-full resize-none bg-transparent text-base leading-[1.6] text-text-base outline-none placeholder:text-text-soft disabled:cursor-not-allowed"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -89,9 +89,9 @@ export const ChatComposer = ({
             <button
               type="button"
               className={[
-                'inline-flex size-7 items-center justify-center rounded-lg text-white transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-                canSend ? 'bg-zinc-700 hover:bg-zinc-800 active:bg-zinc-900' : 'bg-zinc-200'
+                'inline-flex size-10 items-center justify-center rounded-[6px] text-primary-foreground transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
+                canSend ? 'bg-primary hover:bg-primary-strong active:bg-primary-strong' : 'bg-line'
               ].join(' ')}
               disabled={!canSend}
               onClick={onSend}
@@ -103,7 +103,12 @@ export const ChatComposer = ({
                   aria-hidden="true"
                 />
               ) : (
-                <Icon name="Send_hor_fill" size="sm" decorative className="text-white" />
+                <Icon
+                  name="Send_hor_fill"
+                  size="sm"
+                  decorative
+                  className="text-primary-foreground"
+                />
               )}
             </button>
           </span>
@@ -111,9 +116,9 @@ export const ChatComposer = ({
           <button
             type="button"
             className={[
-              'inline-flex size-7 items-center justify-center rounded-lg text-white transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-              canSend ? 'bg-zinc-700 hover:bg-zinc-800 active:bg-zinc-900' : 'bg-zinc-200'
+              'inline-flex size-10 items-center justify-center rounded-[6px] text-primary-foreground transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
+              canSend ? 'bg-primary hover:bg-primary-strong active:bg-primary-strong' : 'bg-line'
             ].join(' ')}
             disabled={!canSend}
             onClick={onSend}
@@ -125,7 +130,7 @@ export const ChatComposer = ({
                 aria-hidden="true"
               />
             ) : (
-              <Icon name="Send_hor_fill" size="sm" decorative className="text-white" />
+              <Icon name="Send_hor_fill" size="sm" decorative className="text-primary-foreground" />
             )}
           </button>
         )}

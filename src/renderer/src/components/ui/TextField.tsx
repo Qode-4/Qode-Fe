@@ -28,7 +28,7 @@ export const TextField = ({
           'h-11 w-full rounded-lg border px-3 text-ui-15 text-text-base outline-none transition-colors',
           error
             ? 'border-danger-line bg-danger-bg focus:border-danger'
-            : 'border-line bg-surface focus:border-primary'
+            : 'border-control-line bg-surface focus:border-primary'
         ].join(' ')}
         aria-invalid={Boolean(error)}
         aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}

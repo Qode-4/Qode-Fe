@@ -22,22 +22,26 @@
   --color-fill-icon: #222222;
 
   /* Semantic tokens */
-  --color-app-bg: #ffffff;
+  --color-app-bg: #faf6f1;
   --color-surface: #ffffff;
-  --color-surface-muted: #fafafa;
-  --color-line: #e4e4e7;
-  --color-line-soft: #f4f4f5;
+  --color-sidebar: #fbfaf8;
+  --color-message: #efefef;
+  --color-surface-muted: #faf6f1;
+  --color-line: #dfddd8;
+  --color-line-soft: #efefef;
+  --color-control-line: #61646b;
 
-  --color-text-base: #0f172b;
-  --color-text-subtle: #45556c;
-  --color-text-soft: #71717b;
+  --color-text-base: #0e0e0f;
+  --color-text-subtle: #52545a;
+  --color-text-soft: #61646b;
 
-  --color-primary: #222222;
-  --color-primary-strong: #111111;
-  --color-primary-foreground: #ffffff;
+  --color-primary: #ff6900;
+  --color-primary-strong: #e05e00;
+  --color-primary-foreground: #0e0e0f;
+  --color-primary-soft: #fff0e5;
 
   --color-accent: #ff6900;
-  --color-accent-strong: #e05e00;
+  --color-accent-strong: #b54700;
 
   --color-danger: #c62828;
   --color-danger-bg: #fff3f3;
@@ -111,7 +115,7 @@
   }
 
   :where(button, a, input, textarea, select, [tabindex]:not([tabindex='-1'])):focus-visible {
-    outline: 2px solid var(--color-sky-600);
+    outline: 2px solid var(--color-text-base);
     outline-offset: 2px;
   }
 
@@ -183,7 +187,7 @@
     font-style: italic;
   }
   .markdown-answer a {
-    color: var(--color-accent);
+    color: var(--color-accent-strong);
     text-decoration: underline;
     text-underline-offset: 2px;
   }
@@ -236,5 +240,22 @@
   .markdown-answer th {
     background: var(--color-surface-muted);
     font-weight: 600;
+  }
+}
+
+/* Keep keyboard focus visible even on controls with utility-level outline resets. */
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-text-base);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

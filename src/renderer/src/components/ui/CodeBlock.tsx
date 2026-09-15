@@ -19,13 +19,13 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
   };
 
   return (
-    <div className="my-2 overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
-      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-100 px-3 py-1 text-ui-10">
-        <span className="font-mono text-zinc-500">{language}</span>
+    <div className="my-2 overflow-hidden rounded-md border border-line bg-surface-muted">
+      <div className="flex items-center justify-between border-b border-line bg-surface-muted px-3 py-1 text-ui-10">
+        <span className="font-mono text-text-soft">{language}</span>
         <button
           type="button"
           onClick={() => void handleCopy()}
-          className="rounded px-1.5 py-0.5 font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-800"
+          className="rounded px-1.5 py-0.5 font-medium text-text-subtle transition-colors hover:bg-line hover:text-text-base"
           aria-label="코드 복사"
         >
           복사
@@ -43,7 +43,7 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
                 <div key={i} {...lineProps} className={`${lineProps.className ?? ''} flex`}>
                   <span
                     aria-hidden
-                    className="mr-3 inline-block w-6 shrink-0 select-none text-right text-zinc-400"
+                    className="mr-3 inline-block w-6 shrink-0 select-none text-right text-text-soft"
                   >
                     {i + 1}
                   </span>
