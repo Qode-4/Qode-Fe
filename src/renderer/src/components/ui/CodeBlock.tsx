@@ -19,23 +19,23 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
   };
 
   return (
-    <div className="my-2 overflow-hidden rounded-md border border-line bg-surface-muted">
-      <div className="flex items-center justify-between border-b border-line bg-surface-muted px-3 py-1 text-ui-10">
-        <span className="font-mono text-text-soft">{language}</span>
+    <div className="my-2 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900">
+      <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-3 py-1 text-ui-10">
+        <span className="font-mono text-zinc-400">{language}</span>
         <button
           type="button"
           onClick={() => void handleCopy()}
-          className="rounded px-1.5 py-0.5 font-medium text-text-subtle transition-colors hover:bg-line hover:text-text-base"
+          className="rounded px-1.5 py-0.5 font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
           aria-label="코드 복사"
         >
           복사
         </button>
       </div>
-      <Highlight code={code} language={language} theme={themes.vsLight}>
+      <Highlight code={code} language={language} theme={themes.oneDark}>
         {({ className, style, tokens, getLineProps, getTokenProps }) => (
           <pre
             className={`${className} m-0 overflow-x-auto p-3 text-ui-12 leading-[1.5]`}
-            style={style}
+            style={{ ...style, background: 'transparent' }}
           >
             {tokens.map((line, i) => {
               const lineProps = getLineProps({ line });
@@ -43,7 +43,7 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
                 <div key={i} {...lineProps} className={`${lineProps.className ?? ''} flex`}>
                   <span
                     aria-hidden
-                    className="mr-3 inline-block w-6 shrink-0 select-none text-right text-text-soft"
+                    className="mr-3 inline-block w-6 shrink-0 select-none text-right text-zinc-500"
                   >
                     {i + 1}
                   </span>

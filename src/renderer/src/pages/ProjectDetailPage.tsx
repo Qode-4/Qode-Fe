@@ -77,6 +77,39 @@ const extractSources = (message: unknown): SourceItem[] => {
   return target.originalMessage?.sources ?? [];
 };
 
+// AI 가 본문에 인라인으로 남긴 "(참고: `src/x.ts` 1-17)" 형태의 참조 문구를 뽑아 SourceItem 으로 변환한다.
+// 서버가 sources 배열을 안 채워주는 흐름에서도 카드가 뜨도록 한 프론트엔드 폴백이다.
+const INLINE_SOURCE_REGEX = /\(참[고조]:\s*`?([^\s`)]+)`?\s+(\d+)\s*-\s*(\d+)\)/g;
+
+const extractInlineSources = (content: string): { content: string; sources: SourceItem[] } => {
+  const sources: SourceItem[] = [];
+  const strippedContent = content.replace(
+    INLINE_SOURCE_REGEX,
+    (_match, filePath: string, start: string, end: string) => {
+      sources.push({
+        filePath: String(filePath),
+        startLine: Number(start),
+        endLine: Number(end),
+        snippet: ''
+      });
+      return '';
+    }
+  );
+  return { content: strippedContent.replace(/[ \t]+\n/g, '\n'), sources };
+};
+
+const mergeSources = (a: SourceItem[], b: SourceItem[]): SourceItem[] => {
+  const seen = new Set<string>();
+  const result: SourceItem[] = [];
+  for (const src of [...a, ...b]) {
+    const key = `${src.filePath}:${src.startLine ?? ''}-${src.endLine ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(src);
+  }
+  return result;
+};
+
 const getMessageId = (message: unknown): string => {
   return (message as { id: string }).id;
 };
@@ -795,7 +828,10 @@ export const ProjectDetailPage = ({
                   );
                 }
 
-                const sources = extractSources(message);
+                const apiSources = extractSources(message);
+                const { content: cleanContent, sources: inlineSources } =
+                  extractInlineSources(messageContent);
+                const mergedSources = mergeSources(apiSources, inlineSources);
 
                 return (
                   <article key={messageId} className="rounded-[12px] bg-surface p-3">
@@ -813,10 +849,10 @@ export const ProjectDetailPage = ({
                       </span>
                       <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
                     </div>
-                    <MarkdownAnswer content={messageContent} />
+                    <MarkdownAnswer content={cleanContent} />
 
-                    {sources.length > 0 ? (
-                      <MessageSources messageId={messageId} sources={sources} />
+                    {mergedSources.length > 0 ? (
+                      <MessageSources messageId={messageId} sources={mergedSources} />
                     ) : null}
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -868,15 +904,34 @@ export const ProjectDetailPage = ({
                   <div className="mb-2 flex items-center gap-2">
                     <span
                       aria-hidden="true"
-                      className="inline-flex size-7 items-center justify-center rounded-full bg-primary text-ui-14 font-semibold text-primary-foreground"
+                      className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
                     >
-                      Q
+                      <img
+                        src="/favicon.ico"
+                        alt=""
+                        aria-hidden="true"
+                        className="size-4 object-contain"
+                      />
                     </span>
                     <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
                     <span className="text-ui-10 text-text-soft">
                       · {streamStatus || '스트리밍 중'}
                     </span>
                   </div>
+                  {(() => {
+                    if (streamError) return null;
+                    if (!streamContent) return null;
+                    const parsed = extractInlineSources(streamContent);
+                    const merged = mergeSources(streamSources, parsed.sources);
+                    return (
+                      <>
+                        <MarkdownAnswer content={parsed.content} />
+                        {merged.length > 0 ? (
+                          <MessageSources messageId="__stream__" sources={merged} />
+                        ) : null}
+                      </>
+                    );
+                  })()}
                   {streamError ? (
                     <div className="flex flex-col gap-2">
                       <p className="text-ui-12 leading-[1.6] text-danger">
@@ -894,15 +949,13 @@ export const ProjectDetailPage = ({
                         </Button>
                       </div>
                     </div>
-                  ) : streamContent ? (
-                    <MarkdownAnswer content={streamContent} />
-                  ) : (
+                  ) : streamContent ? null : (
                     <p className="text-ui-12 leading-[1.6] text-text-soft">
                       찾아보는 중이에요
                       <LoadingDots />
                     </p>
                   )}
-                  {!streamError && streamSources.length > 0 ? (
+                  {!streamError && streamContent === '' && streamSources.length > 0 ? (
                     <p className="mt-2 text-ui-10 text-text-soft">
                       참조 소스 {streamSources.length}개 수집됨
                     </p>
