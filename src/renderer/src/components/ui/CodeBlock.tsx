@@ -34,7 +34,7 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
       <Highlight code={code} language={language} theme={themes.oneDark}>
         {({ className, style, tokens, getLineProps, getTokenProps }) => (
           <pre
-            className={`${className} m-0 overflow-x-auto p-3 text-ui-12 leading-[1.5]`}
+            className={`${className} m-0 overflow-x-auto p-3 text-ui-14 leading-[1.55]`}
             style={{ ...style, background: 'transparent' }}
           >
             {tokens.map((line, i) => {

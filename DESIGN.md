@@ -222,8 +222,9 @@
 
 - 컨테이너: `rounded-md overflow-hidden border border-zinc-800 bg-zinc-900`.
 - 헤더: `border-b border-zinc-800 bg-zinc-900 px-3 py-1 text-ui-10`. 좌: 언어 라벨 (`text-zinc-400 font-mono`). 우: `복사` 버튼 (`text-zinc-400 hover:text-zinc-100`).
-- 본문: `prism-react-renderer` + `themes.oneDark`. 배경은 컨테이너 색을 그대로 사용하도록 `style.background: 'transparent'` 로 덮어쓴다.
+- 본문: `prism-react-renderer` + `themes.oneDark`. `text-ui-14 leading-[1.55] p-3`. 배경은 컨테이너 색을 그대로 사용하도록 `style.background: 'transparent'` 로 덮어쓴다.
 - 라인 번호: `w-6 text-right text-zinc-500 mr-3`.
+- 폰트 크기는 본문(text-base = 13px) 보다 살짝 작은 text-ui-14 (~11.4px) 로 두어 코드 가독성과 카드 밀도 균형을 잡는다. 이보다 작으면 (text-ui-12) 코드가 판독이 어려워진다.
 
 ### MessageSources (참조 소스 카드)
 
