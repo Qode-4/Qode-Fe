@@ -662,10 +662,14 @@ export const ProjectDetailPage = ({
               // 성공적으로 응답이 끝났을 때만 draft 를 비운다.
               // 사용자가 스트리밍 중 다음 질문을 타이핑 중이면 덮어쓰지 않기 위해 매치 조건.
               setDraft((prev) => (prev === content ? '' : prev));
-              // 완료 시점에 messages 목록을 명시적으로 무효화한다. 서버가 저장한 최종 assistant
-              // 메시지가 리스트에 뜨는 순간, 상단의 useEffect 감지 로직이 낙관적 UI 를 즉시 정리한다.
+              // 완료 시점에 messages 목록을 무효화한다.
+              // auto-create 흐름에서 activeChat 이 allChats 에 아직 없어 isPersonalChat 이 false 로
+              // 계산되면 useGetChatMessages 는 team key 로 fetch 하는데, 여기서 personal key 로만
+              // invalidate 하면 실제 쿼리가 refetch 안 됨 → messageItems 가 stale → gate 트리거 안 됨
+              // → 스트리밍 카드가 5s setTimeout 까지 잔존 (사용자가 본 "두 개" 현상의 원인).
+              // chatMessagesByChat(chatId) 는 prefix 매칭으로 personal/team 두 variant 모두 무효화.
               void queryClient.invalidateQueries({
-                queryKey: QUERY_KEY.chatMessages(targetChatId, true)
+                queryKey: QUERY_KEY.chatMessagesByChat(targetChatId)
               });
               void queryClient.invalidateQueries({ queryKey: chatQueryKey });
               // 안전망: 감지가 어떤 이유로든(예: content 일치 실패) 못 잡을 때를 대비한 최종 정리.
