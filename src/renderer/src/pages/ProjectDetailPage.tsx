@@ -408,6 +408,18 @@ export const ProjectDetailPage = ({
     const payload = messages.data;
     return payload?.data ?? [];
   }, [messages.data]);
+  // 서버가 SSE onSources 로 흘려보낸 소스를 완료 메시지에 저장하지 않는 케이스가 있다.
+  // messageItems 의 가장 최근 assistant 메시지가 sources 를 잃지 않도록, 렌더 시 이 id 를 기준으로
+  // streamSources 를 merge 한다. React Compiler 가 자동 메모이제이션 해주므로 useMemo 를 걷어낸다.
+  let lastAssistantMessageId: string | null = null;
+  for (let i = messageItems.length - 1; i >= 0; i--) {
+    const msg = messageItems[i];
+    if (!isUserMessageRole(getMessageRole(msg))) {
+      lastAssistantMessageId = getMessageId(msg);
+      break;
+    }
+  }
+
   const displayMessageItems = useMemo(() => {
     if (!pendingUserMessage) return messageItems;
     if (pendingUserMessage.chatId !== activeChatId) return messageItems;
@@ -499,6 +511,9 @@ export const ProjectDetailPage = ({
 
     if (!hasRealUserMessage) return;
 
+    // 서버 완료 메시지가 리스트에 뜬 순간이 낙관적 UI 를 걷어낼 타이밍이다.
+    // streamSources 는 서버가 저장 안 하는 경우가 있어 여기서 지우지 않고, 마지막 assistant
+    // 메시지 렌더에서 merge 해 카드를 유지한다. 다음 send 시점에 자연히 새 sources 로 교체된다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPendingUserMessage((prev) =>
       prev && prev.clientId === pendingUserMessage.clientId ? null : prev
@@ -507,9 +522,13 @@ export const ProjectDetailPage = ({
     setStreamContent('');
 
     setStreamStatus('');
-
-    setStreamSources([]);
   }, [messageItems, pendingUserMessage, activeChatId]);
+
+  // 채팅을 바꾸면 이전 채팅의 streamSources 는 관련 없으므로 정리한다.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStreamSources([]);
+  }, [activeChatId]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
     if (messagesBottomRef.current) {
@@ -942,7 +961,12 @@ export const ProjectDetailPage = ({
                 const apiSources = extractSources(message);
                 const { content: cleanContent, sources: inlineSources } =
                   extractInlineSources(messageContent);
-                const mergedSources = mergeSources(apiSources, inlineSources);
+                const parsedSources = mergeSources(apiSources, inlineSources);
+                // 가장 최근 assistant 메시지에만 스트림 소스를 덧붙여 서버 미저장 케이스 커버.
+                const isLastAssistant = messageId === lastAssistantMessageId;
+                const mergedSources = isLastAssistant
+                  ? mergeSources(parsedSources, streamSources)
+                  : parsedSources;
 
                 // 서버가 assistant 자리를 만든 뒤 실제 내용이 아직 안 채워졌거나(스트리밍 중간 저장),
                 // 파싱 결과가 완전히 비어 소스도 없는 경우 → 빈 카드 대신 스켈레톤 라인만 그린다.
