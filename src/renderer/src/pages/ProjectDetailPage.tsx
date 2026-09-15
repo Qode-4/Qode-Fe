@@ -476,6 +476,35 @@ export const ProjectDetailPage = ({
     }
   }, [socketSendError, toast]);
 
+  // 서버가 저장한 실제 user 메시지가 messageItems 에 나타나면 낙관적 상태(pendingUserMessage / stream*)를
+  // 즉시 정리한다. 정리 시점을 서버 데이터 도착에 맞춰야 화면에 낙관적 UI + 실제 데이터가 잠깐 동시에 뜨는
+  // "메시지가 두 개 되는" 현상이 안 생긴다. 실패 상태(failed) 는 사용자 재시도 흐름이 필요해 유지한다.
+  //
+  // React Query 스토어(외부 시스템) 변화에 로컬 상태를 동기화하는 정당한 useEffect + setState 사용이라
+  // set-state-in-effect 룰은 이 블록에서만 예외 처리한다.
+  useEffect(() => {
+    if (!pendingUserMessage || pendingUserMessage.failed) return;
+    if (pendingUserMessage.chatId !== activeChatId) return;
+
+    const hasRealUserMessage = messageItems.some((msg) => {
+      if (!isUserMessageRole(getMessageRole(msg))) return false;
+      return getMessageContent(msg).trim() === pendingUserMessage.content.trim();
+    });
+
+    if (!hasRealUserMessage) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPendingUserMessage((prev) =>
+      prev && prev.clientId === pendingUserMessage.clientId ? null : prev
+    );
+
+    setStreamContent('');
+
+    setStreamStatus('');
+
+    setStreamSources([]);
+  }, [messageItems, pendingUserMessage, activeChatId]);
+
   const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
     if (messagesBottomRef.current) {
       messagesBottomRef.current.scrollIntoView({ block: 'end', behavior });
@@ -582,14 +611,13 @@ export const ProjectDetailPage = ({
               // 사용자가 스트리밍 중 다음 질문을 타이핑 중이면 덮어쓰지 않기 위해 매치 조건.
               setDraft((prev) => (prev === content ? '' : prev));
               // 완료 시점에 messages 목록을 명시적으로 무효화한다. 서버가 저장한 최종 assistant
-              // 메시지를 즉시 가져와야 스트림 블록 → 완료 카드 전환이 매끄럽다.
-              // (기존에는 onTitle 이 트리거되는 경우에만 invalidate 됐다.)
+              // 메시지가 리스트에 뜨는 순간, 상단의 useEffect 감지 로직이 낙관적 UI 를 즉시 정리한다.
               void queryClient.invalidateQueries({
                 queryKey: QUERY_KEY.chatMessages(targetChatId, true)
               });
               void queryClient.invalidateQueries({ queryKey: chatQueryKey });
-              // 서버 refetch 가 자리 잡을 여유를 두고 스트림 블록을 정리한다.
-              // 너무 빨리 지우면 완료 카드가 목록에 뜨기 전에 화면이 비어 급전환처럼 느껴진다.
+              // 안전망: 감지가 어떤 이유로든(예: content 일치 실패) 못 잡을 때를 대비한 최종 정리.
+              // 실제 정리는 messageItems 감지 useEffect 에서 훨씬 빠르게 일어난다.
               window.setTimeout(() => {
                 setStreamStatus('');
                 setStreamContent('');
@@ -597,7 +625,7 @@ export const ProjectDetailPage = ({
                 setPendingUserMessage((prev) =>
                   prev?.clientId === pendingMessage.clientId ? null : prev
                 );
-              }, 1200);
+              }, 5000);
             },
             onError: (message, code) => {
               // SSE error 이벤트 payload — 서버가 준 코드/문자열 그대로 저장.

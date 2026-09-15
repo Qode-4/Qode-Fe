@@ -1319,12 +1319,6 @@ export const AppShell = ({
 
                   return (
                     <div key={chat.id} className="group relative min-w-0 overflow-hidden">
-                      {isActive ? (
-                        <span
-                          aria-hidden="true"
-                          className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-accent"
-                        />
-                      ) : null}
                       <button
                         type="button"
                         aria-current={isActive ? 'true' : undefined}
@@ -1421,12 +1415,6 @@ export const AppShell = ({
                   const isActive = activeChatId === chat.id;
                   return (
                     <div key={chat.id} className="relative min-w-0 overflow-hidden">
-                      {isActive ? (
-                        <span
-                          aria-hidden="true"
-                          className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-accent"
-                        />
-                      ) : null}
                       <button
                         type="button"
                         aria-current={isActive ? 'true' : undefined}
