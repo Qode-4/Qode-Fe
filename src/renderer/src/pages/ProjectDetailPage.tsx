@@ -746,16 +746,14 @@ export const ProjectDetailPage = ({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 pt-4">
+      <div className="relative min-h-0 flex-1 pt-4">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-gradient-to-b from-surface to-transparent"
+          aria-hidden="true"
+        />
         <div
           ref={messagesViewportRef}
           className="flex h-full justify-center overflow-y-auto px-6 pb-4"
-          style={{
-            WebkitMaskImage:
-              'linear-gradient(to bottom, transparent 0, black 24px, black calc(100% - 8px), transparent 100%)',
-            maskImage:
-              'linear-gradient(to bottom, transparent 0, black 24px, black calc(100% - 8px), transparent 100%)'
-          }}
         >
           {!activeChatId ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
