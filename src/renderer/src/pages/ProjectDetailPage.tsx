@@ -530,11 +530,13 @@ export const ProjectDetailPage = ({
   }, [messageItems, pendingUserMessage, activeChatId]);
 
   // 채팅을 바꾸면 이전 채팅의 streamSources 는 관련 없으므로 정리한다.
+  // streamStartAt 은 여기서 리셋하지 않는다: auto-create 흐름에서 sendMessage 가 streamStartAt 을
+  // 세팅한 직후 onSelectChat(newId) 로 activeChatId 가 바뀌면 이 effect 가 즉시 다시 실행되어
+  // 방금 세팅한 값을 wipe 해버려 gate 가 항상 false → 스트리밍 article 이 완료 후에도 잔존한다.
+  // sendMessage 가 항상 새 streamStartAt 을 세팅하므로 여기서 굳이 리셋할 필요 없다.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStreamSources([]);
-
-    setStreamStartAt(0);
   }, [activeChatId]);
 
   // 스트림 세션 이후에 만들어진 서버 assistant 메시지가 리스트에 있으면 이번 대화의 완료 카드가
