@@ -19,6 +19,11 @@ type Props = {
 
 const MAX_ROWS = 5;
 
+const sendButtonClass = [
+  'inline-flex size-12 shrink-0 items-center justify-center rounded-[6px] text-primary-foreground transition-colors',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2'
+].join(' ');
+
 export const ChatComposer = ({
   value,
   placeholder = '무엇이든 물어보세요!',
@@ -29,7 +34,6 @@ export const ChatComposer = ({
   className,
   onChange,
   onSend
-  // onAttach
 }: Props): React.JSX.Element => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -47,94 +51,63 @@ export const ChatComposer = ({
     el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }, [value]);
 
-  return (
-    <div
-      className={[
-        'rounded-[12px] border border-control-line bg-surface p-4 shadow-none max-w-[48rem] w-full',
-        className ?? ''
-      ].join(' ')}
+  const sendButtonBg = canSend
+    ? 'bg-primary hover:bg-primary-strong active:bg-primary-strong'
+    : 'bg-line';
+
+  const sendButton = (
+    <button
+      type="button"
+      className={[sendButtonClass, sendButtonBg].join(' ')}
+      disabled={!canSend}
+      onClick={onSend}
+      aria-label="전송"
     >
-      <textarea
-        ref={textareaRef}
-        rows={1}
-        aria-label="메시지 입력"
-        className="block w-full resize-none bg-transparent text-base leading-[1.6] text-text-base outline-none placeholder:text-text-soft disabled:cursor-not-allowed"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        maxLength={MAX_LENGTH}
-        onKeyDown={(e) => {
-          if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
-          e.preventDefault();
-          onSend();
-        }}
-        disabled={disabled}
-      />
+      {isSending ? (
+        <span
+          className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+          aria-hidden="true"
+        />
+      ) : (
+        <Icon name="Send_hor_fill" size="sm" decorative className="text-primary-foreground" />
+      )}
+    </button>
+  );
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <span className="text-ui-12 text-red-600" role="status">
-          {value.length >= MAX_LENGTH ? '최대 2,000자까지 입력 가능합니다.' : ''}
-        </span>
-
-        {/* <IconButton
-          size="lg"
-          name="Add_round_light"
-          aria-label="첨부"
-          onClick={onAttach}
+  return (
+    <div className={['flex w-full max-w-[48rem] items-start gap-2', className ?? ''].join(' ')}>
+      <div className="min-w-0 flex-1 rounded-[6px] border border-control-line bg-surface px-3 py-3">
+        <textarea
+          ref={textareaRef}
+          rows={1}
+          aria-label="메시지 입력"
+          className="block w-full resize-none bg-transparent text-base leading-[1.6] text-text-base outline-none placeholder:text-text-soft disabled:cursor-not-allowed"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          maxLength={MAX_LENGTH}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
+            e.preventDefault();
+            onSend();
+          }}
           disabled={disabled}
-        /> */}
+        />
 
-        {sendDisabledReason && !canSend ? (
-          <span title={sendDisabledReason} tabIndex={0} aria-label={sendDisabledReason}>
-            <button
-              type="button"
-              className={[
-                'inline-flex size-10 items-center justify-center rounded-[6px] text-primary-foreground transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
-                canSend ? 'bg-primary hover:bg-primary-strong active:bg-primary-strong' : 'bg-line'
-              ].join(' ')}
-              disabled={!canSend}
-              onClick={onSend}
-              aria-label="전송"
-            >
-              {isSending ? (
-                <span
-                  className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent"
-                  aria-hidden="true"
-                />
-              ) : (
-                <Icon
-                  name="Send_hor_fill"
-                  size="sm"
-                  decorative
-                  className="text-primary-foreground"
-                />
-              )}
-            </button>
-          </span>
-        ) : (
-          <button
-            type="button"
-            className={[
-              'inline-flex size-10 items-center justify-center rounded-[6px] text-primary-foreground transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
-              canSend ? 'bg-primary hover:bg-primary-strong active:bg-primary-strong' : 'bg-line'
-            ].join(' ')}
-            disabled={!canSend}
-            onClick={onSend}
-            aria-label="전송"
-          >
-            {isSending ? (
-              <span
-                className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent"
-                aria-hidden="true"
-              />
-            ) : (
-              <Icon name="Send_hor_fill" size="sm" decorative className="text-primary-foreground" />
-            )}
-          </button>
-        )}
+        {value.length >= MAX_LENGTH ? (
+          <p className="mt-1 text-ui-12 text-danger" role="status">
+            최대 2,000자까지 입력 가능합니다.
+          </p>
+        ) : null}
       </div>
+
+      {sendDisabledReason && !canSend ? (
+        <span title={sendDisabledReason} tabIndex={0} aria-label={sendDisabledReason}>
+          {sendButton}
+        </span>
+      ) : (
+        sendButton
+      )}
     </div>
   );
 };
