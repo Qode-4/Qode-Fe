@@ -809,7 +809,7 @@ export const ProjectDetailPage = ({
                           {isLocalFailed ? (
                             <p className="text-ui-10 font-medium text-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-ui-16 font-medium text-text-base">
+                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-[13px] font-medium leading-[1.6] text-text-base">
                             {messageContent}
                           </div>
                           {timeLabel ? (
@@ -825,7 +825,7 @@ export const ProjectDetailPage = ({
                       <Avatar name={senderName} />
                       <div className="flex flex-col gap-0.5 w-full">
                         <p className="text-ui-10 font-medium text-text-soft">{senderName}</p>
-                        <div className="max-w-[70%] w-fit rounded-xl border border-line bg-surface px-3 py-2.5 text-ui-16 text-text-base">
+                        <div className="w-fit max-w-[70%] rounded-xl border border-line bg-surface px-3 py-2.5 text-[13px] leading-[1.6] text-text-base">
                           {messageContent}
                         </div>
                         {timeLabel ? (
@@ -841,7 +841,7 @@ export const ProjectDetailPage = ({
                   return (
                     <div key={messageId} className="flex items-end justify-end">
                       <div className="flex max-w-[70%] flex-col items-end">
-                        <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-ui-16 font-medium text-text-base">
+                        <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-[13px] font-medium leading-[1.6] text-text-base">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (
