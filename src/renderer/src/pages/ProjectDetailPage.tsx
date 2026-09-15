@@ -524,7 +524,9 @@ export const ProjectDetailPage = ({
     );
     setStreamContent('');
     setStreamStatus('');
-    setStreamStartAt(0);
+    // streamStartAt 은 리셋하지 않는다. 이번 스트림에 대한 완료 카드가 여전히 리스트에 있어야
+    // hasCompletedAssistantForCurrentStream 게이트가 유지되고, 남아있는 스트리밍 article 이
+    // 다시 뜨는 것을 막는다. 다음 send 에서 새 값으로 자연 교체.
   }, [messageItems, pendingUserMessage, activeChatId]);
 
   // 채팅을 바꾸면 이전 채팅의 streamSources 는 관련 없으므로 정리한다.
@@ -537,13 +539,15 @@ export const ProjectDetailPage = ({
 
   // 스트림 세션 이후에 만들어진 서버 assistant 메시지가 리스트에 있으면 이번 대화의 완료 카드가
   // 이미 뜬 상태이므로 스트리밍 article 렌더링을 즉시 중단해 중복 노출을 막는다.
+  // 빠르게 연속 send 하는 케이스도 지원하기 위해 strict 비교(tolerance 없음). 서버 clock 이 client 보다
+  // 크게 뒤처지지 않는 실무 환경 기준. 못 잡으면 5s 후 안전망 setTimeout 이 어차피 정리한다.
   const hasCompletedAssistantForCurrentStream =
     streamStartAt > 0 &&
     messageItems.some((msg) => {
       if (isUserMessageRole(getMessageRole(msg))) return false;
       const createdAt = new Date(getMessageCreatedAt(msg)).getTime();
       if (Number.isNaN(createdAt)) return false;
-      return createdAt >= streamStartAt - 5000;
+      return createdAt >= streamStartAt;
     });
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
