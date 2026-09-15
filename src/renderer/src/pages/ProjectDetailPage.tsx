@@ -414,14 +414,15 @@ export const ProjectDetailPage = ({
   }, [messages.data]);
   // 서버가 SSE onSources 로 흘려보낸 소스를 완료 메시지에 저장하지 않는 케이스가 있다.
   // messageItems 의 가장 최근 assistant 메시지가 sources 를 잃지 않도록, 렌더 시 이 id 를 기준으로
-  // streamSources 를 merge 한다. React Compiler 가 자동 메모이제이션 해주므로 useMemo 를 걷어낸다.
+  // streamSources 를 merge 한다. 비어있는 assistant 는 아직 완성 전이라 skip 하고 그 이전의 유효한
+  // assistant 를 target 으로 삼는다. React Compiler 가 자동 메모이제이션 해주므로 useMemo 는 사용하지 않는다.
   let lastAssistantMessageId: string | null = null;
   for (let i = messageItems.length - 1; i >= 0; i--) {
     const msg = messageItems[i];
-    if (!isUserMessageRole(getMessageRole(msg))) {
-      lastAssistantMessageId = getMessageId(msg);
-      break;
-    }
+    if (isUserMessageRole(getMessageRole(msg))) continue;
+    if (getMessageContent(msg).trim().length === 0) continue;
+    lastAssistantMessageId = getMessageId(msg);
+    break;
   }
 
   const displayMessageItems = useMemo(() => {
@@ -541,12 +542,14 @@ export const ProjectDetailPage = ({
 
   // 스트림 세션 이후에 만들어진 서버 assistant 메시지가 리스트에 있으면 이번 대화의 완료 카드가
   // 이미 뜬 상태이므로 스트리밍 article 렌더링을 즉시 중단해 중복 노출을 막는다.
-  // 빠르게 연속 send 하는 케이스도 지원하기 위해 strict 비교(tolerance 없음). 서버 clock 이 client 보다
-  // 크게 뒤처지지 않는 실무 환경 기준. 못 잡으면 5s 후 안전망 setTimeout 이 어차피 정리한다.
+  // 빠르게 연속 send 하는 케이스도 지원하기 위해 strict 비교(tolerance 없음).
+  // 서버가 자리만 만들고 content 는 비운 assistant 는 아직 완성 안 된 것으로 간주해 gate 를
+  // 트리거하지 않는다(그래야 스트리밍 article 이 실제 내용으로 계속 보임).
   const hasCompletedAssistantForCurrentStream =
     streamStartAt > 0 &&
     messageItems.some((msg) => {
       if (isUserMessageRole(getMessageRole(msg))) return false;
+      if (getMessageContent(msg).trim().length === 0) return false;
       const createdAt = new Date(getMessageCreatedAt(msg)).getTime();
       if (Number.isNaN(createdAt)) return false;
       return createdAt >= streamStartAt;
@@ -994,10 +997,15 @@ export const ProjectDetailPage = ({
                   ? mergeSources(parsedSources, streamSources)
                   : parsedSources;
 
-                // 서버가 assistant 자리를 만든 뒤 실제 내용이 아직 안 채워졌거나(스트리밍 중간 저장),
-                // 파싱 결과가 완전히 비어 소스도 없는 경우 → 빈 카드 대신 스켈레톤 라인만 그린다.
                 const hasVisibleBody = cleanContent.trim().length > 0;
                 const hasSources = mergedSources.length > 0;
+
+                // 서버가 assistant 자리만 만들고 content·sources 모두 비어있는 경우엔 카드 자체를
+                // 렌더하지 않는다. 이 케이스에서 fallback 카드를 그리면 아래 스트리밍 article 과
+                // 화면에 나란히 뜨면서 사용자가 "답변이 두 개" 로 인식하게 된다.
+                if (!hasVisibleBody && !hasSources) {
+                  return null;
+                }
 
                 return (
                   <article key={messageId} className="rounded-[12px] bg-surface p-3">
@@ -1015,13 +1023,7 @@ export const ProjectDetailPage = ({
                       </span>
                       <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
                     </div>
-                    {hasVisibleBody ? (
-                      <MarkdownAnswer content={cleanContent} />
-                    ) : (
-                      <p className="text-ui-12 leading-[1.6] text-text-soft">
-                        답변 본문을 불러오지 못했어요. 다시 시도해 주세요.
-                      </p>
-                    )}
+                    {hasVisibleBody ? <MarkdownAnswer content={cleanContent} /> : null}
 
                     {hasSources ? (
                       <MessageSources messageId={messageId} sources={mergedSources} />
