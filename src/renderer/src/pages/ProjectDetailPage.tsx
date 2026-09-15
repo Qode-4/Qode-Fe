@@ -48,6 +48,7 @@ type PendingUserMessage = {
   chatId: string;
   content: string;
   failed: boolean;
+  sentAt: number;
 };
 
 const getMessageCreatedAt = (message: unknown): string =>
@@ -486,9 +487,14 @@ export const ProjectDetailPage = ({
     if (!pendingUserMessage || pendingUserMessage.failed) return;
     if (pendingUserMessage.chatId !== activeChatId) return;
 
+    // 같은 문구를 이전에 보낸 적이 있으면 이전 메시지가 매칭될 수 있으니, 지금 요청의
+    // sentAt 이후에 만들어진 서버 메시지만 매칭 대상으로 삼는다. tolerance 5s.
     const hasRealUserMessage = messageItems.some((msg) => {
       if (!isUserMessageRole(getMessageRole(msg))) return false;
-      return getMessageContent(msg).trim() === pendingUserMessage.content.trim();
+      if (getMessageContent(msg).trim() !== pendingUserMessage.content.trim()) return false;
+      const createdAt = new Date(getMessageCreatedAt(msg)).getTime();
+      if (Number.isNaN(createdAt)) return true;
+      return createdAt >= pendingUserMessage.sentAt - 5000;
     });
 
     if (!hasRealUserMessage) return;
@@ -561,11 +567,13 @@ export const ProjectDetailPage = ({
     // 자동 생성이었다면 개인 채팅이 확정, 아니면 기존 활성 채팅 타입을 따름
     const isPersonalTarget = wasAutoCreate || isPersonalChat;
 
+    const now = Date.now();
     const pendingMessage: PendingUserMessage = {
-      clientId: `pending-user-${Date.now()}`,
+      clientId: `pending-user-${now}`,
       chatId: targetChatId,
       content,
-      failed: false
+      failed: false,
+      sentAt: now
     };
     setPendingUserMessage(pendingMessage);
 
