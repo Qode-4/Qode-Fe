@@ -30,7 +30,6 @@ import { MarkdownAnswer } from '../components/ui/MarkdownAnswer';
 import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
-import { formatRelativeTime } from '../lib/relativeTime';
 import { mapResponseError } from '../lib/response-errors';
 import { mapSyncError } from '../lib/sync-errors';
 
@@ -293,7 +292,6 @@ export const ProjectDetailPage = ({
   const syncErrorCode = syncStatus.data?.data.latestJob?.errorCode ?? null;
   const isAnalyzing = syncPhase === 'queued' || syncPhase === 'syncing';
   const isSyncFailed = syncPhase === 'failed';
-  const lastSyncedAt = project.data?.data.lastSyncedAt ?? null;
   // 인덱싱이 끝나기 전에는 검색할 코드가 없어 답이 근거 없이 나온다. 서버도 같은 이유로
   // 409 SYNC_IN_PROGRESS 로 막는다(ADR-005). 화면은 그 앞에서 아예 못 보내게 한다.
   const SYNC_IN_PROGRESS_HINT = '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.';
@@ -675,12 +673,6 @@ export const ProjectDetailPage = ({
         </div>
       ) : null}
 
-      {!isAnalyzing && !isSyncFailed && lastSyncedAt ? (
-        <div className="px-4 pt-3 text-ui-12 text-text-soft" aria-live="polite">
-          마지막 동기화: {formatRelativeTime(lastSyncedAt)}
-        </div>
-      ) : null}
-
       <div className="px-4" role="alert" aria-live="assertive">
         {chats.isError ? (
           <div className="mb-2">
@@ -813,7 +805,7 @@ export const ProjectDetailPage = ({
                           {isLocalFailed ? (
                             <p className="text-ui-10 font-medium text-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-ui-16 font-medium text-text-base">
+                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2 text-ui-14 font-medium text-text-base">
                             {messageContent}
                           </div>
                           {timeLabel ? (
@@ -845,7 +837,7 @@ export const ProjectDetailPage = ({
                   return (
                     <div key={messageId} className="flex items-end justify-end">
                       <div className="flex max-w-[70%] flex-col items-end">
-                        <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-ui-16 font-medium text-text-base">
+                        <div className="rounded-[12px] bg-primary-soft px-3 py-2.5 text-ui-14 font-medium text-text-base">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (
