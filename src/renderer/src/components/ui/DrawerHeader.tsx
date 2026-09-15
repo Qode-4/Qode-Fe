@@ -38,11 +38,13 @@ export const DrawerHeader = ({
       <div className="flex items-center gap-1.5 px-1 py-1">
         {logo ?? (
           <>
-            <span
+            <img
+              src="/favicon.ico"
+              alt=""
               aria-hidden="true"
-              className="inline-flex size-5 shrink-0 rounded-full bg-primary"
+              className="inline-block size-5 shrink-0 rounded-full"
             />
-            <span className="text-base font-bold tracking-tight text-text-base">Qode</span>
+            <img src="/QodeLogo.svg" alt="Qode" className="inline-block h-4 w-auto shrink-0" />
           </>
         )}
       </div>

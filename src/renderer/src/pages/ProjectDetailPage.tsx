@@ -758,7 +758,7 @@ export const ProjectDetailPage = ({
                           {isLocalFailed ? (
                             <p className="text-ui-10 font-medium text-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl border border-line bg-surface-muted px-3 py-2.5 text-ui-16 font-medium text-text-base">
+                          <div className="max-w-[70%] rounded-xl bg-text-base px-3 py-2.5 text-ui-16 font-medium text-white">
                             {messageContent}
                           </div>
                           {timeLabel ? (
@@ -790,7 +790,7 @@ export const ProjectDetailPage = ({
                   return (
                     <div key={messageId} className="flex items-end justify-end">
                       <div className="flex max-w-[70%] flex-col items-end">
-                        <div className="rounded-[12px] bg-surface-muted px-3 py-3 text-ui-16 font-medium text-text-base">
+                        <div className="rounded-[12px] bg-text-base px-3 py-3 text-ui-16 font-medium text-white">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (
@@ -808,9 +808,14 @@ export const ProjectDetailPage = ({
                     <div className="mb-2 flex items-center gap-2">
                       <span
                         aria-hidden="true"
-                        className="inline-flex size-7 items-center justify-center rounded-full bg-primary text-ui-14 font-semibold text-primary-foreground"
+                        className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
                       >
-                        Q
+                        <img
+                          src="/favicon.ico"
+                          alt=""
+                          aria-hidden="true"
+                          className="size-4 object-contain"
+                        />
                       </span>
                       <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
                     </div>
