@@ -44,6 +44,7 @@ import { tokenStorage } from '../../api/tokenStorage';
 import overflowIcon from '../../assets/overflow-icon.png';
 import { navigate } from '../../lib/hashRouter';
 import { formatRelativeTime } from '../../lib/relativeTime';
+import { getStoredUiFontSize, persistUiFontSize, type UiFontSize } from '../../lib/uiFontSize';
 import type { IconName } from '../icons/iconTypes';
 import { Button } from '../ui/Button';
 import { ChatItemMenu, type ChatItemMenuAction } from '../ui/ChatItemMenu';
@@ -266,7 +267,14 @@ export const AppShell = ({
   const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileDialogPos, setProfileDialogPos] = useState<{ left: number } | null>(null);
+  const [uiFontSize, setUiFontSize] = useState<UiFontSize>(getStoredUiFontSize);
   const [projectModal, setProjectModal] = useState<ProjectModalState>(null);
+
+  const handleFontSizeChange = (nextSize: UiFontSize): void => {
+    if (nextSize === uiFontSize) return;
+    setUiFontSize(nextSize);
+    persistUiFontSize(nextSize);
+  };
   const deleteProject = useDeleteProject();
   const deleteChat = useDeleteChat();
   const patchChat = usePatchChat();
@@ -1759,12 +1767,54 @@ export const AppShell = ({
                 </div>
               </div>
 
+              <div className="border-t border-line-soft px-3 py-2">
+                <p
+                  className={[
+                    'mb-1.5 font-medium text-text-soft',
+                    drawerTypography.fontSizeLabel
+                  ].join(' ')}
+                  id={`${profileSettingsTitleId}-font-size-label`}
+                >
+                  글자 크기
+                </p>
+                <div
+                  role="radiogroup"
+                  aria-labelledby={`${profileSettingsTitleId}-font-size-label`}
+                  className="flex items-center gap-0.5 rounded-md bg-line-soft p-0.5"
+                >
+                  {[
+                    { key: 'default' as const, label: '기본' },
+                    { key: 'large' as const, label: '크게' }
+                  ].map((option) => {
+                    const isActive = uiFontSize === option.key;
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        role="radio"
+                        aria-checked={isActive}
+                        onClick={() => handleFontSizeChange(option.key)}
+                        className={[
+                          'h-6 flex-1 rounded-[4px] font-medium transition-colors',
+                          drawerTypography.fontSizeOption,
+                          isActive
+                            ? 'bg-primary-soft text-text-base'
+                            : 'bg-transparent text-text-soft hover:text-text-subtle'
+                        ].join(' ')}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="px-3 pb-3 pt-2">
                 <div className="flex items-center gap-0.5">
                   <button
                     type="button"
                     className={[
-                      'h-6 flex-1 rounded-[8px] bg-surface font-medium text-text-soft hover:bg-surface-muted active:bg-line',
+                      'h-6 flex-1 rounded-[6px] bg-surface font-medium text-text-soft hover:bg-surface-muted active:bg-line',
                       drawerTypography.profileButton
                     ].join(' ')}
                     onClick={handleProfileDialogCancel}
@@ -1775,7 +1825,7 @@ export const AppShell = ({
                     type="button"
                     disabled
                     className={[
-                      'h-6 flex-1 rounded-[8px] bg-zinc-800 font-medium text-white disabled:cursor-not-allowed disabled:opacity-60',
+                      'h-6 flex-1 rounded-[6px] bg-zinc-800 font-medium text-white disabled:cursor-not-allowed disabled:opacity-60',
                       drawerTypography.profileButton
                     ].join(' ')}
                   >
