@@ -34,8 +34,18 @@ export const DrawerHeader = ({
   onSettingsClick
 }: Props): React.JSX.Element => {
   return (
-    <header className={['flex w-full flex-col gap-5 px-4 pt-6 pb-2', className ?? ''].join(' ')}>
-      <span className="text-2xl font-medium tracking-tight text-text-base">{logo ?? 'Qode'}</span>
+    <header className={['flex w-full flex-col gap-2 px-3 pt-4 pb-3', className ?? ''].join(' ')}>
+      <div className="flex items-center gap-1.5 px-1 py-1">
+        {logo ?? (
+          <>
+            <span
+              aria-hidden="true"
+              className="inline-flex size-5 shrink-0 rounded-full bg-primary"
+            />
+            <span className="text-base font-bold tracking-tight text-text-base">Qode</span>
+          </>
+        )}
+      </div>
       <div className="flex min-w-0 items-center gap-2">
         <ProjectSwitcher
           className="flex-1"
