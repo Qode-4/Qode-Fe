@@ -752,7 +752,7 @@ export const ProjectDetailPage = ({
                           {isLocalFailed ? (
                             <p className="text-ui-10 font-medium text-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl border border-primary bg-primary-soft px-3 py-2.5 text-ui-16 font-medium text-text-base">
+                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-ui-16 font-medium text-text-base">
                             {messageContent}
                           </div>
                           {timeLabel ? (
@@ -784,7 +784,7 @@ export const ProjectDetailPage = ({
                   return (
                     <div key={messageId} className="flex items-end justify-end">
                       <div className="flex max-w-[70%] flex-col items-end">
-                        <div className="rounded-[12px] border border-primary bg-primary-soft px-3 py-3 text-ui-16 font-medium text-text-base">
+                        <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-ui-16 font-medium text-text-base">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (
