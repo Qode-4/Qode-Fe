@@ -358,10 +358,6 @@ export const ProjectDetailPage = ({
   // mapResponseError 가 axios/Error/string 을 다 소화하므로 분류는 렌더 시 위임한다.
   const [streamError, setStreamError] = useState<unknown>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<PendingUserMessage | null>(null);
-  // 현재 스트리밍 세션의 시작 시각. 서버 완료 카드가 리스트에 뜬 뒤에도 mutation.isPending 이 잠깐
-  // true 로 남거나 streamContent 가 아직 안 지워진 순간에, 스트리밍 article 이 완료 카드와 겹쳐
-  // 그려지는 것을 막기 위한 게이트. 새 send 시 갱신, 완료 감지 시 0 으로 리셋.
-  const [streamStartAt, setStreamStartAt] = useState(0);
   const [headerRenameDraft, setHeaderRenameDraft] = useState('');
   const [editingHeaderChatId, setEditingHeaderChatId] = useState<string | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
@@ -536,20 +532,9 @@ export const ProjectDetailPage = ({
     setStreamSources([]);
   }, [activeChatId]);
 
-  // 스트림 세션 이후에 만들어진 서버 assistant 메시지가 리스트에 있으면 이번 대화의 완료 카드가
-  // 이미 뜬 상태이므로 스트리밍 article 렌더링을 즉시 중단해 중복 노출을 막는다.
-  // 빠르게 연속 send 하는 케이스도 지원하기 위해 strict 비교(tolerance 없음).
-  // 서버가 자리만 만들고 content 는 비운 assistant 는 아직 완성 안 된 것으로 간주해 gate 를
-  // 트리거하지 않는다(그래야 스트리밍 article 이 실제 내용으로 계속 보임).
-  const hasCompletedAssistantForCurrentStream =
-    streamStartAt > 0 &&
-    messageItems.some((msg) => {
-      if (isUserMessageRole(getMessageRole(msg))) return false;
-      if (getMessageContent(msg).trim().length === 0) return false;
-      const createdAt = new Date(getMessageCreatedAt(msg)).getTime();
-      if (Number.isNaN(createdAt)) return false;
-      return createdAt >= streamStartAt;
-    });
+  // (참고) 이전에는 streamStartAt 과 messageItems 를 비교하는 gate 로 스트리밍 article 을 hide
+  // 했지만 지금은 postPersonalMessage.isPending 이 SSE 라이프사이클을 정확히 반영하므로 gate 불필요.
+  // streamStartAt 자체는 sentAt 매칭 tolerance 등 다른 용도로 계속 유지.
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
     if (messagesBottomRef.current) {
@@ -625,7 +610,6 @@ export const ProjectDetailPage = ({
       setStreamContent('');
       setStreamSources([]);
       setStreamError(null);
-      setStreamStartAt(now);
 
       const chatQueryKey = QUERY_KEY.projectChatsByProject(projectId);
 
@@ -1070,14 +1054,7 @@ export const ProjectDetailPage = ({
                 );
               })}
 
-              {((pendingUserMessage &&
-                pendingUserMessage.chatId === activeChatId &&
-                !pendingUserMessage.failed) ||
-                streamContent ||
-                streamError) &&
-              !hasCompletedAssistantForCurrentStream &&
-              activeChatId &&
-              isPersonalChat ? (
+              {(postPersonalMessage.isPending || streamError) && activeChatId && isPersonalChat ? (
                 <article className="rounded-[12px] bg-surface p-3" aria-live="polite">
                   <div className="mb-2 flex items-center gap-2">
                     <span
