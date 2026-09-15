@@ -21,7 +21,14 @@ type SseSourcesPayload = {
   sources?: SourceItem[];
 };
 
+type SseStartPayload = {
+  chatId?: string;
+  userMessageId?: string;
+  assistantMessageId?: string;
+};
+
 type SseDonePayload = {
+  assistantMessageId?: string;
   messageId?: string;
   role?: string;
   status?: string;
@@ -36,6 +43,7 @@ type TeamChatMessageCreatePayload = {
 };
 
 export type MessageStreamCallbacks = {
+  onStart?: (payload: SseStartPayload) => void;
   onStatus?: (payload: SseStatusPayload) => void;
   onChunk?: (payload: SseChunkPayload) => void;
   onSources?: (payload: SseSourcesPayload) => void;
@@ -50,13 +58,15 @@ const ensureTeamChatWritable = (): void => {
   }
 };
 
-const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void => {
+type SseTerminalEvent = 'done' | { message: string; code?: string } | undefined;
+
+const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): SseTerminalEvent => {
   const lines = block
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
 
-  if (lines.length === 0) return;
+  if (lines.length === 0) return undefined;
 
   let event = 'message';
   const dataParts: string[] = [];
@@ -72,7 +82,7 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void 
     }
   }
 
-  if (dataParts.length === 0) return;
+  if (dataParts.length === 0) return undefined;
 
   const raw = dataParts.join('\n');
   let parsed: unknown = raw;
@@ -83,31 +93,36 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void 
     parsed = raw;
   }
 
+  if (event === 'start') {
+    callbacks?.onStart?.((parsed as SseStartPayload) ?? {});
+    return undefined;
+  }
+
   if (event === 'status') {
     callbacks?.onStatus?.((parsed as SseStatusPayload) ?? {});
-    return;
+    return undefined;
   }
 
   if (event === 'chunk' || event === 'token') {
     callbacks?.onChunk?.((parsed as SseChunkPayload) ?? {});
-    return;
+    return undefined;
   }
 
   if (event === 'sources') {
     callbacks?.onSources?.((parsed as SseSourcesPayload) ?? {});
-    return;
+    return undefined;
   }
 
   if (event === 'done') {
     callbacks?.onDone?.((parsed as SseDonePayload) ?? {});
-    return;
+    return 'done';
   }
 
   if (event === 'title') {
     const payload = (parsed as SseTitlePayload) ?? {};
     const name = payload.name?.trim();
     if (name) callbacks?.onTitle?.(name);
-    return;
+    return undefined;
   }
 
   if (event === 'error') {
@@ -119,10 +134,13 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): void 
     const code =
       typeof parsed === 'string' ? undefined : (parsed as { code?: string } | null)?.code;
     callbacks?.onError?.(message, code);
+    return { message, code };
   }
+
+  return undefined;
 };
 
-const streamChatMessage = async (params: {
+export const streamChatMessage = async (params: {
   path: string;
   body: ChatsMeMessagesCreatePayload | TeamChatMessageCreatePayload;
   callbacks?: MessageStreamCallbacks;
@@ -158,27 +176,53 @@ const streamChatMessage = async (params: {
 
   const decoder = new TextDecoder();
   let buffer = '';
+  let completed = false;
+  let readerFinished = false;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-
-    let boundaryMatch = /\r?\n\r?\n/.exec(buffer);
-    let boundary = boundaryMatch?.index ?? -1;
-    while (boundary !== -1) {
-      const block = buffer.slice(0, boundary).trim();
-      buffer = buffer.slice(boundary + (boundaryMatch?.[0].length ?? 2));
-
-      if (block) parseSseBlock(block, params.callbacks);
-      boundaryMatch = /\r?\n\r?\n/.exec(buffer);
-      boundary = boundaryMatch?.index ?? -1;
+  const parseBlock = (block: string): void => {
+    const terminalEvent = parseSseBlock(block, params.callbacks);
+    if (terminalEvent === 'done') {
+      completed = true;
+      return;
     }
-  }
+    if (terminalEvent) {
+      throw new Error(terminalEvent.message);
+    }
+  };
 
-  const tail = buffer.trim();
-  if (tail) parseSseBlock(tail, params.callbacks);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        readerFinished = true;
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+
+      let boundaryMatch = /\r?\n\r?\n/.exec(buffer);
+      let boundary = boundaryMatch?.index ?? -1;
+      while (boundary !== -1) {
+        const block = buffer.slice(0, boundary).trim();
+        buffer = buffer.slice(boundary + (boundaryMatch?.[0].length ?? 2));
+
+        if (block) parseBlock(block);
+        boundaryMatch = /\r?\n\r?\n/.exec(buffer);
+        boundary = boundaryMatch?.index ?? -1;
+      }
+    }
+
+    buffer += decoder.decode();
+    const tail = buffer.trim();
+    if (tail) parseBlock(tail);
+
+    if (!completed) {
+      throw new Error('응답이 완료되기 전에 스트리밍 연결이 종료되었습니다.');
+    }
+  } finally {
+    if (!readerFinished) await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
 };
 
 // 개인채팅과 팀채팅을 합산한 공통 타입
@@ -372,8 +416,8 @@ export const usePostPersonalChatMessageSSE = (params: { projectId: string }) => 
         callbacks
       });
     },
-    onSuccess: (_result, variables) => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(variables.chatId) });
+    onSuccess: async (_result, variables) => {
+      await qc.invalidateQueries({ queryKey: QUERY_KEY.chatMessagesByChat(variables.chatId) });
       void qc.invalidateQueries({ queryKey: QUERY_KEY.projectChatsByProject(params.projectId) });
     }
   });

@@ -48,7 +48,7 @@ type PendingUserMessage = {
   chatId: string;
   content: string;
   failed: boolean;
-  sentAt: number;
+  knownMessageIds: Set<string>;
 };
 
 const getMessageCreatedAt = (message: unknown): string =>
@@ -351,6 +351,9 @@ export const ProjectDetailPage = ({
     });
   };
   const [draft, setDraft] = useState('');
+  const [streamChatId, setStreamChatId] = useState('');
+  const [streamMessageId, setStreamMessageId] = useState('');
+  const followBottomRef = useRef(true);
   const [streamStatus, setStreamStatus] = useState('');
   const [streamContent, setStreamContent] = useState('');
   const [streamSources, setStreamSources] = useState<SourceItem[]>([]);
@@ -361,7 +364,6 @@ export const ProjectDetailPage = ({
   const [headerRenameDraft, setHeaderRenameDraft] = useState('');
   const [editingHeaderChatId, setEditingHeaderChatId] = useState<string | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
-  const messagesBottomRef = useRef<HTMLDivElement | null>(null);
 
   const allChats = useMemo(() => chats.data?.data ?? [], [chats.data?.data]);
   const activeChat = useMemo(
@@ -375,7 +377,7 @@ export const ProjectDetailPage = ({
   const messages = useGetChatMessages({
     chatId: activeChatId,
     personal: isPersonalChat,
-    enabled: Boolean(activeChatId)
+    enabled: Boolean(activeChat)
   });
 
   const postPersonalMessage = usePostPersonalChatMessageSSE({ projectId });
@@ -408,22 +410,29 @@ export const ProjectDetailPage = ({
     const payload = messages.data;
     return payload?.data ?? [];
   }, [messages.data]);
-  // 서버가 SSE onSources 로 흘려보낸 소스를 완료 메시지에 저장하지 않는 케이스가 있다.
-  // messageItems 의 가장 최근 assistant 메시지가 sources 를 잃지 않도록, 렌더 시 이 id 를 기준으로
-  // streamSources 를 merge 한다. 비어있는 assistant 는 아직 완성 전이라 skip 하고 그 이전의 유효한
-  // assistant 를 target 으로 삼는다. React Compiler 가 자동 메모이제이션 해주므로 useMemo 는 사용하지 않는다.
-  let lastAssistantMessageId: string | null = null;
-  for (let i = messageItems.length - 1; i >= 0; i--) {
-    const msg = messageItems[i];
-    if (isUserMessageRole(getMessageRole(msg))) continue;
-    if (getMessageContent(msg).trim().length === 0) continue;
-    lastAssistantMessageId = getMessageId(msg);
-    break;
-  }
+  const isCurrentStream = streamChatId === activeChatId;
+  const hasSavedAnswer =
+    Boolean(streamMessageId) &&
+    messageItems.some(
+      (message) => getMessageId(message) === streamMessageId && getMessageContent(message).trim()
+    );
+  const showStream =
+    isCurrentStream &&
+    (Boolean(streamError) ||
+      postPersonalMessage.isPending ||
+      (Boolean(streamContent) && !hasSavedAnswer));
 
   const displayMessageItems = useMemo(() => {
     if (!pendingUserMessage) return messageItems;
     if (pendingUserMessage.chatId !== activeChatId) return messageItems;
+
+    const hasSavedUser = messageItems.some(
+      (message) =>
+        !pendingUserMessage.knownMessageIds.has(getMessageId(message)) &&
+        isUserMessageRole(getMessageRole(message)) &&
+        getMessageContent(message) === pendingUserMessage.content
+    );
+    if (hasSavedUser) return messageItems;
 
     return [
       ...messageItems,
@@ -436,7 +445,7 @@ export const ProjectDetailPage = ({
         __localFailed: pendingUserMessage.failed
       }
     ];
-  }, [activeChatId, meId, messageItems, pendingUserMessage]);
+  }, [activeChatId, meId, meName, messageItems, pendingUserMessage]);
 
   const copyText = async (value: string): Promise<void> => {
     try {
@@ -490,77 +499,23 @@ export const ProjectDetailPage = ({
     }
   }, [socketSendError, toast]);
 
-  // 서버가 저장한 실제 user 메시지가 messageItems 에 나타나면 낙관적 상태(pendingUserMessage / stream*)를
-  // 즉시 정리한다. 정리 시점을 서버 데이터 도착에 맞춰야 화면에 낙관적 UI + 실제 데이터가 잠깐 동시에 뜨는
-  // "메시지가 두 개 되는" 현상이 안 생긴다. 실패 상태(failed) 는 사용자 재시도 흐름이 필요해 유지한다.
-  //
-  // React Query 스토어(외부 시스템) 변화에 로컬 상태를 동기화하는 정당한 useEffect + setState 사용이라
-  // set-state-in-effect 룰은 이 블록에서만 예외 처리한다.
   useEffect(() => {
-    if (!pendingUserMessage || pendingUserMessage.failed) return;
-    if (pendingUserMessage.chatId !== activeChatId) return;
-
-    // 같은 문구를 이전에 보낸 적이 있으면 이전 메시지가 매칭될 수 있으니, 지금 요청의
-    // sentAt 이후에 만들어진 서버 메시지만 매칭 대상으로 삼는다. tolerance 5s.
-    const hasRealUserMessage = messageItems.some((msg) => {
-      if (!isUserMessageRole(getMessageRole(msg))) return false;
-      if (getMessageContent(msg).trim() !== pendingUserMessage.content.trim()) return false;
-      const createdAt = new Date(getMessageCreatedAt(msg)).getTime();
-      if (Number.isNaN(createdAt)) return true;
-      return createdAt >= pendingUserMessage.sentAt - 5000;
-    });
-
-    if (!hasRealUserMessage) return;
-
-    // 서버가 저장한 user 메시지가 messageItems 에 뜬 순간, 낙관적 pendingUserMessage 만 정리한다.
-    // streamContent/streamStatus 는 여기서 지우지 않는다: 다음 refetch 로 완성된 assistant 카드가
-    // 뜨기 전 짧은 순간이라도 지우면 화면이 텅 비게 된다. 대신 hasCompletedAssistantForCurrentStream
-    // 게이트가 실제 완료 카드가 뜨는 시점에 스트리밍 article 을 hide 한다.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPendingUserMessage((prev) =>
-      prev && prev.clientId === pendingUserMessage.clientId ? null : prev
-    );
-  }, [messageItems, pendingUserMessage, activeChatId]);
-
-  // 채팅을 바꾸면 이전 채팅의 streamSources 는 관련 없으므로 정리한다.
-  // streamStartAt 은 여기서 리셋하지 않는다: auto-create 흐름에서 sendMessage 가 streamStartAt 을
-  // 세팅한 직후 onSelectChat(newId) 로 activeChatId 가 바뀌면 이 effect 가 즉시 다시 실행되어
-  // 방금 세팅한 값을 wipe 해버려 gate 가 항상 false → 스트리밍 article 이 완료 후에도 잔존한다.
-  // sendMessage 가 항상 새 streamStartAt 을 세팅하므로 여기서 굳이 리셋할 필요 없다.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setStreamSources([]);
+    followBottomRef.current = true;
   }, [activeChatId]);
 
-  // (참고) 이전에는 streamStartAt 과 messageItems 를 비교하는 gate 로 스트리밍 article 을 hide
-  // 했지만 지금은 postPersonalMessage.isPending 이 SSE 라이프사이클을 정확히 반영하므로 gate 불필요.
-  // streamStartAt 자체는 sentAt 매칭 tolerance 등 다른 용도로 계속 유지.
-
-  const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
-    if (messagesBottomRef.current) {
-      messagesBottomRef.current.scrollIntoView({ block: 'end', behavior });
-      return;
-    }
-
-    if (!messagesViewportRef.current) return;
-    messagesViewportRef.current.scrollTo({
-      top: messagesViewportRef.current.scrollHeight,
-      behavior
-    });
-  };
-
   useEffect(() => {
-    if (!activeChatId) return;
+    if (!activeChatId || !followBottomRef.current) return;
     const frameId = window.requestAnimationFrame(() => {
-      scrollToBottom('auto');
+      const viewport = messagesViewportRef.current;
+      if (viewport && followBottomRef.current) viewport.scrollTop = viewport.scrollHeight;
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, [activeChatId, displayMessageItems.length, streamContent, streamStatus]);
+  }, [activeChatId, displayMessageItems, streamContent, streamStatus, streamSources, showStream]);
 
   const sendMessage = async (overrideContent?: string): Promise<void> => {
     const isRetry = overrideContent !== undefined;
     if (!isRetry && !canSend) return;
-    if (isSending) return;
+    if (isSending || isAnalyzing || isTeamChatReadOnly) return;
     const content = (overrideContent ?? draft).trim();
     if (!content) return;
     // 입력창은 전송 즉시 비운다. 실패했을 때는 pendingUserMessage.content 가 남아 있어
@@ -578,6 +533,7 @@ export const ProjectDetailPage = ({
         const created = await createChat.mutateAsync({ type: 'personal', name: tempName });
         const newId = (created as { data?: { id?: string } })?.data?.id;
         if (!newId) {
+          setDraft((previous) => previous || content);
           toast.error({
             title: '채팅 생성 실패',
             description: '채팅을 만들지 못했어요. 잠시 후 다시 시도해주세요.'
@@ -587,6 +543,7 @@ export const ProjectDetailPage = ({
         targetChatId = newId;
         onSelectChat(newId);
       } catch (error) {
+        setDraft((previous) => previous || content);
         toast.error(friendlyErrorMessage(error, 'chat.create'));
         return;
       }
@@ -601,11 +558,14 @@ export const ProjectDetailPage = ({
       chatId: targetChatId,
       content,
       failed: false,
-      sentAt: now
+      knownMessageIds: new Set(messageItems.map(getMessageId))
     };
+    followBottomRef.current = true;
     setPendingUserMessage(pendingMessage);
 
     if (isPersonalTarget) {
+      setStreamChatId(targetChatId);
+      setStreamMessageId('');
       setStreamStatus('요청 중...');
       setStreamContent('');
       setStreamSources([]);
@@ -618,6 +578,9 @@ export const ProjectDetailPage = ({
           chatId: targetChatId,
           content,
           callbacks: {
+            onStart: (payload) => {
+              if (payload.assistantMessageId) setStreamMessageId(payload.assistantMessageId);
+            },
             onStatus: (payload) => {
               setStreamStatus(payload.message ?? payload.status ?? '진행 중...');
             },
@@ -641,31 +604,10 @@ export const ProjectDetailPage = ({
               );
               void queryClient.invalidateQueries({ queryKey: chatQueryKey });
             },
-            onDone: () => {
+            onDone: (payload) => {
+              const messageId = payload.assistantMessageId ?? payload.messageId;
+              if (messageId) setStreamMessageId(messageId);
               setStreamStatus('완료');
-              // 성공적으로 응답이 끝났을 때만 draft 를 비운다.
-              // 사용자가 스트리밍 중 다음 질문을 타이핑 중이면 덮어쓰지 않기 위해 매치 조건.
-              setDraft((prev) => (prev === content ? '' : prev));
-              // 완료 시점에 messages 목록을 무효화한다.
-              // auto-create 흐름에서 activeChat 이 allChats 에 아직 없어 isPersonalChat 이 false 로
-              // 계산되면 useGetChatMessages 는 team key 로 fetch 하는데, 여기서 personal key 로만
-              // invalidate 하면 실제 쿼리가 refetch 안 됨 → messageItems 가 stale → gate 트리거 안 됨
-              // → 스트리밍 카드가 5s setTimeout 까지 잔존 (사용자가 본 "두 개" 현상의 원인).
-              // chatMessagesByChat(chatId) 는 prefix 매칭으로 personal/team 두 variant 모두 무효화.
-              void queryClient.invalidateQueries({
-                queryKey: QUERY_KEY.chatMessagesByChat(targetChatId)
-              });
-              void queryClient.invalidateQueries({ queryKey: chatQueryKey });
-              // 안전망: 감지가 어떤 이유로든(예: content 일치 실패) 못 잡을 때를 대비한 최종 정리.
-              // 실제 정리는 messageItems 감지 useEffect 에서 훨씬 빠르게 일어난다.
-              window.setTimeout(() => {
-                setStreamStatus('');
-                setStreamContent('');
-                setStreamSources([]);
-                setPendingUserMessage((prev) =>
-                  prev?.clientId === pendingMessage.clientId ? null : prev
-                );
-              }, 5000);
             },
             onError: (message, code) => {
               // SSE error 이벤트 payload — 서버가 준 코드/문자열 그대로 저장.
@@ -685,7 +627,7 @@ export const ProjectDetailPage = ({
         {
           onError: (error) => {
             // 스트림을 열지도 못한 실패(네트워크·HTTP 5xx 등). Axios 에러 객체 그대로 저장.
-            setStreamError(error);
+            setStreamError((previous) => previous ?? error);
             setPendingUserMessage((prev) =>
               prev?.clientId === pendingMessage.clientId ? { ...prev, failed: true } : prev
             );
@@ -701,7 +643,7 @@ export const ProjectDetailPage = ({
   };
 
   const retryLastFailedMessage = (): void => {
-    const failedContent = pendingUserMessage?.failed ? pendingUserMessage.content : null;
+    const failedContent = isCurrentStream && streamError ? pendingUserMessage?.content : null;
     if (!failedContent) return;
     // 실패 표식과 에러 UI 를 먼저 정리한 뒤 같은 content 로 재전송.
     setStreamError(null);
@@ -872,6 +814,11 @@ export const ProjectDetailPage = ({
         />
         <div
           ref={messagesViewportRef}
+          onScroll={(event) => {
+            const viewport = event.currentTarget;
+            followBottomRef.current =
+              viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 80;
+          }}
           className="flex h-full justify-center overflow-y-auto px-6 pb-4"
         >
           {!activeChatId ? (
@@ -976,7 +923,8 @@ export const ProjectDetailPage = ({
                   extractInlineSources(messageContent);
                 const parsedSources = mergeSources(apiSources, inlineSources);
                 // 가장 최근 assistant 메시지에만 스트림 소스를 덧붙여 서버 미저장 케이스 커버.
-                const isLastAssistant = messageId === lastAssistantMessageId;
+                if (showStream && messageId === streamMessageId) return null;
+                const isLastAssistant = isCurrentStream && messageId === streamMessageId;
                 const mergedSources = isLastAssistant
                   ? mergeSources(parsedSources, streamSources)
                   : parsedSources;
@@ -1054,7 +1002,7 @@ export const ProjectDetailPage = ({
                 );
               })}
 
-              {(postPersonalMessage.isPending || streamError) && activeChatId && isPersonalChat ? (
+              {showStream && activeChatId && isPersonalChat ? (
                 <article className="rounded-[12px] bg-surface p-3" aria-live="polite">
                   <div className="mb-2 flex items-center gap-2">
                     <span
@@ -1074,7 +1022,6 @@ export const ProjectDetailPage = ({
                     </span>
                   </div>
                   {(() => {
-                    if (streamError) return null;
                     if (!streamContent) return null;
                     const parsed = extractInlineSources(streamContent);
                     const merged = mergeSources(streamSources, parsed.sources);
@@ -1097,7 +1044,7 @@ export const ProjectDetailPage = ({
                           type="button"
                           size="sm"
                           variant="secondary"
-                          disabled={!pendingUserMessage?.failed || isSending}
+                          disabled={!pendingUserMessage || isSending || isAnalyzing}
                           onClick={retryLastFailedMessage}
                         >
                           재시도
@@ -1117,7 +1064,6 @@ export const ProjectDetailPage = ({
                   ) : null}
                 </article>
               ) : null}
-              <div ref={messagesBottomRef} aria-hidden />
             </div>
           )}
         </div>

@@ -9,6 +9,7 @@
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
+    "check:sse-transport": "node_modules/.bin/esbuild scripts/check-sse-transport.ts --bundle --platform=node --format=cjs --define:import.meta.env.VITE_API_BASE_URL=\\\"http://localhost:3000\\\" --outfile=/tmp/qode-sse-transport-check.cjs && node /tmp/qode-sse-transport-check.cjs",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
