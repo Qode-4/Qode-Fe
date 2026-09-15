@@ -1070,14 +1070,14 @@ export const ProjectDetailPage = ({
                 );
               })}
 
-              {(isSending || streamContent || streamError) &&
-              !hasCompletedAssistantForCurrentStream &&
+              {((pendingUserMessage &&
+                pendingUserMessage.chatId === activeChatId &&
+                !pendingUserMessage.failed &&
+                !hasCompletedAssistantForCurrentStream) ||
+                streamError) &&
               activeChatId &&
               isPersonalChat ? (
-                <article
-                  className="rounded-[12px] border border-line bg-surface p-3"
-                  aria-live="polite"
-                >
+                <article className="rounded-[12px] bg-surface p-3" aria-live="polite">
                   <div className="mb-2 flex items-center gap-2">
                     <span
                       aria-hidden="true"
