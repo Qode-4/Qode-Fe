@@ -131,10 +131,10 @@ const MessageSources = ({
         aria-controls={listId}
         aria-expanded={expanded}
         onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full items-center justify-between px-3 py-2 text-ui-14 text-text-soft transition-colors hover:bg-surface-muted"
+        className="flex w-full items-center justify-between px-3 py-1.5 text-ui-12 text-text-soft transition-colors hover:bg-surface-muted"
       >
         <span className="inline-flex items-center gap-2">
-          <span aria-hidden className="text-ui-14 leading-none text-text-soft">
+          <span aria-hidden className="text-ui-12 leading-none text-text-soft">
             •
           </span>
           <span>참조한 소스 {sources.length}개</span>
@@ -150,7 +150,7 @@ const MessageSources = ({
           {sources.map((source) => (
             <div
               key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-              className="flex items-center justify-between gap-3 px-3 py-1.5 text-ui-14 text-text-soft"
+              className="flex items-center justify-between gap-3 px-3 py-1 text-ui-12 text-text-soft"
             >
               <span className="min-w-0 flex-1 truncate">{source.filePath}</span>
               <span className="shrink-0">
@@ -752,7 +752,7 @@ export const ProjectDetailPage = ({
                           {isLocalFailed ? (
                             <p className="text-ui-10 font-medium text-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl bg-text-base px-3 py-2.5 text-ui-16 font-medium text-white">
+                          <div className="max-w-[70%] rounded-xl border border-primary bg-primary-soft px-3 py-2.5 text-ui-16 font-medium text-text-base">
                             {messageContent}
                           </div>
                           {timeLabel ? (
@@ -784,7 +784,7 @@ export const ProjectDetailPage = ({
                   return (
                     <div key={messageId} className="flex items-end justify-end">
                       <div className="flex max-w-[70%] flex-col items-end">
-                        <div className="rounded-[12px] bg-text-base px-3 py-3 text-ui-16 font-medium text-white">
+                        <div className="rounded-[12px] border border-primary bg-primary-soft px-3 py-3 text-ui-16 font-medium text-text-base">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (
