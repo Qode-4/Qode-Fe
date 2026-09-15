@@ -81,7 +81,8 @@ export const ChatComposer = ({
           ref={textareaRef}
           rows={1}
           aria-label="메시지 입력"
-          className="block min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-base leading-[1.6] text-text-base outline-none focus:outline-none focus:ring-0 focus-visible:outline-none placeholder:text-text-soft disabled:cursor-not-allowed"
+          className="block min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-ui-14 leading-[1.6] text-text-base placeholder:text-text-soft disabled:cursor-not-allowed"
+          style={{ outline: 'none', boxShadow: 'none' }}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}

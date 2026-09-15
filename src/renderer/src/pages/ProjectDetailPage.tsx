@@ -707,7 +707,7 @@ export const ProjectDetailPage = ({
       ) : null}
 
       {activeChat && isPersonalChat ? (
-        <div className="relative z-10 flex justify-center bg-surface px-6 py-3 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-surface after:to-transparent after:content-['']">
+        <div className="flex justify-center bg-surface px-6 py-3">
           <div className="w-full max-w-[48rem]">
             {isEditingHeaderTitle ? (
               <input
@@ -749,7 +749,13 @@ export const ProjectDetailPage = ({
       <div className="min-h-0 flex-1 pt-4">
         <div
           ref={messagesViewportRef}
-          className="h-full overflow-y-auto px-6 pb-4 flex justify-center"
+          className="flex h-full justify-center overflow-y-auto px-6 pb-4"
+          style={{
+            WebkitMaskImage:
+              'linear-gradient(to bottom, transparent 0, black 24px, black calc(100% - 8px), transparent 100%)',
+            maskImage:
+              'linear-gradient(to bottom, transparent 0, black 24px, black calc(100% - 8px), transparent 100%)'
+          }}
         >
           {!activeChatId ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
@@ -805,7 +811,7 @@ export const ProjectDetailPage = ({
                           {isLocalFailed ? (
                             <p className="text-ui-10 font-medium text-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2 text-ui-14 font-medium text-text-base">
+                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-ui-16 font-medium text-text-base">
                             {messageContent}
                           </div>
                           {timeLabel ? (
@@ -837,7 +843,7 @@ export const ProjectDetailPage = ({
                   return (
                     <div key={messageId} className="flex items-end justify-end">
                       <div className="flex max-w-[70%] flex-col items-end">
-                        <div className="rounded-[12px] bg-primary-soft px-3 py-2.5 text-ui-14 font-medium text-text-base">
+                        <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-ui-16 font-medium text-text-base">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (

@@ -73,7 +73,7 @@ export const ProjectSwitcher = ({
       >
         <span
           aria-hidden="true"
-          className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[10px] font-semibold text-primary"
+          className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line bg-surface text-[11px] font-semibold text-text-subtle"
         >
           {getInitialCharacter(selectedProjectLabel)}
         </span>
