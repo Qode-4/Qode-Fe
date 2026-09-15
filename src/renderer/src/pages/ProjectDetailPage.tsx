@@ -131,17 +131,11 @@ const MessageSources = ({
         aria-controls={listId}
         aria-expanded={expanded}
         onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full items-center justify-between px-3 py-2 text-ui-12 text-text-subtle transition-colors hover:bg-surface-muted"
+        className="flex w-full items-center justify-between px-3 py-2 text-ui-14 text-text-soft transition-colors hover:bg-surface-muted"
       >
-        <span className="inline-flex items-center gap-1">
-          <span
-            aria-hidden
-            className={[
-              'text-[11px] leading-none text-text-soft transition-transform',
-              expanded ? '' : '-rotate-90'
-            ].join(' ')}
-          >
-            ▾
+        <span className="inline-flex items-center gap-2">
+          <span aria-hidden className="text-ui-14 leading-none text-text-soft">
+            •
           </span>
           <span>참조한 소스 {sources.length}개</span>
         </span>
@@ -156,10 +150,10 @@ const MessageSources = ({
           {sources.map((source) => (
             <div
               key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-              className="flex items-center justify-between gap-3 px-3 py-1.5 text-ui-12"
+              className="flex items-center justify-between gap-3 px-3 py-1.5 text-ui-14 text-text-soft"
             >
-              <span className="min-w-0 flex-1 truncate text-text-subtle">{source.filePath}</span>
-              <span className="shrink-0 text-ui-12 text-text-soft">
+              <span className="min-w-0 flex-1 truncate">{source.filePath}</span>
+              <span className="shrink-0">
                 ({source.startLine ?? '-'}-{source.endLine ?? '-'})
               </span>
             </div>
