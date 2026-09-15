@@ -99,7 +99,6 @@ export const AddStorageItemModal = ({
             ].join(' ')}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            onBlur={() => setTouched(true)}
             placeholder={URL_PLACEHOLDER[type]}
             autoFocus
           />
@@ -125,7 +124,6 @@ export const AddStorageItemModal = ({
             ].join(' ')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => setTouched(true)}
             placeholder="예: 프론트 레포"
           />
           {titleError ? <span className="mt-1 block text-xs text-danger">{titleError}</span> : null}

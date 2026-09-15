@@ -348,7 +348,6 @@ export const AddGithubRepoModal = ({
                 setTitle(e.target.value);
                 setTitleManuallyEdited(true);
               }}
-              onBlur={() => setTouched((prev) => ({ ...prev, title: true }))}
               placeholder="예: 프론트 레포"
             />
             {titleError ? (

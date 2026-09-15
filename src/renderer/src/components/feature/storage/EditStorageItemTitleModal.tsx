@@ -79,7 +79,6 @@ export const EditStorageItemTitleModal = ({
             ].join(' ')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => setTouched(true)}
             autoFocus
           />
           {titleError ? <span className="mt-1 block text-xs text-danger">{titleError}</span> : null}

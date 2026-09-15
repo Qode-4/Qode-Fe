@@ -57,7 +57,6 @@ export const CreateChatModal = ({
             ].join(' ')}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            onBlur={() => setTouched(true)}
             placeholder={placeholder}
             autoFocus
           />

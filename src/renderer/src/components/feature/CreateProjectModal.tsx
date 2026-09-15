@@ -256,7 +256,6 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                 value={name}
                 maxLength={PROJECT_NAME_MAX}
                 onChange={(e) => setName(e.target.value)}
-                onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
                 placeholder="예) Qode-Fe"
                 autoFocus
               />
