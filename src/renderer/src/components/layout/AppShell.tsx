@@ -1039,9 +1039,9 @@ export const AppShell = ({
                   onClick={requestProjectSync}
                   aria-busy={isSyncInProgress || postProjectSync.isPending}
                   className={[
-                    'flex h-9 w-full items-center justify-between gap-2 rounded-md bg-primary-soft px-3 text-ui-12 font-medium text-text-base transition-colors',
-                    'hover:brightness-95 active:brightness-90',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                    'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-3 text-ui-12 font-medium text-text-base transition-colors',
+                    'hover:bg-surface-muted active:bg-line',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
                     'disabled:cursor-not-allowed disabled:opacity-60'
                   ].join(' ')}
                 >

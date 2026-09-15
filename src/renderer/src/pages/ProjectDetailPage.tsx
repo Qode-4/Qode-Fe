@@ -77,13 +77,35 @@ const extractSources = (message: unknown): SourceItem[] => {
   return target.originalMessage?.sources ?? [];
 };
 
-// AI 가 본문에 인라인으로 남긴 "(참고: `src/x.ts` 1-17)" 형태의 참조 문구를 뽑아 SourceItem 으로 변환한다.
-// 서버가 sources 배열을 안 채워주는 흐름에서도 카드가 뜨도록 한 프론트엔드 폴백이다.
-const INLINE_SOURCE_REGEX = /\(참[고조]:\s*`?([^\s`)]+)`?\s+(\d+)\s*-\s*(\d+)\)/g;
+// AI 가 본문에 남긴 참조 메타데이터를 뽑아 SourceItem 으로 변환하고 원문에서는 제거한다.
+// 서버가 sources 배열을 안 채워주는 흐름에서도 카드가 뜨도록 한 프론트엔드 폴백이며,
+// 답변 본문에 같은 정보가 여러 번 반복되는 것을 방지한다.
+//
+// 지원 패턴:
+//   1) 인라인:            "(참고: `src/x.ts` 1-17)" · "(참조: src/x.ts 1-17)"
+//   2) 메타 bullet 쌍:    "- **파일 경로**: `src/x.ts`\n- **라인 범위**: 1-17"
+//                        (앞뒤에 강조/공백은 유연하게 허용)
+const INLINE_SOURCE_REGEX = /\s*\(참[고조]:\s*`?([^\s`)]+)`?\s+(\d+)\s*-\s*(\d+)\)/g;
+const META_FILE_LINE_PAIR_REGEX =
+  /^[\t ]*[-*•][\t ]*\**\s*(?:파일\s*(?:경로|이름|위치)|파일)\s*\**\s*:\s*`?([^\s`\n]+)`?[^\n]*\n[\t ]*[-*•][\t ]*\**\s*(?:라인\s*(?:범위|번호)?|줄\s*번호|위치|Line(?:s)?)\s*\**\s*:\s*`?(\d+)\s*[-–~]\s*(\d+)`?[^\n]*(?:\n|$)/gim;
 
 const extractInlineSources = (content: string): { content: string; sources: SourceItem[] } => {
   const sources: SourceItem[] = [];
-  const strippedContent = content.replace(
+
+  let next = content.replace(
+    META_FILE_LINE_PAIR_REGEX,
+    (_match, filePath: string, start: string, end: string) => {
+      sources.push({
+        filePath: String(filePath),
+        startLine: Number(start),
+        endLine: Number(end),
+        snippet: ''
+      });
+      return '';
+    }
+  );
+
+  next = next.replace(
     INLINE_SOURCE_REGEX,
     (_match, filePath: string, start: string, end: string) => {
       sources.push({
@@ -95,7 +117,10 @@ const extractInlineSources = (content: string): { content: string; sources: Sour
       return '';
     }
   );
-  return { content: strippedContent.replace(/[ \t]+\n/g, '\n'), sources };
+
+  // 연속된 공백 라인은 하나로 정리하고, 라인 끝의 잔여 공백/탭도 정리한다.
+  next = next.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+  return { content: next.trim(), sources };
 };
 
 const mergeSources = (a: SourceItem[], b: SourceItem[]): SourceItem[] => {
