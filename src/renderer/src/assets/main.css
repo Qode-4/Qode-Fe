@@ -114,11 +114,6 @@
     font: inherit;
   }
 
-  :where(button, a, input, textarea, select, [tabindex]:not([tabindex='-1'])):focus-visible {
-    outline: 2px solid var(--color-text-base);
-    outline-offset: 2px;
-  }
-
   code {
     font-family:
       'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
@@ -250,12 +245,6 @@
     background: var(--color-surface-muted);
     font-weight: 600;
   }
-}
-
-/* Keep keyboard focus visible even on controls with utility-level outline resets. */
-:where(button, a, input, textarea, select, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-text-base);
-  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

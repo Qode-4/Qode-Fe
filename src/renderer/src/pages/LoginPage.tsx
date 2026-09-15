@@ -100,11 +100,10 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
                 placeholder="이메일로 계속하세요."
                 className={[
                   'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-text-soft',
-                  'focus-visible:border-2 focus-visible:outline-none',
+                  'placeholder:text-text-soft focus:outline-none',
                   shouldShowEmailError
-                    ? 'border-danger text-danger focus-visible:border-danger'
-                    : 'border-control-line text-text-base focus-visible:border-text-base '
+                    ? 'border-danger text-danger'
+                    : 'border-control-line text-text-base focus:border-primary'
                 ].join(' ')}
                 aria-invalid={shouldShowEmailError}
                 aria-describedby={shouldShowEmailError ? 'login-email-error' : undefined}
@@ -136,11 +135,10 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
                   placeholder="비밀번호를 입력하세요."
                   className={[
                     'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                    'placeholder:text-text-soft',
-                    'focus-visible:border-2 focus-visible:outline-none',
+                    'placeholder:text-text-soft focus:outline-none',
                     shouldShowPasswordError
-                      ? 'border-danger-line text-danger focus-visible:border-danger'
-                      : 'border-control-line text-text-base focus-visible:border-text-base'
+                      ? 'border-danger text-danger'
+                      : 'border-control-line text-text-base focus:border-primary'
                   ].join(' ')}
                   aria-invalid={shouldShowPasswordError}
                   aria-describedby={shouldShowPasswordError ? 'login-password-error' : undefined}

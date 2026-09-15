@@ -275,7 +275,11 @@
   - `#b54700` / 흰색 = 5.43:1 → 밝은 면의 링크 OK.
   - `#b54700` / 크림 = 5.05:1 → 브랜드 강조 텍스트 OK.
 - 밝은 면의 작은 오렌지 텍스트/링크는 `accent-strong` 만 사용한다.
-- 키보드 포커스: `main.css` 에 전역 `outline: 2px solid var(--color-text-base); outline-offset: 2px` 규칙이 있다. **ChatComposer 는 컨테이너 focus-within 배경 전환으로 시각 포커스를 대체하기 위해 textarea 자체 outline 을 style 인라인으로 없앤다.** 이 예외 외에 다른 컴포넌트에서 outline 을 없애지 않는다.
+- **키보드 포커스 통일 규칙** — 전역 `outline` 규칙은 없음. 요소별 focus 스타일만 사용한다.
+  - **입력창 (input, textarea)**: 보더 색만 변경. Default `border-control-line` → Focus `focus:border-primary`. 에러는 `border-danger` (focus 무시하고 error 우선). `outline-none` 는 브라우저 기본 outline 을 명시적으로 억제한다. Ring 은 얹지 않는다.
+  - **버튼, IconButton, MenuItem, 링크 등 인터랙션 요소**: `focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2` 링 패턴. 키보드 focus 만 링이 보이고 마우스 클릭엔 안 보이도록 `focus-visible` 을 명시적으로 쓴다.
+  - **ChatComposer textarea (예외)**: 컨테이너 `focus-within:bg-primary-soft` 배경 전환으로 시각 포커스를 대체. textarea 자체 outline 은 style 인라인으로 완전히 제거. 이 예외를 다른 곳에 확장하지 않는다.
+  - 위 세 규칙 밖의 새 컴포넌트는 기본적으로 입력창 패턴 또는 링 패턴 둘 중 하나를 골라 쓴다. 두 방식을 한 요소에 섞지 않는다.
 - 색상 외에 텍스트/형태로도 선택·오류·비활성을 구분한다.
 - 아이콘 버튼에는 접근 가능한 이름(`aria-label`) 을 제공한다. 입력창에는 placeholder 와 별개로 label(`sr-only`) 을 연결한다.
 - 모달의 초점 진입·가두기·복귀, Escape 동작을 확인한다.

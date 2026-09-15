@@ -96,11 +96,10 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
                 placeholder="이름"
                 className={[
                   'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-text-soft',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
+                  'placeholder:text-text-soft focus:outline-none',
                   showNameError
-                    ? 'border-danger-line text-danger'
-                    : 'border-control-line text-text-base'
+                    ? 'border-danger text-danger'
+                    : 'border-control-line text-text-base focus:border-primary'
                 ].join(' ')}
                 aria-invalid={showNameError}
                 aria-describedby={showNameError ? 'signup-name-error' : undefined}
@@ -131,11 +130,10 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
                 placeholder="planner@demo.com"
                 className={[
                   'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-text-soft',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
+                  'placeholder:text-text-soft focus:outline-none',
                   showEmailError
-                    ? 'border-danger-line text-danger'
-                    : 'border-control-line text-text-base'
+                    ? 'border-danger text-danger'
+                    : 'border-control-line text-text-base focus:border-primary'
                 ].join(' ')}
                 aria-invalid={showEmailError}
                 aria-describedby={showEmailError ? 'signup-email-error' : undefined}
@@ -165,11 +163,10 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
                 placeholder="비밀번호를 입력하세요."
                 className={[
                   'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-text-soft',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
+                  'placeholder:text-text-soft focus:outline-none',
                   showPasswordError
-                    ? 'border-danger-line text-danger'
-                    : 'border-control-line text-text-base'
+                    ? 'border-danger text-danger'
+                    : 'border-control-line text-text-base focus:border-primary'
                 ].join(' ')}
                 aria-invalid={showPasswordError}
                 aria-describedby={showPasswordError ? 'signup-password-error' : undefined}

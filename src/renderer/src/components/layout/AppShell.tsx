@@ -1611,8 +1611,8 @@ export const AppShell = ({
               className={[
                 'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
                 folderCreateTouched && !folderCreateValue.trim()
-                  ? 'border-danger-line focus:border-danger'
-                  : 'border-line focus:border-primary'
+                  ? 'border-danger'
+                  : 'border-control-line focus:border-primary'
               ].join(' ')}
               value={folderCreateValue}
               onChange={(e) => setFolderCreateValue(e.target.value)}
@@ -1654,8 +1654,8 @@ export const AppShell = ({
               className={[
                 'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
                 sectionCreateTouched && !sectionCreateValue.trim()
-                  ? 'border-danger-line focus:border-danger'
-                  : 'border-line focus:border-primary'
+                  ? 'border-danger'
+                  : 'border-control-line focus:border-primary'
               ].join(' ')}
               value={sectionCreateValue}
               onChange={(e) => setSectionCreateValue(e.target.value)}
@@ -1697,8 +1697,8 @@ export const AppShell = ({
               className={[
                 'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
                 sectionRenameTouched && !sectionRenameValue.trim()
-                  ? 'border-danger-line focus:border-danger'
-                  : 'border-line focus:border-primary'
+                  ? 'border-danger'
+                  : 'border-control-line focus:border-primary'
               ].join(' ')}
               value={sectionRenameValue}
               onChange={(e) => setSectionRenameValue(e.target.value)}
@@ -1914,8 +1914,8 @@ export const AppShell = ({
               className={[
                 'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
                 renameTouched && !renameValue.trim()
-                  ? 'border-danger-line focus:border-danger'
-                  : 'border-line focus:border-primary'
+                  ? 'border-danger'
+                  : 'border-control-line focus:border-primary'
               ].join(' ')}
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
