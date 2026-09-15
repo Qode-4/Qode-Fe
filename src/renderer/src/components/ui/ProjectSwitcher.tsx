@@ -71,6 +71,12 @@ export const ProjectSwitcher = ({
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
       >
+        <span
+          aria-hidden="true"
+          className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[10px] font-semibold text-primary"
+        >
+          {getInitialCharacter(selectedProjectLabel)}
+        </span>
         <span className="min-w-0 flex-1 truncate text-ui-14 font-normal text-text-base">
           {selectedProjectLabel}
         </span>

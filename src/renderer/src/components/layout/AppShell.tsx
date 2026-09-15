@@ -151,7 +151,7 @@ const UserAvatar = ({
 
   const fallbackClassName =
     variant === 'brand'
-      ? 'bg-primary font-semibold text-primary-foreground'
+      ? 'bg-primary-soft font-semibold text-primary'
       : 'border border-line bg-surface-muted font-medium text-text-soft';
 
   return (
@@ -1448,23 +1448,25 @@ export const AppShell = ({
               </nav>
             </section>
           </div>
-          <div
-            className="mt-auto flex items-center gap-2 border-t border-line pt-3 pr-3 pb-4 pl-4"
-            aria-label="프로필"
-          >
-            <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" variant="brand" />
-            <p className="min-w-0 flex-1 truncate text-[14px] font-semibold text-text-base">
-              {userName}
-            </p>
-            <button
-              type="button"
-              data-settings-trigger
-              aria-label="더보기"
-              onClick={handleSettingsTriggerClick}
-              className="p-2"
+          <div className="mt-auto px-3">
+            <div
+              className="flex items-center gap-2 border-t border-line pt-3 pr-0 pb-4 pl-1"
+              aria-label="프로필"
             >
-              <img src={overflowIcon} alt="더보기-아이콘" className="w-6" />
-            </button>
+              <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" variant="brand" />
+              <p className="min-w-0 flex-1 truncate text-[14px] font-semibold text-text-base">
+                {userName}
+              </p>
+              <button
+                type="button"
+                data-settings-trigger
+                aria-label="더보기"
+                onClick={handleSettingsTriggerClick}
+                className="p-2"
+              >
+                <img src={overflowIcon} alt="더보기-아이콘" className="w-6" />
+              </button>
+            </div>
           </div>
         </aside>
 

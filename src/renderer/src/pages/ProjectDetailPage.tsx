@@ -715,7 +715,7 @@ export const ProjectDetailPage = ({
       ) : null}
 
       {activeChat && isPersonalChat ? (
-        <div className="flex justify-center border-b border-line-soft px-6 py-3">
+        <div className="relative z-10 flex justify-center bg-surface px-6 py-3 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-surface after:to-transparent after:content-['']">
           <div className="w-full max-w-[48rem]">
             {isEditingHeaderTitle ? (
               <input
