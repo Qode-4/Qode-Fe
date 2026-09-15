@@ -9,7 +9,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 const variantMap: Record<NonNullable<Props['variant']>, string> = {
   primary:
     'border-primary bg-primary text-primary-foreground hover:brightness-95 active:brightness-90',
-  secondary: 'border-control-line bg-surface text-text-base hover:bg-surface-muted active:bg-line',
+  secondary: 'border-line bg-surface text-text-base hover:bg-surface-muted active:bg-line',
   ghost: 'border-transparent bg-transparent text-text-subtle hover:bg-surface-muted active:bg-line',
   danger: 'border-danger bg-danger text-white hover:brightness-95 active:brightness-90'
 };

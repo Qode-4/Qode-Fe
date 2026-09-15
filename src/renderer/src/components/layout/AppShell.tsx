@@ -1035,7 +1035,7 @@ export const AppShell = ({
           />
           <div className="min-h-0 flex-1 overflow-y-auto">
             {projects.find((project) => project.id === selectedProjectId)?.role === 'OWNER' ? (
-              <div className="flex items-center gap-2 px-4 pt-4">
+              <div className="flex items-center gap-2 px-3 pt-1">
                 <Button
                   variant="secondary"
                   size="sm"
@@ -1446,25 +1446,23 @@ export const AppShell = ({
               </nav>
             </section>
           </div>
-          <div className="px-2">
-            <div
-              className="mt-auto flex items-center gap-2 border-t border-line p-4"
-              aria-label="프로필"
+          <div
+            className="mt-auto flex items-center gap-2 border-t border-line pt-3 pr-3 pb-4 pl-4"
+            aria-label="프로필"
+          >
+            <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" variant="brand" />
+            <p className="min-w-0 flex-1 truncate text-[14px] font-semibold text-text-base">
+              {userName}
+            </p>
+            <button
+              type="button"
+              data-settings-trigger
+              aria-label="더보기"
+              onClick={handleSettingsTriggerClick}
+              className="p-2"
             >
-              <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" variant="brand" />
-              <p className="min-w-0 flex-1 truncate font-semibold text-text-base text-[14px]">
-                {userName}
-              </p>
-              <button
-                type="button"
-                data-settings-trigger
-                aria-label="더보기"
-                onClick={handleSettingsTriggerClick}
-                className="p-2"
-              >
-                <img src={overflowIcon} alt="더보기-아이콘" className="w-6" />
-              </button>
-            </div>
+              <img src={overflowIcon} alt="더보기-아이콘" className="w-6" />
+            </button>
           </div>
         </aside>
 
