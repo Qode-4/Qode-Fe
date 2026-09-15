@@ -1032,25 +1032,30 @@ export const AppShell = ({
           />
           <div className="min-h-0 flex-1 overflow-y-auto">
             {projects.find((project) => project.id === selectedProjectId)?.role === 'OWNER' ? (
-              <div className="flex items-center gap-2 px-3 pt-1">
-                <Button
-                  variant="secondary"
-                  size="sm"
+              <div className="px-3 pt-1">
+                <button
+                  type="button"
                   disabled={!canRequestProjectSync}
                   onClick={requestProjectSync}
                   aria-busy={isSyncInProgress || postProjectSync.isPending}
+                  className={[
+                    'flex h-9 w-full items-center justify-between gap-2 rounded-md bg-primary-soft px-3 text-ui-12 font-medium text-text-base transition-colors',
+                    'hover:brightness-95 active:brightness-90',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                    'disabled:cursor-not-allowed disabled:opacity-60'
+                  ].join(' ')}
                 >
-                  <span className="inline-flex items-center gap-2">
+                  <span className="inline-flex shrink-0 items-center gap-2">
                     <Icon name="Refresh_light" size="sm" decorative />
                     {syncMenuLabel}
                   </span>
-                </Button>
-                <span
-                  className="min-w-0 flex-1 truncate text-ui-12 text-text-soft"
-                  aria-live="polite"
-                >
-                  {syncStatusInlineText}
-                </span>
+                  <span
+                    className="min-w-0 truncate text-ui-11 font-normal text-text-soft"
+                    aria-live="polite"
+                  >
+                    {syncStatusInlineText}
+                  </span>
+                </button>
               </div>
             ) : null}
             <section hidden className="px-4 pt-4">
@@ -1248,7 +1253,7 @@ export const AppShell = ({
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
-                  아직 채팅이 없습니다. 새 채팅을 시작해보세요!
+                  아직 채팅이 없습니다.
                 </p>
               ) : null}
               <nav aria-label="내 채팅 목록" className="mt-0.5">
@@ -1408,7 +1413,7 @@ export const AppShell = ({
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
-                  아직 채팅이 없습니다. 새 채팅을 시작해보세요!
+                  아직 채팅이 없습니다.
                 </p>
               ) : null}
               <nav aria-label="팀 채팅 목록" className="mt-0.5">
