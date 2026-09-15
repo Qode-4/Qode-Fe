@@ -358,6 +358,10 @@ export const ProjectDetailPage = ({
   // mapResponseError 가 axios/Error/string 을 다 소화하므로 분류는 렌더 시 위임한다.
   const [streamError, setStreamError] = useState<unknown>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<PendingUserMessage | null>(null);
+  // 현재 스트리밍 세션의 시작 시각. 서버 완료 카드가 리스트에 뜬 뒤에도 mutation.isPending 이 잠깐
+  // true 로 남거나 streamContent 가 아직 안 지워진 순간에, 스트리밍 article 이 완료 카드와 겹쳐
+  // 그려지는 것을 막기 위한 게이트. 새 send 시 갱신, 완료 감지 시 0 으로 리셋.
+  const [streamStartAt, setStreamStartAt] = useState(0);
   const [headerRenameDraft, setHeaderRenameDraft] = useState('');
   const [editingHeaderChatId, setEditingHeaderChatId] = useState<string | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
@@ -518,17 +522,29 @@ export const ProjectDetailPage = ({
     setPendingUserMessage((prev) =>
       prev && prev.clientId === pendingUserMessage.clientId ? null : prev
     );
-
     setStreamContent('');
-
     setStreamStatus('');
+    setStreamStartAt(0);
   }, [messageItems, pendingUserMessage, activeChatId]);
 
   // 채팅을 바꾸면 이전 채팅의 streamSources 는 관련 없으므로 정리한다.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStreamSources([]);
+
+    setStreamStartAt(0);
   }, [activeChatId]);
+
+  // 스트림 세션 이후에 만들어진 서버 assistant 메시지가 리스트에 있으면 이번 대화의 완료 카드가
+  // 이미 뜬 상태이므로 스트리밍 article 렌더링을 즉시 중단해 중복 노출을 막는다.
+  const hasCompletedAssistantForCurrentStream =
+    streamStartAt > 0 &&
+    messageItems.some((msg) => {
+      if (isUserMessageRole(getMessageRole(msg))) return false;
+      const createdAt = new Date(getMessageCreatedAt(msg)).getTime();
+      if (Number.isNaN(createdAt)) return false;
+      return createdAt >= streamStartAt - 5000;
+    });
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
     if (messagesBottomRef.current) {
@@ -557,8 +573,11 @@ export const ProjectDetailPage = ({
     if (isSending) return;
     const content = (overrideContent ?? draft).trim();
     if (!content) return;
-    // draft 는 전송 트리거에서 지우지 않는다 — 실패 시 사용자가 텍스트를 잃지 않도록
-    // 성공(onDone) 시점에 지운다. 재시도는 override 로 들어와 draft 를 건드리지 않는다.
+    // 입력창은 전송 즉시 비운다. 실패했을 때는 pendingUserMessage.content 가 남아 있어
+    // "재시도" 버튼으로 재전송 가능. 재시도(override) 는 draft 를 건드리지 않는다.
+    if (!isRetry) {
+      setDraft('');
+    }
 
     const wasAutoCreate = !activeChatId;
     let targetChatId = activeChatId;
@@ -601,6 +620,7 @@ export const ProjectDetailPage = ({
       setStreamContent('');
       setStreamSources([]);
       setStreamError(null);
+      setStreamStartAt(now);
 
       const chatQueryKey = QUERY_KEY.projectChatsByProject(projectId);
 
@@ -1042,7 +1062,10 @@ export const ProjectDetailPage = ({
                 );
               })}
 
-              {(isSending || streamContent || streamError) && activeChatId && isPersonalChat ? (
+              {(isSending || streamContent || streamError) &&
+              !hasCompletedAssistantForCurrentStream &&
+              activeChatId &&
+              isPersonalChat ? (
                 <article
                   className="rounded-[12px] border border-line bg-surface p-3"
                   aria-live="polite"

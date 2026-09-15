@@ -76,7 +76,7 @@ export const ChatComposer = ({
 
   return (
     <div className={['w-full max-w-[48rem]', className ?? ''].join(' ')}>
-      <div className="flex items-end gap-2 rounded-[6px] bg-line-soft px-3 py-2 transition-colors focus-within:bg-primary-soft">
+      <div className="flex items-center gap-2 rounded-[6px] bg-line-soft px-3 py-2 transition-colors focus-within:bg-primary-soft">
         <textarea
           ref={textareaRef}
           rows={1}
