@@ -20,8 +20,8 @@ type Props = {
 const MAX_ROWS = 5;
 
 const sendButtonClass = [
-  'inline-flex size-9 shrink-0 items-center justify-center rounded-[6px] text-primary-foreground transition-colors',
-  'focus:outline-none'
+  'inline-flex size-8 shrink-0 items-center justify-center rounded-[6px] text-primary-foreground transition-colors',
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-1'
 ].join(' ');
 
 export const ChatComposer = ({
@@ -65,7 +65,7 @@ export const ChatComposer = ({
     >
       {isSending ? (
         <span
-          className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+          className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"
           aria-hidden="true"
         />
       ) : (
@@ -75,38 +75,24 @@ export const ChatComposer = ({
   );
 
   return (
-    <div
-      className={[
-        'w-full max-w-[48rem] rounded-[6px] border border-line bg-surface px-3 pt-3 pb-2 transition-colors',
-        'focus-within:border-primary',
-        className ?? ''
-      ].join(' ')}
-    >
-      <textarea
-        ref={textareaRef}
-        rows={1}
-        aria-label="메시지 입력"
-        className="block w-full resize-none border-0 bg-transparent text-base leading-[1.6] text-text-base outline-none focus:outline-none focus:ring-0 placeholder:text-text-soft disabled:cursor-not-allowed"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        maxLength={MAX_LENGTH}
-        onKeyDown={(e) => {
-          if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
-          e.preventDefault();
-          onSend();
-        }}
-        disabled={disabled}
-      />
-
-      <div className="mt-1 flex items-center justify-between gap-2">
-        {value.length >= MAX_LENGTH ? (
-          <p className="text-ui-12 text-danger" role="status">
-            최대 2,000자까지 입력 가능합니다.
-          </p>
-        ) : (
-          <span aria-hidden="true" />
-        )}
+    <div className={['w-full max-w-[48rem]', className ?? ''].join(' ')}>
+      <div className="flex items-end gap-2 rounded-[6px] border border-line bg-surface px-3 py-2 transition-colors focus-within:border-primary">
+        <textarea
+          ref={textareaRef}
+          rows={1}
+          aria-label="메시지 입력"
+          className="block min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-base leading-[1.6] text-text-base outline-none focus:outline-none focus:ring-0 placeholder:text-text-soft disabled:cursor-not-allowed"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          maxLength={MAX_LENGTH}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
+            e.preventDefault();
+            onSend();
+          }}
+          disabled={disabled}
+        />
         {sendDisabledReason && !canSend ? (
           <span title={sendDisabledReason} tabIndex={0} aria-label={sendDisabledReason}>
             {sendButton}
@@ -115,6 +101,12 @@ export const ChatComposer = ({
           sendButton
         )}
       </div>
+
+      {value.length >= MAX_LENGTH ? (
+        <p className="mt-1 text-ui-12 text-danger" role="status">
+          최대 2,000자까지 입력 가능합니다.
+        </p>
+      ) : null}
     </div>
   );
 };
