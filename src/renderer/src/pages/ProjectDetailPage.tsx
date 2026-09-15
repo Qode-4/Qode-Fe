@@ -156,10 +156,10 @@ const MessageSources = ({
           {sources.map((source) => (
             <div
               key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-              className="flex items-center justify-center px-3 py-1.5 text-ui-12"
+              className="flex items-center justify-between gap-3 px-3 py-1.5 text-ui-12"
             >
-              <span className="truncate text-text-subtle">{source.filePath}</span>
-              <span className="ml-3 text-ui-12 text-text-soft">
+              <span className="min-w-0 flex-1 truncate text-text-subtle">{source.filePath}</span>
+              <span className="shrink-0 text-ui-12 text-text-soft">
                 ({source.startLine ?? '-'}-{source.endLine ?? '-'})
               </span>
             </div>
