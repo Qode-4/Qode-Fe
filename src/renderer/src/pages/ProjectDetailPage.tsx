@@ -516,18 +516,14 @@ export const ProjectDetailPage = ({
 
     if (!hasRealUserMessage) return;
 
-    // 서버 완료 메시지가 리스트에 뜬 순간이 낙관적 UI 를 걷어낼 타이밍이다.
-    // streamSources 는 서버가 저장 안 하는 경우가 있어 여기서 지우지 않고, 마지막 assistant
-    // 메시지 렌더에서 merge 해 카드를 유지한다. 다음 send 시점에 자연히 새 sources 로 교체된다.
+    // 서버가 저장한 user 메시지가 messageItems 에 뜬 순간, 낙관적 pendingUserMessage 만 정리한다.
+    // streamContent/streamStatus 는 여기서 지우지 않는다: 다음 refetch 로 완성된 assistant 카드가
+    // 뜨기 전 짧은 순간이라도 지우면 화면이 텅 비게 된다. 대신 hasCompletedAssistantForCurrentStream
+    // 게이트가 실제 완료 카드가 뜨는 시점에 스트리밍 article 을 hide 한다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPendingUserMessage((prev) =>
       prev && prev.clientId === pendingUserMessage.clientId ? null : prev
     );
-    setStreamContent('');
-    setStreamStatus('');
-    // streamStartAt 은 리셋하지 않는다. 이번 스트림에 대한 완료 카드가 여전히 리스트에 있어야
-    // hasCompletedAssistantForCurrentStream 게이트가 유지되고, 남아있는 스트리밍 article 이
-    // 다시 뜨는 것을 막는다. 다음 send 에서 새 값으로 자연 교체.
   }, [messageItems, pendingUserMessage, activeChatId]);
 
   // 채팅을 바꾸면 이전 채팅의 streamSources 는 관련 없으므로 정리한다.
@@ -1072,9 +1068,10 @@ export const ProjectDetailPage = ({
 
               {((pendingUserMessage &&
                 pendingUserMessage.chatId === activeChatId &&
-                !pendingUserMessage.failed &&
-                !hasCompletedAssistantForCurrentStream) ||
+                !pendingUserMessage.failed) ||
+                streamContent ||
                 streamError) &&
+              !hasCompletedAssistantForCurrentStream &&
               activeChatId &&
               isPersonalChat ? (
                 <article className="rounded-[12px] bg-surface p-3" aria-live="polite">
