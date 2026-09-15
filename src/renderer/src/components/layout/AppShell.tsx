@@ -1018,10 +1018,7 @@ export const AppShell = ({
   return (
     <div className="h-full w-full bg-app-bg">
       <div className="grid h-full grid-cols-[240px_minmax(0,1fr)]">
-        <aside
-          aria-label="사이드바 네비게이션"
-          className="flex min-h-0 flex-col border-r border-line bg-sidebar"
-        >
+        <aside aria-label="사이드바 네비게이션" className="flex min-h-0 flex-col bg-sidebar">
           <DrawerHeader
             className="w-full"
             projects={projects}
@@ -1466,7 +1463,7 @@ export const AppShell = ({
           </div>
         </aside>
 
-        <main className="flex min-h-0 flex-col overflow-hidden bg-surface">
+        <main className="flex min-h-0 flex-col overflow-hidden bg-app-bg p-3 pl-0">
           {selectedProjectId && selectedProjectSyncStatus.isError ? (
             <div className="px-6 pt-3" role="alert" aria-live="assertive">
               <InlineAlert tone="danger" title="동기화 상태 조회 실패">
@@ -1474,7 +1471,9 @@ export const AppShell = ({
               </InlineAlert>
             </div>
           ) : null}
-          <div className="min-h-0 flex-1">{children}</div>
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[16px] border border-line bg-surface">
+            {children}
+          </div>
         </main>
       </div>
 
