@@ -121,8 +121,17 @@ const extractInlineSources = (content: string): { content: string; sources: Sour
   );
 
   // 연속된 공백 라인은 하나로 정리하고, 라인 끝의 잔여 공백/탭도 정리한다.
-  next = next.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
-  return { content: next.trim(), sources };
+  const cleaned = next
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  // 파싱 후 남은 본문이 너무 짧으면(답변이 사실상 참고 문구만 있었던 경우) 원문을 유지한다.
+  // 카드는 여전히 아래에 붙여 정보 중복을 피하되, 답변 본문이 통째로 사라져 빈 카드가 되는 것을 방지한다.
+  if (sources.length > 0 && cleaned.length < 10) {
+    return { content: content.trim(), sources };
+  }
+  return { content: cleaned, sources };
 };
 
 const mergeSources = (a: SourceItem[], b: SourceItem[]): SourceItem[] => {
@@ -538,7 +547,15 @@ export const ProjectDetailPage = ({
               // 성공적으로 응답이 끝났을 때만 draft 를 비운다.
               // 사용자가 스트리밍 중 다음 질문을 타이핑 중이면 덮어쓰지 않기 위해 매치 조건.
               setDraft((prev) => (prev === content ? '' : prev));
-              // 서버 invalidate 결과가 자리 잡을 시간을 두고 스트림 블록 정리.
+              // 완료 시점에 messages 목록을 명시적으로 무효화한다. 서버가 저장한 최종 assistant
+              // 메시지를 즉시 가져와야 스트림 블록 → 완료 카드 전환이 매끄럽다.
+              // (기존에는 onTitle 이 트리거되는 경우에만 invalidate 됐다.)
+              void queryClient.invalidateQueries({
+                queryKey: QUERY_KEY.chatMessages(targetChatId, true)
+              });
+              void queryClient.invalidateQueries({ queryKey: chatQueryKey });
+              // 서버 refetch 가 자리 잡을 여유를 두고 스트림 블록을 정리한다.
+              // 너무 빨리 지우면 완료 카드가 목록에 뜨기 전에 화면이 비어 급전환처럼 느껴진다.
               window.setTimeout(() => {
                 setStreamStatus('');
                 setStreamContent('');
@@ -546,7 +563,7 @@ export const ProjectDetailPage = ({
                 setPendingUserMessage((prev) =>
                   prev?.clientId === pendingMessage.clientId ? null : prev
                 );
-              }, 500);
+              }, 1200);
             },
             onError: (message, code) => {
               // SSE error 이벤트 payload — 서버가 준 코드/문자열 그대로 저장.
@@ -857,6 +874,11 @@ export const ProjectDetailPage = ({
                   extractInlineSources(messageContent);
                 const mergedSources = mergeSources(apiSources, inlineSources);
 
+                // 서버가 assistant 자리를 만든 뒤 실제 내용이 아직 안 채워졌거나(스트리밍 중간 저장),
+                // 파싱 결과가 완전히 비어 소스도 없는 경우 → 빈 카드 대신 스켈레톤 라인만 그린다.
+                const hasVisibleBody = cleanContent.trim().length > 0;
+                const hasSources = mergedSources.length > 0;
+
                 return (
                   <article key={messageId} className="rounded-[12px] bg-surface p-3">
                     <div className="mb-2 flex items-center gap-2">
@@ -873,9 +895,15 @@ export const ProjectDetailPage = ({
                       </span>
                       <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
                     </div>
-                    <MarkdownAnswer content={cleanContent} />
+                    {hasVisibleBody ? (
+                      <MarkdownAnswer content={cleanContent} />
+                    ) : (
+                      <p className="text-ui-12 leading-[1.6] text-text-soft">
+                        답변 본문을 불러오지 못했어요. 다시 시도해 주세요.
+                      </p>
+                    )}
 
-                    {mergedSources.length > 0 ? (
+                    {hasSources ? (
                       <MessageSources messageId={messageId} sources={mergedSources} />
                     ) : null}
 
