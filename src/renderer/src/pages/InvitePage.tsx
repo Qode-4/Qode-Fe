@@ -13,6 +13,16 @@ type Props = {
   location: RouteLocation;
 };
 
+const INVITE_BRAND = {
+  title: '프로젝트에\n초대되셨어요.',
+  description: '초대를 수락하고 함께\n같은 답을 볼 수 있어요.',
+  features: [
+    '참여 즉시 프로젝트 대화 접근',
+    '팀 동기화 상태 그대로 확인',
+    '역할에 맞는 권한 자동 부여'
+  ]
+};
+
 export const InvitePage = ({ location }: Props): React.JSX.Element => {
   const { matched, params } = useMemo(
     () => matchPath(location.path, '/invite/:inviteCode'),
@@ -29,25 +39,38 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
 
   if (!inviteCode) {
     return (
-      <div className="mx-auto mt-24 w-full max-w-md">
-        <InlineAlert tone="danger" title="잘못된 링크">
-          초대 코드가 없습니다.
+      <AuthFrame title="잘못된 링크" brand={INVITE_BRAND}>
+        <InlineAlert tone="danger" title="초대 코드가 없습니다">
+          링크가 올바르게 복사되었는지 확인해주세요.
         </InlineAlert>
-      </div>
+      </AuthFrame>
     );
   }
 
   if (!token) {
     const next = buildPath(`/invite/${inviteCode}`);
     return (
-      <AuthFrame title="프로젝트 초대" description="초대를 수락하려면 로그인이 필요합니다.">
+      <AuthFrame
+        title="프로젝트 초대"
+        description="초대를 수락하려면 로그인이 필요합니다."
+        brand={INVITE_BRAND}
+      >
         <div className="space-y-4">
-          <div className="rounded-xl border border-line bg-surface px-4 py-3 text-sm text-text-subtle">
-            초대 코드: <span className="font-semibold text-text-base">{inviteCode}</span>
+          <div className="flex items-center justify-between rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm">
+            <span className="text-text-subtle">초대 코드</span>
+            <span className="font-semibold text-text-base">{inviteCode}</span>
           </div>
-          <div className="flex items-center justify-center gap-4">
-            <Link to={buildPath('/login', { next })}>로그인으로 이동</Link>
-            <Link to={buildPath('/signup', { next })}>회원가입</Link>
+          <div className="flex flex-col gap-2">
+            <Button onClick={() => navigate(buildPath('/login', { next }))} className="w-full">
+              로그인으로 이동
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => navigate(buildPath('/signup', { next }))}
+              className="w-full"
+            >
+              회원가입
+            </Button>
           </div>
         </div>
       </AuthFrame>
@@ -55,10 +78,12 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
   }
 
   return (
-    <AuthFrame title="프로젝트 초대" description={`코드: ${inviteCode}`}>
+    <AuthFrame title="프로젝트 초대" description={`코드: ${inviteCode}`} brand={INVITE_BRAND}>
       <div className="space-y-4">
         {info.isLoading ? (
-          <div className="text-sm text-text-subtle">Loading invite info...</div>
+          <div className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-sm text-text-subtle">
+            초대 정보를 불러오는 중…
+          </div>
         ) : null}
 
         {info.isError ? (
@@ -68,26 +93,38 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
         ) : null}
 
         {info.data ? (
-          <div className="rounded-xl border border-line bg-surface p-4">
-            <div className="text-lg font-semibold text-text-base">{info.data.project.name}</div>
-
-            <div className="mt-3">
-              {info.data.isAlreadyMember ? (
-                <InlineAlert tone="success" title="이미 참여 중">
-                  이미 이 프로젝트 멤버입니다.
-                </InlineAlert>
-              ) : (
-                <InlineAlert tone="info" title="참여 가능">
-                  초대를 수락하면 프로젝트 멤버로 등록됩니다.
-                </InlineAlert>
-              )}
+          <div className="space-y-3 rounded-xl border border-line bg-surface p-4">
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-accent-strong"
+              >
+                {info.data.project.name.charAt(0)}
+              </span>
+              <div className="min-w-0">
+                <div className="truncate text-base font-semibold text-text-base">
+                  {info.data.project.name}
+                </div>
+                <div className="text-xs text-text-soft">역할: {info.data.role}</div>
+              </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-2">
+            {info.data.isAlreadyMember ? (
+              <InlineAlert tone="success" title="이미 참여 중">
+                이미 이 프로젝트 멤버입니다.
+              </InlineAlert>
+            ) : (
+              <InlineAlert tone="info" title="참여 가능">
+                초대를 수락하면 프로젝트 멤버로 등록됩니다.
+              </InlineAlert>
+            )}
+
+            <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
               {info.data.isAlreadyMember ? (
                 <Button
                   variant="secondary"
                   onClick={() => navigate(`/projects/${info.data.project.id}`)}
+                  className="sm:flex-1"
                 >
                   프로젝트로 이동
                 </Button>
@@ -99,11 +136,14 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
                     })
                   }
                   isLoading={join.isPending}
+                  className="sm:flex-1"
                 >
                   초대 수락
                 </Button>
               )}
-              <Link to="/projects">프로젝트 목록</Link>
+              <Link to="/projects" className="text-center sm:text-left">
+                프로젝트 목록
+              </Link>
             </div>
           </div>
         ) : null}

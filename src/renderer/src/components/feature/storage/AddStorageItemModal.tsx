@@ -95,13 +95,10 @@ export const AddStorageItemModal = ({
             id="storage-item-url"
             className={[
               'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-              urlError
-                ? 'border-danger-line focus:border-danger'
-                : 'border-[#737983] focus:border-primary'
+              urlError ? 'border-danger' : 'border-control-line focus:border-primary'
             ].join(' ')}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            onBlur={() => setTouched(true)}
             placeholder={URL_PLACEHOLDER[type]}
             autoFocus
           />
@@ -123,13 +120,10 @@ export const AddStorageItemModal = ({
             id="storage-item-title"
             className={[
               'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-              titleError
-                ? 'border-danger-line focus:border-danger'
-                : 'border-[#737983] focus:border-primary'
+              titleError ? 'border-danger' : 'border-control-line focus:border-primary'
             ].join(' ')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => setTouched(true)}
             placeholder="예: 프론트 레포"
           />
           {titleError ? <span className="mt-1 block text-xs text-danger">{titleError}</span> : null}

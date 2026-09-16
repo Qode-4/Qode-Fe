@@ -13,7 +13,7 @@
 export interface HealthListData {
   ok: boolean;
   service: string;
-  storage: "postgres" | "memory";
+  storage: 'postgres' | 'memory';
   /** @format date-time */
   now: string;
 }
@@ -209,7 +209,7 @@ export interface GithubOauthDeviceFlowsDetailData {
     /** @format date-time */
     expiresAt: string;
     intervalSec: number;
-    status: "auth_pending" | "authorized" | "auth_failed" | "expired";
+    status: 'auth_pending' | 'authorized' | 'auth_failed' | 'expired';
     tokenRefId: string | null;
     error: string | null;
     /** @format date-time */
@@ -252,7 +252,7 @@ export interface ProjectsListData {
       name: string;
       avatarUrl: string | null;
     };
-    role: "OWNER" | "MEMBER";
+    role: 'OWNER' | 'MEMBER';
   }[];
 }
 
@@ -264,7 +264,7 @@ export interface ProjectsCreatePayload {
   name: string;
   description?: string | null;
   git?: {
-    provider: "github_oauth";
+    provider: 'github_oauth';
     /** @format uuid */
     flowId: string;
     /**
@@ -304,7 +304,7 @@ export interface ProjectsCreateData {
       name: string;
       avatarUrl: string | null;
     };
-    role: "OWNER" | "MEMBER";
+    role: 'OWNER' | 'MEMBER';
     syncJob: {
       /** @format uuid */
       id: string;
@@ -312,24 +312,24 @@ export interface ProjectsCreateData {
       projectId: string;
       /** @format uuid */
       requestedBy: string;
-      status: "queued" | "syncing" | "done" | "failed";
+      status: 'queued' | 'syncing' | 'done' | 'failed';
       /**
        * @min 0
        * @max 100
        */
       progress: number;
       errorCode:
-        | "PROJECT_SYNC_PROJECT_NOT_FOUND"
-        | "PROJECT_SYNC_FORBIDDEN"
-        | "PROJECT_SYNC_ALREADY_RUNNING"
-        | "PROJECT_SYNC_REPO_NOT_CONFIGURED"
-        | "PROJECT_SYNC_JOB_NOT_FOUND"
-        | "PROJECT_SYNC_OAUTH_REAUTH_REQUIRED"
-        | "PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND"
-        | "PROJECT_SYNC_NETWORK_ERROR"
-        | "PROJECT_SYNC_TIMEOUT"
-        | "PROJECT_SYNC_STORAGE_ERROR"
-        | "PROJECT_SYNC_UNKNOWN_ERROR"
+        | 'PROJECT_SYNC_PROJECT_NOT_FOUND'
+        | 'PROJECT_SYNC_FORBIDDEN'
+        | 'PROJECT_SYNC_ALREADY_RUNNING'
+        | 'PROJECT_SYNC_REPO_NOT_CONFIGURED'
+        | 'PROJECT_SYNC_JOB_NOT_FOUND'
+        | 'PROJECT_SYNC_OAUTH_REAUTH_REQUIRED'
+        | 'PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND'
+        | 'PROJECT_SYNC_NETWORK_ERROR'
+        | 'PROJECT_SYNC_TIMEOUT'
+        | 'PROJECT_SYNC_STORAGE_ERROR'
+        | 'PROJECT_SYNC_UNKNOWN_ERROR'
         | null;
       errorMessage: string | null;
       syncedCommit: string | null;
@@ -364,7 +364,7 @@ export interface ProjectsDetailData {
       name: string;
       avatarUrl: string | null;
     };
-    role: "OWNER" | "MEMBER";
+    role: 'OWNER' | 'MEMBER';
   };
 }
 
@@ -375,7 +375,7 @@ export interface ProjectsMembersListData {
     id: string;
     name: string;
     avatarUrl: string | null;
-    role: "OWNER" | "MEMBER";
+    role: 'OWNER' | 'MEMBER';
     joinedAt: string | null;
   }[];
 }
@@ -395,7 +395,7 @@ export interface ProjectsMembersInviteCreateData {
     id: string;
     name: string;
     avatarUrl: string | null;
-    role: "OWNER" | "MEMBER";
+    role: 'OWNER' | 'MEMBER';
     joinedAt: string | null;
   }[];
 }
@@ -409,24 +409,24 @@ export interface ProjectsSyncCreateData {
     projectId: string;
     /** @format uuid */
     requestedBy: string;
-    status: "queued" | "syncing" | "done" | "failed";
+    status: 'queued' | 'syncing' | 'done' | 'failed';
     /**
      * @min 0
      * @max 100
      */
     progress: number;
     errorCode:
-      | "PROJECT_SYNC_PROJECT_NOT_FOUND"
-      | "PROJECT_SYNC_FORBIDDEN"
-      | "PROJECT_SYNC_ALREADY_RUNNING"
-      | "PROJECT_SYNC_REPO_NOT_CONFIGURED"
-      | "PROJECT_SYNC_JOB_NOT_FOUND"
-      | "PROJECT_SYNC_OAUTH_REAUTH_REQUIRED"
-      | "PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND"
-      | "PROJECT_SYNC_NETWORK_ERROR"
-      | "PROJECT_SYNC_TIMEOUT"
-      | "PROJECT_SYNC_STORAGE_ERROR"
-      | "PROJECT_SYNC_UNKNOWN_ERROR"
+      | 'PROJECT_SYNC_PROJECT_NOT_FOUND'
+      | 'PROJECT_SYNC_FORBIDDEN'
+      | 'PROJECT_SYNC_ALREADY_RUNNING'
+      | 'PROJECT_SYNC_REPO_NOT_CONFIGURED'
+      | 'PROJECT_SYNC_JOB_NOT_FOUND'
+      | 'PROJECT_SYNC_OAUTH_REAUTH_REQUIRED'
+      | 'PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND'
+      | 'PROJECT_SYNC_NETWORK_ERROR'
+      | 'PROJECT_SYNC_TIMEOUT'
+      | 'PROJECT_SYNC_STORAGE_ERROR'
+      | 'PROJECT_SYNC_UNKNOWN_ERROR'
       | null;
     errorMessage: string | null;
     syncedCommit: string | null;
@@ -442,7 +442,7 @@ export interface ProjectsSyncCreateData {
 export interface ProjectsSyncStatusListData {
   ok: boolean;
   data: {
-    status: "idle" | "queued" | "syncing" | "done" | "failed";
+    status: 'idle' | 'queued' | 'syncing' | 'done' | 'failed';
     latestJob: {
       /** @format uuid */
       id: string;
@@ -450,24 +450,24 @@ export interface ProjectsSyncStatusListData {
       projectId: string;
       /** @format uuid */
       requestedBy: string;
-      status: "queued" | "syncing" | "done" | "failed";
+      status: 'queued' | 'syncing' | 'done' | 'failed';
       /**
        * @min 0
        * @max 100
        */
       progress: number;
       errorCode:
-        | "PROJECT_SYNC_PROJECT_NOT_FOUND"
-        | "PROJECT_SYNC_FORBIDDEN"
-        | "PROJECT_SYNC_ALREADY_RUNNING"
-        | "PROJECT_SYNC_REPO_NOT_CONFIGURED"
-        | "PROJECT_SYNC_JOB_NOT_FOUND"
-        | "PROJECT_SYNC_OAUTH_REAUTH_REQUIRED"
-        | "PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND"
-        | "PROJECT_SYNC_NETWORK_ERROR"
-        | "PROJECT_SYNC_TIMEOUT"
-        | "PROJECT_SYNC_STORAGE_ERROR"
-        | "PROJECT_SYNC_UNKNOWN_ERROR"
+        | 'PROJECT_SYNC_PROJECT_NOT_FOUND'
+        | 'PROJECT_SYNC_FORBIDDEN'
+        | 'PROJECT_SYNC_ALREADY_RUNNING'
+        | 'PROJECT_SYNC_REPO_NOT_CONFIGURED'
+        | 'PROJECT_SYNC_JOB_NOT_FOUND'
+        | 'PROJECT_SYNC_OAUTH_REAUTH_REQUIRED'
+        | 'PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND'
+        | 'PROJECT_SYNC_NETWORK_ERROR'
+        | 'PROJECT_SYNC_TIMEOUT'
+        | 'PROJECT_SYNC_STORAGE_ERROR'
+        | 'PROJECT_SYNC_UNKNOWN_ERROR'
         | null;
       errorMessage: string | null;
       syncedCommit: string | null;
@@ -490,24 +490,24 @@ export interface ProjectsSyncJobsDetailData {
     projectId: string;
     /** @format uuid */
     requestedBy: string;
-    status: "queued" | "syncing" | "done" | "failed";
+    status: 'queued' | 'syncing' | 'done' | 'failed';
     /**
      * @min 0
      * @max 100
      */
     progress: number;
     errorCode:
-      | "PROJECT_SYNC_PROJECT_NOT_FOUND"
-      | "PROJECT_SYNC_FORBIDDEN"
-      | "PROJECT_SYNC_ALREADY_RUNNING"
-      | "PROJECT_SYNC_REPO_NOT_CONFIGURED"
-      | "PROJECT_SYNC_JOB_NOT_FOUND"
-      | "PROJECT_SYNC_OAUTH_REAUTH_REQUIRED"
-      | "PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND"
-      | "PROJECT_SYNC_NETWORK_ERROR"
-      | "PROJECT_SYNC_TIMEOUT"
-      | "PROJECT_SYNC_STORAGE_ERROR"
-      | "PROJECT_SYNC_UNKNOWN_ERROR"
+      | 'PROJECT_SYNC_PROJECT_NOT_FOUND'
+      | 'PROJECT_SYNC_FORBIDDEN'
+      | 'PROJECT_SYNC_ALREADY_RUNNING'
+      | 'PROJECT_SYNC_REPO_NOT_CONFIGURED'
+      | 'PROJECT_SYNC_JOB_NOT_FOUND'
+      | 'PROJECT_SYNC_OAUTH_REAUTH_REQUIRED'
+      | 'PROJECT_SYNC_REPO_ACCESS_DENIED_OR_NOT_FOUND'
+      | 'PROJECT_SYNC_NETWORK_ERROR'
+      | 'PROJECT_SYNC_TIMEOUT'
+      | 'PROJECT_SYNC_STORAGE_ERROR'
+      | 'PROJECT_SYNC_UNKNOWN_ERROR'
       | null;
     errorMessage: string | null;
     syncedCommit: string | null;
@@ -525,7 +525,7 @@ export interface ProjectsAnalyzeCreateData {
   data: {
     /** @format uuid */
     projectId: string;
-    status: "building" | "ready" | "failed";
+    status: 'building' | 'ready' | 'failed';
   };
 }
 
@@ -537,7 +537,7 @@ export interface ProjectsAnalysisListData {
     /** @format uuid */
     projectId: string;
     version: number;
-    status: "building" | "ready" | "failed";
+    status: 'building' | 'ready' | 'failed';
     summary: {
       project_overview: string;
       architecture: string[];
@@ -568,7 +568,7 @@ export interface ChatsMeListData {
     /** @format uuid */
     created_by: string;
     name: string;
-    chat_type: "PERSONAL" | "TEAM";
+    chat_type: 'PERSONAL' | 'TEAM';
     /** @format date-time */
     created_at: string;
   }[];
@@ -577,7 +577,7 @@ export interface ChatsMeListData {
 export interface ChatsMeCreatePayload {
   /** @format uuid */
   project_id: string;
-  chat_type: "PERSONAL";
+  chat_type: 'PERSONAL';
   /**
    * @minLength 1
    * @maxLength 100
@@ -595,7 +595,7 @@ export interface ChatsMeCreateData {
     /** @format uuid */
     created_by: string;
     name: string;
-    chat_type: "PERSONAL" | "TEAM";
+    chat_type: 'PERSONAL' | 'TEAM';
     /** @format date-time */
     created_at: string;
   };
@@ -622,9 +622,9 @@ export interface ChatsMeMessagesListData {
     /** @format uuid */
     chat_id: string;
     user_id: string | null;
-    role: "USER" | "ASSISTANT" | "SYSTEM";
+    role: 'USER' | 'ASSISTANT' | 'SYSTEM';
     content: string;
-    status: "COMPLETE" | "STREAMING" | "FAILED";
+    status: 'COMPLETE' | 'STREAMING' | 'FAILED';
     /** @format date-time */
     created_at: string;
   }[];
@@ -633,7 +633,7 @@ export interface ChatsMeMessagesListData {
 export interface ChatsMePromptMessagesListData {
   ok: boolean;
   data: {
-    role: "USER" | "ASSISTANT" | "SYSTEM";
+    role: 'USER' | 'ASSISTANT' | 'SYSTEM';
     content: string;
   }[];
 }
