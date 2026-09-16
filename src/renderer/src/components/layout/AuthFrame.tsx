@@ -1,12 +1,25 @@
 import type { ReactNode } from 'react';
+import qodeMark from '../../public/QodeMark.svg';
 import { Logo } from '../ui/Logo';
+
+type BrandContent = {
+  title: string;
+  description: string;
+  features?: string[];
+};
 
 type Props = {
   title: string;
   description?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
-  logo?: ReactNode;
+  brand?: BrandContent;
+};
+
+const DEFAULT_BRAND: BrandContent = {
+  title: '코드가 궁금할 때,\n큐오드에 물어보세요.',
+  description: '기획자·디자이너·개발자가 같은 언어로\n프로젝트 코드를 이해하는 가장 빠른 길.',
+  features: ['근거가 있는 답변', '팀 프로젝트 동기화', '한국어 우선 · Electron 지원']
 };
 
 export const AuthFrame = ({
@@ -14,30 +27,61 @@ export const AuthFrame = ({
   description,
   children,
   footer,
-  logo = <Logo ariaLabel="Qode" className="h-[24px] w-[37px]" />
+  brand = DEFAULT_BRAND
 }: Props): React.JSX.Element => {
   return (
-    <div className="flex h-full items-center justify-center px-4 py-6">
-      <div className="w-full max-w-[460px] rounded-2xl border border-line bg-surface-muted px-6 py-7 shadow-none sm:px-8 sm:py-8">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center">{logo}</div>
-          <h1 className="mt-3 text-4xl font-extrabold tracking-[-0.02em] text-text-base sm:text-ui-42">
-            {title}
-          </h1>
-          {description ? (
-            <p className="mt-3 whitespace-pre-line text-base font-medium leading-[1.45] text-text-subtle sm:text-ui-22">
-              {description}
-            </p>
-          ) : null}
+    <div className="flex h-full min-h-full items-stretch bg-surface">
+      <aside className="hidden flex-1 flex-col justify-between bg-primary-soft px-14 py-16 lg:flex">
+        <div className="flex items-center gap-2">
+          <img src={qodeMark} alt="" aria-hidden="true" className="h-8 w-8" />
+          <Logo ariaLabel="Qode" className="h-[22px] w-[34px]" />
         </div>
 
-        <div className="my-6 border-t border-line-soft" />
-        {children}
+        <div className="space-y-4">
+          <h2 className="whitespace-pre-line text-ui-32 font-bold leading-[1.35] text-text-base">
+            {brand.title}
+          </h2>
+          <p className="whitespace-pre-line text-base font-medium leading-[1.6] text-text-subtle">
+            {brand.description}
+          </p>
+        </div>
 
-        {footer ? (
-          <div className="mt-6 text-center text-sm text-text-subtle sm:text-ui-20">{footer}</div>
-        ) : null}
-      </div>
+        {brand.features && brand.features.length > 0 ? (
+          <ul className="space-y-2.5">
+            {brand.features.map((feat) => (
+              <li key={feat} className="flex items-center gap-2.5 text-sm text-text-subtle">
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-1.5 w-1.5 rounded-full bg-primary"
+                />
+                {feat}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div />
+        )}
+      </aside>
+
+      <main className="flex flex-1 items-center justify-center bg-surface px-6 py-10 sm:px-8">
+        <div className="w-full max-w-[400px] space-y-6">
+          <div className="flex items-center gap-2 lg:hidden">
+            <img src={qodeMark} alt="" aria-hidden="true" className="h-8 w-8" />
+            <Logo ariaLabel="Qode" className="h-[22px] w-[34px]" />
+          </div>
+
+          <div className="space-y-1.5">
+            <h1 className="text-ui-24 font-bold text-text-base">{title}</h1>
+            {description ? (
+              <p className="whitespace-pre-line text-sm text-text-subtle">{description}</p>
+            ) : null}
+          </div>
+
+          {children}
+
+          {footer ? <div className="text-center text-sm text-text-subtle">{footer}</div> : null}
+        </div>
+      </main>
     </div>
   );
 };
