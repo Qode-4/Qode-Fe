@@ -102,7 +102,7 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
           onChange={(e) => setName(e.target.value)}
           onBlur={() => setTouched((t) => ({ ...t, name: true }))}
           autoComplete="name"
-          placeholder="정예지"
+          placeholder="홍길동"
           error={showNameError ? errors.name : undefined}
         />
 
