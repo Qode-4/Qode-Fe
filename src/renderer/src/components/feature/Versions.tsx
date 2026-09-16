@@ -7,7 +7,7 @@ function Versions(): React.JSX.Element {
   const healthLabel = isLoading ? 'loading' : isError ? 'error' : data?.ok ? 'ok' : 'unknown';
 
   return (
-    <ul className="space-y-1 text-xs text-zinc-600">
+    <ul className="space-y-1 text-xs text-text-subtle">
       <li>Electron v{versions?.electron ?? 'web'}</li>
       <li>Chromium v{versions?.chrome ?? 'web'}</li>
       <li>Node v{versions?.node ?? 'web'}</li>

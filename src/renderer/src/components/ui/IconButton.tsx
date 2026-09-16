@@ -36,8 +36,8 @@ export const IconButton = ({
       type={type}
       className={[
         'inline-flex items-center justify-center text-fill-icon transition-colors',
-        'hover:bg-zinc-100 active:bg-zinc-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+        'hover:bg-surface-muted active:bg-line',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-50',
         sizeClassMap[size],
         className ?? ''
