@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import qodeMark from '../../public/QodeMark.svg';
+import qodeMark from '../../public/qode_logo_small.png';
 import { Logo } from '../ui/Logo';
 
 type BrandContent = {
