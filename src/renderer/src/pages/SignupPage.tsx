@@ -44,20 +44,20 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
     <div className="flex h-full items-center justify-center bg-surface-muted px-4">
       <div className="flex w-full max-w-[520px] flex-col items-center gap-8">
         <div className="flex flex-col items-center gap-3 text-center">
-          <h1 className="whitespace-pre-line text-ui-32 font-medium leading-[1.4] text-text-base">
+          <h1 className="whitespace-pre-line text-ui-32 font-medium leading-[1.4] text-zinc-900">
             코드가 궁금할 때,
             {'\n'}
             큐오드에 물어보세요!
           </h1>
-          <p className="text-base font-medium leading-[1.6] text-text-subtle">
+          <p className="text-base font-medium leading-[1.6] text-zinc-700">
             Code를 기반으로 기획자, 디자이너, 개발자 모두 같은 언어로 이야기하세요.
           </p>
         </div>
 
-        <div className="w-full max-w-[360px] rounded-[20px] border border-line bg-surface p-6">
+        <div className="w-full max-w-[360px] rounded-[24px] border border-line bg-surface p-6 shadow-[2px_10px_32.9px_0_rgba(0,0,0,0.08)]">
           <div className="mb-6 text-center">
-            <h2 className="text-xl font-semibold text-text-base">회원가입</h2>
-            <p className="mt-1 text-sm text-text-soft">기본 정보를 입력해주세요.</p>
+            <h2 className="text-xl font-semibold text-zinc-900">회원가입</h2>
+            <p className="mt-1 text-sm text-zinc-500">기본 정보를 입력해주세요.</p>
           </div>
 
           <form
@@ -95,11 +95,10 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
                 autoComplete="name"
                 placeholder="이름"
                 className={[
-                  'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-text-soft focus:outline-none',
-                  showNameError
-                    ? 'border-danger text-danger'
-                    : 'border-control-line text-text-base focus:border-primary'
+                  'h-10 w-full rounded-xl border bg-surface px-3 text-base font-medium transition-colors',
+                  'placeholder:text-zinc-400',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
+                  showNameError ? 'border-danger-line text-danger' : 'border-zinc-300 text-zinc-900'
                 ].join(' ')}
                 aria-invalid={showNameError}
                 aria-describedby={showNameError ? 'signup-name-error' : undefined}
@@ -129,11 +128,12 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
                 inputMode="email"
                 placeholder="planner@demo.com"
                 className={[
-                  'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-text-soft focus:outline-none',
+                  'h-10 w-full rounded-xl border bg-surface px-3 text-base font-medium transition-colors',
+                  'placeholder:text-zinc-400',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
                   showEmailError
-                    ? 'border-danger text-danger'
-                    : 'border-control-line text-text-base focus:border-primary'
+                    ? 'border-danger-line text-danger'
+                    : 'border-zinc-300 text-zinc-900'
                 ].join(' ')}
                 aria-invalid={showEmailError}
                 aria-describedby={showEmailError ? 'signup-email-error' : undefined}
@@ -162,11 +162,12 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
                 autoComplete="new-password"
                 placeholder="비밀번호를 입력하세요."
                 className={[
-                  'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-text-soft focus:outline-none',
+                  'h-10 w-full rounded-xl border bg-surface px-3 text-base font-medium transition-colors',
+                  'placeholder:text-zinc-400',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
                   showPasswordError
-                    ? 'border-danger text-danger'
-                    : 'border-control-line text-text-base focus:border-primary'
+                    ? 'border-danger-line text-danger'
+                    : 'border-zinc-300 text-zinc-900'
                 ].join(' ')}
                 aria-invalid={showPasswordError}
                 aria-describedby={showPasswordError ? 'signup-password-error' : undefined}
@@ -184,7 +185,7 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
 
             <button
               type="submit"
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-3 text-base font-medium text-primary-foreground transition-colors hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-zinc-800 px-3 text-base font-medium text-white transition-colors hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!canSubmit}
               aria-busy={signup.isPending || undefined}
             >
@@ -201,7 +202,7 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
             ) : null}
           </form>
 
-          <p className="mt-5 text-center text-sm text-text-subtle">
+          <p className="mt-5 text-center text-sm text-zinc-600">
             이미 계정이 있나요? <Link to={buildPath('/login', { next })}>로그인</Link>
           </p>
         </div>

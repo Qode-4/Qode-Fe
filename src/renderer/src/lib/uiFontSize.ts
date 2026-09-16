@@ -3,9 +3,9 @@ export type UiFontSize = 'default' | 'large';
 export const UI_FONT_SIZE_STORAGE_KEY = 'qode.drawer.fontSize';
 
 export const getStoredUiFontSize = (): UiFontSize => {
-  if (typeof window === 'undefined') return 'default';
+  if (typeof window === 'undefined') return 'large';
   const stored = window.localStorage.getItem(UI_FONT_SIZE_STORAGE_KEY);
-  return stored === 'default' || stored === 'large' ? stored : 'default';
+  return stored === 'default' || stored === 'large' ? stored : 'large';
 };
 
 export const applyUiFontSize = (fontSize: UiFontSize): void => {

@@ -115,7 +115,7 @@ export const OverlayModal = ({
     >
       <section
         ref={dialogRef}
-        className={`w-full ${widthClassName} rounded-[20px] border border-control-line bg-surface p-6 shadow-none`}
+        className={`w-full ${widthClassName} rounded-xl border border-[#737983] bg-surface p-4 shadow-[0_18px_50px_rgba(15,23,42,0.2)]`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

@@ -18,13 +18,13 @@ type Props = {
 const toneClassMap: Record<ToastTone, string> = {
   danger: 'border-danger-line bg-danger-bg text-danger',
   success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  info: 'border-line bg-surface text-text-base'
+  info: 'border-zinc-200 bg-white text-zinc-800'
 };
 
 const closeButtonClassMap: Record<ToastTone, string> = {
   danger: 'text-danger/70 hover:text-danger',
   success: 'text-emerald-600/80 hover:text-emerald-700',
-  info: 'text-text-soft hover:text-text-subtle'
+  info: 'text-zinc-400 hover:text-zinc-600'
 };
 
 export const Toast = ({ toast, onDismiss }: Props): React.JSX.Element => {
@@ -41,7 +41,7 @@ export const Toast = ({ toast, onDismiss }: Props): React.JSX.Element => {
       role={toast.tone === 'danger' ? 'alert' : 'status'}
       aria-live={toast.tone === 'danger' ? 'assertive' : 'polite'}
       className={[
-        'pointer-events-auto flex w-[320px] items-start gap-2 rounded-xl border px-3.5 py-3 text-sm shadow-none transition-all duration-200',
+        'pointer-events-auto flex w-[320px] items-start gap-2 rounded-xl border px-3.5 py-3 text-sm shadow-lg transition-all duration-200',
         toneClassMap[toast.tone],
         visible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
       ].join(' ')}

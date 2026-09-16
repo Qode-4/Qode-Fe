@@ -108,7 +108,7 @@ export const ChatItemMenu = ({
               data-chat-item-menu
               role="menu"
               aria-label={ariaLabel}
-              className="fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none"
+              className="fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-lg"
               style={{ top: pos.top, left: pos.left }}
             >
               {actions.map((action) => (

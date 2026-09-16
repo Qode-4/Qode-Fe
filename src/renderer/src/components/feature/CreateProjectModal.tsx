@@ -169,7 +169,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
   const stepTone = (ready: boolean): string =>
     ready
       ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-      : 'border-line bg-surface-muted text-text-soft';
+      : 'border-zinc-300 bg-zinc-100 text-zinc-500';
 
   const closeAndReset = (): void => {
     setName('');
@@ -251,11 +251,14 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                 id="create-project-name"
                 className={[
                   'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                  nameError ? 'border-danger' : 'border-control-line focus:border-primary'
+                  nameError
+                    ? 'border-danger-line focus:border-danger'
+                    : 'border-[#737983] focus:border-primary'
                 ].join(' ')}
                 value={name}
                 maxLength={PROJECT_NAME_MAX}
                 onChange={(e) => setName(e.target.value)}
+                onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
                 placeholder="예) Qode-Fe"
                 autoFocus
               />
@@ -268,7 +271,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               <span className="mb-1 block text-xs font-medium text-text-soft">설명 (선택)</span>
               <input
                 id="create-project-description"
-                className="h-10 w-full rounded-md border border-control-line bg-surface px-3 text-base text-text-base outline-none focus:border-primary"
+                className="h-10 w-full rounded-md border border-[#737983] bg-surface px-3 text-base text-text-base outline-none focus:border-primary"
                 value={description}
                 maxLength={PROJECT_DESCRIPTION_MAX}
                 onChange={(e) => setDescription(e.target.value)}

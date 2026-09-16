@@ -146,7 +146,7 @@ export const AddGithubRepoModal = ({
   const stepTone = (ready: boolean): string =>
     ready
       ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-      : 'border-line bg-surface-muted text-text-soft';
+      : 'border-zinc-300 bg-zinc-100 text-zinc-500';
 
   const closeAndReset = (): void => {
     setOauthFlow(null);
@@ -341,13 +341,16 @@ export const AddGithubRepoModal = ({
               id="add-github-storage-title"
               className={[
                 'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                titleError ? 'border-danger' : 'border-control-line focus:border-primary'
+                titleError
+                  ? 'border-danger-line focus:border-danger'
+                  : 'border-[#737983] focus:border-primary'
               ].join(' ')}
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
                 setTitleManuallyEdited(true);
               }}
+              onBlur={() => setTouched((prev) => ({ ...prev, title: true }))}
               placeholder="예: 프론트 레포"
             />
             {titleError ? (
