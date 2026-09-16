@@ -37,17 +37,24 @@ export const ChatItemMenu = ({
   const openMenu = (): void => {
     const el = triggerRef.current;
     if (!el) return;
-    const rect = el.getBoundingClientRect();
+    const triggerRect = el.getBoundingClientRect();
+    // 트리거는 채팅 row 안의 작은 ... 버튼이라 세로 center 로 offset 되어 있다.
+    // 사용자 눈에는 "채팅 row 의 Y" 가 기준이므로 최근 조상 채팅 row(.group) 의 top 을 사용.
+    const rowEl = el.closest<HTMLElement>('.group') ?? el;
+    const rowRect = rowEl.getBoundingClientRect();
     const menuHeight = actions.length * ITEM_HEIGHT + MENU_PADDING_Y * 2;
     const viewportHeight = window.innerHeight;
-    const spaceBelow = viewportHeight - rect.bottom;
-    const top =
-      spaceBelow >= menuHeight + VIEWPORT_MARGIN ? rect.bottom + 4 : rect.top - menuHeight - 4;
-    const left = Math.min(
-      rect.right - MENU_WIDTH,
-      window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN
-    );
-    setPos({ top, left: Math.max(VIEWPORT_MARGIN, left) });
+    // Y: 채팅 row top 에 정렬. 하단 넘치면 뷰포트 안쪽으로 shift.
+    let top = rowRect.top;
+    if (top + menuHeight + VIEWPORT_MARGIN > viewportHeight) {
+      top = Math.max(VIEWPORT_MARGIN, viewportHeight - menuHeight - VIEWPORT_MARGIN);
+    }
+    // X: 트리거 오른쪽 바깥에 붙임. 우측 오버플로 시 좌측 폴백.
+    let left = triggerRect.right + 4;
+    if (left + MENU_WIDTH + VIEWPORT_MARGIN > window.innerWidth) {
+      left = Math.max(VIEWPORT_MARGIN, triggerRect.left - MENU_WIDTH - 4);
+    }
+    setPos({ top, left });
     setOpen(true);
   };
 
