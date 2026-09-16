@@ -17,20 +17,20 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
 
 const forcedStateClassMap: Record<MenuItemContrast, Record<MenuItemState, string>> = {
   low: {
-    default: 'bg-transparent text-text-base',
-    hover: 'bg-surface-muted text-text-base',
-    press: 'bg-line text-text-base'
+    default: 'bg-transparent text-zinc-800',
+    hover: 'bg-zinc-100 text-zinc-800',
+    press: 'bg-zinc-200 text-zinc-800'
   },
   high: {
-    default: 'bg-transparent text-text-base',
-    hover: 'bg-surface-muted text-text-base',
+    default: 'bg-transparent text-zinc-800',
+    hover: 'bg-zinc-100 text-zinc-800',
     press: 'bg-zinc-700 text-white'
   }
 };
 
 const interactiveStateClassMap: Record<MenuItemContrast, string> = {
-  low: 'hover:bg-surface-muted active:bg-line',
-  high: 'hover:bg-surface-muted active:bg-zinc-700 active:text-white'
+  low: 'hover:bg-zinc-100 active:bg-zinc-200',
+  high: 'hover:bg-zinc-100 active:bg-zinc-700 active:text-white'
 };
 
 export const MenuItem = ({
@@ -54,7 +54,7 @@ export const MenuItem = ({
       type={type}
       className={[
         'group inline-flex h-7 w-[188px] items-center gap-1 rounded-[8px] px-2 py-[2px] text-left transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-50',
         forcedStateClassMap[contrast][state],
         interactiveStateClassMap[contrast],

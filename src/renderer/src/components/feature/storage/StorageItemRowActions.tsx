@@ -38,7 +38,7 @@ export const StorageItemRowActions = ({ onEditClick, onDeleteClick }: Props): Re
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-8 z-10 min-w-[140px] rounded-md border border-line bg-surface py-1"
+          className="absolute right-0 top-8 z-10 min-w-[140px] rounded-md border border-line bg-surface py-1 shadow-md"
         >
           <button
             role="menuitem"

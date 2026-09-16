@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -35,12 +34,12 @@ const components: Components = {
   code: codeRenderer
 };
 
-export const MarkdownAnswer = memo(function MarkdownAnswer({ content }: Props): React.JSX.Element {
+export const MarkdownAnswer = ({ content }: Props): React.JSX.Element => {
   return (
-    <div className="markdown-answer text-base leading-[1.6] text-text-base">
+    <div className="markdown-answer text-ui-12 leading-[1.6] text-zinc-800">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {content}
       </ReactMarkdown>
     </div>
   );
-});
+};

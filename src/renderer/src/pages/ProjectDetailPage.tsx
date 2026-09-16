@@ -30,6 +30,7 @@ import { MarkdownAnswer } from '../components/ui/MarkdownAnswer';
 import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
+import { formatRelativeTime } from '../lib/relativeTime';
 import { mapResponseError } from '../lib/response-errors';
 import { mapSyncError } from '../lib/sync-errors';
 
@@ -48,7 +49,6 @@ type PendingUserMessage = {
   chatId: string;
   content: string;
   failed: boolean;
-  knownMessageIds: Set<string>;
 };
 
 const getMessageCreatedAt = (message: unknown): string =>
@@ -75,110 +75,6 @@ const extractSources = (message: unknown): SourceItem[] => {
 
   if (target.sources && target.sources.length > 0) return target.sources;
   return target.originalMessage?.sources ?? [];
-};
-
-// AI 가 본문에 남긴 참조 메타데이터를 뽑아 SourceItem 으로 변환하고 원문에서는 제거한다.
-// 서버가 sources 배열을 안 채워주는 흐름에서도 카드가 뜨도록 한 프론트엔드 폴백이며,
-// 답변 본문에 같은 정보가 여러 번 반복되는 것을 방지한다.
-//
-// 지원 패턴 (모두 뽑아서 소스 카드로 옮기고 본문에서는 제거):
-//   1) 괄호 인라인:       "(참고: `src/x.ts` 1-17)" · "(참조: src/x.ts 1-17)"
-//                         "(apis/services/x.ts L101-116)" (참고 프리픽스 없어도)
-//                         "(components/y.tsx L62-93 주석 참고)"
-//   2) 파일 + 괄호 범위:  "components/youtube-player.tsx (L62-93)" · "utils/x.ts (L1-33, L28-58)"
-//   3) 파일 + 공백 범위:  "apis/services/x.ts L101-116"
-//   4) 메타 bullet 쌍:    "- **파일 경로**: `src/x.ts`\n- **라인 범위**: 1-17"
-//   5) 소스 리스트 헤더 + 없음 bullet: "관련 파일: \n- 없음"
-
-const PATH_TOKEN = '[a-zA-Z0-9_./-]+\\.[a-zA-Z0-9]{1,6}';
-
-// 1) 괄호 인라인. "참고:" 프리픽스는 선택. 숫자 뒤 잔여 텍스트 허용.
-const INLINE_SOURCE_REGEX = new RegExp(
-  `\\s*\\(\\s*(?:참[고조]\\s*:\\s*)?\`?(${PATH_TOKEN})\`?[\\s,]+L?(\\d+)\\s*[-–~]\\s*(\\d+)[^)]*\\)`,
-  'g'
-);
-
-// 2) 파일 + 괄호 범위. "components/y.tsx (L62-93)" 형태.
-//    괄호 안에 여러 range 가 있어도 첫 range 만 대표로 뽑는다.
-const PATH_PAREN_RANGE_REGEX = new RegExp(
-  `\\s*\`?(${PATH_TOKEN})\`?\\s*\\(L?(\\d+)\\s*[-–~]\\s*(\\d+)[^)]*\\)`,
-  'g'
-);
-
-// 3) 파일 + 공백 후 L range. "apis/services/x.ts L101-116"
-const PATH_LINE_INLINE_REGEX = new RegExp(
-  `\\s*\`?(${PATH_TOKEN})\`?\\s+L(\\d+)\\s*[-–~]\\s*(\\d+)`,
-  'g'
-);
-
-// 4) 메타 bullet 쌍
-const META_FILE_LINE_PAIR_REGEX =
-  /^[\t ]*[-*•][\t ]*\**\s*(?:파일\s*(?:경로|이름|위치)|파일)\s*\**\s*:\s*`?([^\s`\n]+)`?[^\n]*\n[\t ]*[-*•][\t ]*\**\s*(?:라인\s*(?:범위|번호)?|줄\s*번호|위치|Line(?:s)?)\s*\**\s*:\s*`?(\d+)\s*[-–~]\s*(\d+)`?[^\n]*(?:\n|$)/gim;
-
-// 5-a) 소스 리스트 섹션 헤더: "관련 파일:", "참고 파일 및 라인:", "관련 파일 및 라인:" 등
-const SOURCE_LIST_HEADER_REGEX =
-  /^[ \t]*(?:관련|참고|참조|Reference|References)[ \t]*(?:파일|코드|자료|위치|Source(?:s)?)(?:[ \t]*(?:및|,|and)[ \t]*(?:라인|줄|Line(?:s)?))?[ \t]*:[ \t]*\n?/gim;
-
-// 5-b) "없음" 계열 bullet — 헤더가 지워진 뒤 남는 안내를 정리
-const NO_SOURCE_BULLET_REGEX =
-  /^[\t ]*[-*•][\t ]*(?:없음|해당\s*없음|N\/?A|(?:직접적인?\s*)?언급\s*없음|(?:전체\s*)?제공\s*(?:코드|내용)에서[^\n]*(?:없음|N\/?A))[^\n]*\n?/gim;
-
-const extractInlineSources = (content: string): { content: string; sources: SourceItem[] } => {
-  const sources: SourceItem[] = [];
-  const push = (filePath: string, start: string, end: string): string => {
-    sources.push({
-      filePath: String(filePath),
-      startLine: Number(start),
-      endLine: Number(end),
-      snippet: ''
-    });
-    return '';
-  };
-
-  let next = content;
-
-  // 순서 중요: 구조적으로 큰 패턴 (메타 bullet 쌍, 괄호 파일, 괄호 인라인) 먼저.
-  next = next.replace(META_FILE_LINE_PAIR_REGEX, (_m, f: string, s: string, e: string) =>
-    push(f, s, e)
-  );
-  next = next.replace(INLINE_SOURCE_REGEX, (_m, f: string, s: string, e: string) => push(f, s, e));
-  next = next.replace(PATH_PAREN_RANGE_REGEX, (_m, f: string, s: string, e: string) =>
-    push(f, s, e)
-  );
-  next = next.replace(PATH_LINE_INLINE_REGEX, (_m, f: string, s: string, e: string) =>
-    push(f, s, e)
-  );
-
-  // 소스 리스트 섹션 헤더와 "없음" 계열 bullet 정리
-  next = next.replace(SOURCE_LIST_HEADER_REGEX, '');
-  next = next.replace(NO_SOURCE_BULLET_REGEX, '');
-
-  // 소스 references 만 있던 bullet 은 마커(-, *, •) 만 남는다. 고아 마커 라인은 정리한다.
-  next = next.replace(/^[\t ]*[-*•][\t ]*(?=\n|$)/gm, '');
-
-  // 연속된 공백 라인은 하나로, 라인 끝 공백도 정리
-  const cleaned = next
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-
-  // 파싱 후 본문이 너무 짧으면 원문을 유지해 빈 카드 방지
-  if (sources.length > 0 && cleaned.length < 10) {
-    return { content: content.trim(), sources };
-  }
-  return { content: cleaned, sources };
-};
-
-const mergeSources = (a: SourceItem[], b: SourceItem[]): SourceItem[] => {
-  const seen = new Set<string>();
-  const result: SourceItem[] = [];
-  for (const src of [...a, ...b]) {
-    const key = `${src.filePath}:${src.startLine ?? ''}-${src.endLine ?? ''}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(src);
-  }
-  return result;
 };
 
 const getMessageId = (message: unknown): string => {
@@ -228,20 +124,18 @@ const MessageSources = ({
   const headerId = `sources-header-${messageId}`;
   const listId = `sources-list-${messageId}`;
   return (
-    <div className="mt-3 rounded-[8px] border border-line bg-surface">
+    <div className="mt-3 rounded-[12px] border border-zinc-200 bg-white">
       <button
         type="button"
         id={headerId}
         aria-controls={listId}
         aria-expanded={expanded}
         onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full items-center justify-between px-3 py-1.5 text-ui-12 text-text-soft transition-colors hover:bg-surface-muted"
+        className="flex w-full items-center justify-between border-b border-zinc-100 px-3 py-1.5 text-ui-10 text-zinc-500 transition-colors hover:bg-zinc-50"
       >
-        <span className="inline-flex items-center gap-2">
-          <span aria-hidden className="text-ui-12 leading-none text-text-soft">
-            •
-          </span>
-          <span>참조한 소스 {sources.length}개</span>
+        <span>참조한 소스 {sources.length}개</span>
+        <span aria-hidden className="ml-2 text-zinc-500">
+          {expanded ? '▼' : '▶'}
         </span>
       </button>
       {expanded ? (
@@ -249,16 +143,16 @@ const MessageSources = ({
           id={listId}
           role="region"
           aria-labelledby={headerId}
-          className="border-t border-line-soft"
+          className="divide-y divide-zinc-100"
         >
           {sources.map((source) => (
             <div
               key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-              className="flex items-center justify-between gap-3 px-3 py-1 text-ui-12 text-text-soft"
+              className="flex items-center justify-between px-3 py-1.5 text-ui-12"
             >
-              <span className="min-w-0 flex-1 truncate">{source.filePath}</span>
-              <span className="shrink-0">
-                ({source.startLine ?? '-'}-{source.endLine ?? '-'})
+              <span className="min-w-0 flex-1 truncate text-zinc-800">{source.filePath}</span>
+              <span className="ml-3 text-ui-10 text-zinc-500">
+                {source.startLine ?? '-'}-{source.endLine ?? '-'}
               </span>
             </div>
           ))}
@@ -270,7 +164,7 @@ const MessageSources = ({
 
 const Avatar = ({ name }: { name: string }): React.JSX.Element => {
   return (
-    <div className="inline-flex size-6 items-center justify-center rounded-full border border-line bg-surface-muted text-ui-12 font-medium text-text-soft">
+    <div className="inline-flex size-6 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-ui-12 font-medium text-zinc-500">
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -294,11 +188,11 @@ const MessageActionButton = ({
   const button = (
     <button
       type="button"
-      className="flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-text-soft transition-colors hover:bg-surface-muted hover:text-text-base disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
       disabled={disabled}
       onClick={onClick}
     >
-      <Icon name={iconName} size="sm" decorative className="text-text-soft" />
+      <Icon name={iconName} size="sm" decorative className="text-zinc-500" />
       <span>{label}</span>
     </button>
   );
@@ -336,6 +230,7 @@ export const ProjectDetailPage = ({
   const syncErrorCode = syncStatus.data?.data.latestJob?.errorCode ?? null;
   const isAnalyzing = syncPhase === 'queued' || syncPhase === 'syncing';
   const isSyncFailed = syncPhase === 'failed';
+  const lastSyncedAt = project.data?.data.lastSyncedAt ?? null;
   // 인덱싱이 끝나기 전에는 검색할 코드가 없어 답이 근거 없이 나온다. 서버도 같은 이유로
   // 409 SYNC_IN_PROGRESS 로 막는다(ADR-005). 화면은 그 앞에서 아예 못 보내게 한다.
   const SYNC_IN_PROGRESS_HINT = '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.';
@@ -351,9 +246,6 @@ export const ProjectDetailPage = ({
     });
   };
   const [draft, setDraft] = useState('');
-  const [streamChatId, setStreamChatId] = useState('');
-  const [streamMessageId, setStreamMessageId] = useState('');
-  const followBottomRef = useRef(true);
   const [streamStatus, setStreamStatus] = useState('');
   const [streamContent, setStreamContent] = useState('');
   const [streamSources, setStreamSources] = useState<SourceItem[]>([]);
@@ -364,6 +256,7 @@ export const ProjectDetailPage = ({
   const [headerRenameDraft, setHeaderRenameDraft] = useState('');
   const [editingHeaderChatId, setEditingHeaderChatId] = useState<string | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
+  const messagesBottomRef = useRef<HTMLDivElement | null>(null);
 
   const allChats = useMemo(() => chats.data?.data ?? [], [chats.data?.data]);
   const activeChat = useMemo(
@@ -377,7 +270,7 @@ export const ProjectDetailPage = ({
   const messages = useGetChatMessages({
     chatId: activeChatId,
     personal: isPersonalChat,
-    enabled: Boolean(activeChat)
+    enabled: Boolean(activeChatId)
   });
 
   const postPersonalMessage = usePostPersonalChatMessageSSE({ projectId });
@@ -406,33 +299,14 @@ export const ProjectDetailPage = ({
   const teamReadOnlyReason = TEAM_CHAT_READONLY_TOOLTIP;
 
   const chatName = activeChat?.name;
+  const myAvatarName = meName || '나';
   const messageItems = useMemo(() => {
     const payload = messages.data;
     return payload?.data ?? [];
   }, [messages.data]);
-  const isCurrentStream = streamChatId === activeChatId;
-  const hasSavedAnswer =
-    Boolean(streamMessageId) &&
-    messageItems.some(
-      (message) => getMessageId(message) === streamMessageId && getMessageContent(message).trim()
-    );
-  const showStream =
-    isCurrentStream &&
-    (Boolean(streamError) ||
-      postPersonalMessage.isPending ||
-      (Boolean(streamContent) && !hasSavedAnswer));
-
   const displayMessageItems = useMemo(() => {
     if (!pendingUserMessage) return messageItems;
     if (pendingUserMessage.chatId !== activeChatId) return messageItems;
-
-    const hasSavedUser = messageItems.some(
-      (message) =>
-        !pendingUserMessage.knownMessageIds.has(getMessageId(message)) &&
-        isUserMessageRole(getMessageRole(message)) &&
-        getMessageContent(message) === pendingUserMessage.content
-    );
-    if (hasSavedUser) return messageItems;
 
     return [
       ...messageItems,
@@ -445,7 +319,7 @@ export const ProjectDetailPage = ({
         __localFailed: pendingUserMessage.failed
       }
     ];
-  }, [activeChatId, meId, meName, messageItems, pendingUserMessage]);
+  }, [activeChatId, meId, messageItems, pendingUserMessage]);
 
   const copyText = async (value: string): Promise<void> => {
     try {
@@ -499,30 +373,35 @@ export const ProjectDetailPage = ({
     }
   }, [socketSendError, toast]);
 
-  useEffect(() => {
-    followBottomRef.current = true;
-  }, [activeChatId]);
+  const scrollToBottom = (behavior: ScrollBehavior = 'auto'): void => {
+    if (messagesBottomRef.current) {
+      messagesBottomRef.current.scrollIntoView({ block: 'end', behavior });
+      return;
+    }
+
+    if (!messagesViewportRef.current) return;
+    messagesViewportRef.current.scrollTo({
+      top: messagesViewportRef.current.scrollHeight,
+      behavior
+    });
+  };
 
   useEffect(() => {
-    if (!activeChatId || !followBottomRef.current) return;
+    if (!activeChatId) return;
     const frameId = window.requestAnimationFrame(() => {
-      const viewport = messagesViewportRef.current;
-      if (viewport && followBottomRef.current) viewport.scrollTop = viewport.scrollHeight;
+      scrollToBottom('auto');
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, [activeChatId, displayMessageItems, streamContent, streamStatus, streamSources, showStream]);
+  }, [activeChatId, displayMessageItems.length, streamContent, streamStatus]);
 
   const sendMessage = async (overrideContent?: string): Promise<void> => {
     const isRetry = overrideContent !== undefined;
     if (!isRetry && !canSend) return;
-    if (isSending || isAnalyzing || isTeamChatReadOnly) return;
+    if (isSending) return;
     const content = (overrideContent ?? draft).trim();
     if (!content) return;
-    // 입력창은 전송 즉시 비운다. 실패했을 때는 pendingUserMessage.content 가 남아 있어
-    // "재시도" 버튼으로 재전송 가능. 재시도(override) 는 draft 를 건드리지 않는다.
-    if (!isRetry) {
-      setDraft('');
-    }
+    // draft 는 전송 트리거에서 지우지 않는다 — 실패 시 사용자가 텍스트를 잃지 않도록
+    // 성공(onDone) 시점에 지운다. 재시도는 override 로 들어와 draft 를 건드리지 않는다.
 
     const wasAutoCreate = !activeChatId;
     let targetChatId = activeChatId;
@@ -533,7 +412,6 @@ export const ProjectDetailPage = ({
         const created = await createChat.mutateAsync({ type: 'personal', name: tempName });
         const newId = (created as { data?: { id?: string } })?.data?.id;
         if (!newId) {
-          setDraft((previous) => previous || content);
           toast.error({
             title: '채팅 생성 실패',
             description: '채팅을 만들지 못했어요. 잠시 후 다시 시도해주세요.'
@@ -543,7 +421,6 @@ export const ProjectDetailPage = ({
         targetChatId = newId;
         onSelectChat(newId);
       } catch (error) {
-        setDraft((previous) => previous || content);
         toast.error(friendlyErrorMessage(error, 'chat.create'));
         return;
       }
@@ -552,20 +429,15 @@ export const ProjectDetailPage = ({
     // 자동 생성이었다면 개인 채팅이 확정, 아니면 기존 활성 채팅 타입을 따름
     const isPersonalTarget = wasAutoCreate || isPersonalChat;
 
-    const now = Date.now();
     const pendingMessage: PendingUserMessage = {
-      clientId: `pending-user-${now}`,
+      clientId: `pending-user-${Date.now()}`,
       chatId: targetChatId,
       content,
-      failed: false,
-      knownMessageIds: new Set(messageItems.map(getMessageId))
+      failed: false
     };
-    followBottomRef.current = true;
     setPendingUserMessage(pendingMessage);
 
     if (isPersonalTarget) {
-      setStreamChatId(targetChatId);
-      setStreamMessageId('');
       setStreamStatus('요청 중...');
       setStreamContent('');
       setStreamSources([]);
@@ -578,9 +450,6 @@ export const ProjectDetailPage = ({
           chatId: targetChatId,
           content,
           callbacks: {
-            onStart: (payload) => {
-              if (payload.assistantMessageId) setStreamMessageId(payload.assistantMessageId);
-            },
             onStatus: (payload) => {
               setStreamStatus(payload.message ?? payload.status ?? '진행 중...');
             },
@@ -604,10 +473,20 @@ export const ProjectDetailPage = ({
               );
               void queryClient.invalidateQueries({ queryKey: chatQueryKey });
             },
-            onDone: (payload) => {
-              const messageId = payload.assistantMessageId ?? payload.messageId;
-              if (messageId) setStreamMessageId(messageId);
+            onDone: () => {
               setStreamStatus('완료');
+              // 성공적으로 응답이 끝났을 때만 draft 를 비운다.
+              // 사용자가 스트리밍 중 다음 질문을 타이핑 중이면 덮어쓰지 않기 위해 매치 조건.
+              setDraft((prev) => (prev === content ? '' : prev));
+              // 서버 invalidate 결과가 자리 잡을 시간을 두고 스트림 블록 정리.
+              window.setTimeout(() => {
+                setStreamStatus('');
+                setStreamContent('');
+                setStreamSources([]);
+                setPendingUserMessage((prev) =>
+                  prev?.clientId === pendingMessage.clientId ? null : prev
+                );
+              }, 500);
             },
             onError: (message, code) => {
               // SSE error 이벤트 payload — 서버가 준 코드/문자열 그대로 저장.
@@ -627,7 +506,7 @@ export const ProjectDetailPage = ({
         {
           onError: (error) => {
             // 스트림을 열지도 못한 실패(네트워크·HTTP 5xx 등). Axios 에러 객체 그대로 저장.
-            setStreamError((previous) => previous ?? error);
+            setStreamError(error);
             setPendingUserMessage((prev) =>
               prev?.clientId === pendingMessage.clientId ? { ...prev, failed: true } : prev
             );
@@ -643,7 +522,7 @@ export const ProjectDetailPage = ({
   };
 
   const retryLastFailedMessage = (): void => {
-    const failedContent = isCurrentStream && streamError ? pendingUserMessage?.content : null;
+    const failedContent = pendingUserMessage?.failed ? pendingUserMessage.content : null;
     if (!failedContent) return;
     // 실패 표식과 에러 UI 를 먼저 정리한 뒤 같은 content 로 재전송.
     setStreamError(null);
@@ -668,7 +547,7 @@ export const ProjectDetailPage = ({
             type="button"
             onClick={() => void project.refetch()}
             disabled={project.isFetching}
-            className="rounded-md border border-danger-line bg-surface px-3 py-1 text-ui-12 font-medium text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md border border-danger-line bg-white px-3 py-1 text-ui-12 font-medium text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-60"
           >
             {project.isFetching ? '다시 시도 중...' : '다시 시도'}
           </button>
@@ -682,23 +561,23 @@ export const ProjectDetailPage = ({
 
   if (isInitialProjectLoading) {
     return (
-      <section className="flex h-full min-h-0 flex-col items-center justify-center bg-surface">
+      <section className="flex h-full min-h-0 flex-col items-center justify-center rounded-[16px] border border-zinc-200 bg-white">
         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
           <div
             aria-hidden="true"
-            className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-primary"
+            className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-primary"
           />
-          <p className="text-ui-12 font-medium text-text-soft">프로젝트를 불러오는 중...</p>
+          <p className="text-ui-12 font-medium text-zinc-500">프로젝트를 불러오는 중...</p>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col bg-surface">
+    <section className="relative flex h-full min-h-0 flex-col rounded-[16px] border border-zinc-200 bg-white">
       {isBackgroundProjectFetching ? (
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 animate-pulse bg-primary/60"
+          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 animate-pulse rounded-t-[16px] bg-primary/60"
           role="status"
           aria-live="polite"
           aria-label="프로젝트 정보 갱신 중"
@@ -734,6 +613,12 @@ export const ProjectDetailPage = ({
         </div>
       ) : null}
 
+      {!isAnalyzing && !isSyncFailed && lastSyncedAt ? (
+        <div className="px-4 pt-3 text-ui-12 text-zinc-500" aria-live="polite">
+          마지막 동기화: {formatRelativeTime(lastSyncedAt)}
+        </div>
+      ) : null}
+
       <div className="px-4" role="alert" aria-live="assertive">
         {chats.isError ? (
           <div className="mb-2">
@@ -754,22 +639,22 @@ export const ProjectDetailPage = ({
         <div
           role="status"
           aria-live="polite"
-          className="mx-4 mb-2 flex items-center gap-2 rounded-[10px] border border-line bg-surface-muted px-3 py-2 text-ui-12 text-text-subtle"
+          className="mx-4 mb-2 flex items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-50 px-3 py-2 text-ui-12 text-zinc-700"
         >
           <span
             aria-hidden="true"
-            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-text-soft border-t-transparent"
+            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent"
           />
           <div className="min-w-0">
             <p className="font-medium">연결이 끊어졌습니다</p>
-            <p className="text-ui-10 text-text-soft">재연결 중...</p>
+            <p className="text-ui-10 text-zinc-500">재연결 중...</p>
           </div>
         </div>
       ) : null}
 
       {activeChat && isPersonalChat ? (
-        <div className="flex justify-center bg-surface px-6 py-3">
-          <div className="w-full max-w-[48rem]">
+        <div className="border-b border-zinc-100 px-4 py-2 flex justify-center">
+          <div className="max-w-145.5 w-full">
             {isEditingHeaderTitle ? (
               <input
                 autoFocus
@@ -789,14 +674,14 @@ export const ProjectDetailPage = ({
                 onBlur={() => {
                   void commitHeaderRename(headerRenameDraft);
                 }}
-                className="w-full rounded-md border border-control-line bg-surface px-2 py-1 text-ui-20 font-semibold text-text-base outline-none focus:border-primary"
+                className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1 text-ui-14 font-medium text-zinc-900 outline-none focus:border-primary"
                 aria-label={`${activeChat.name} 이름 바꾸기`}
               />
             ) : (
               <button
                 type="button"
                 onClick={beginHeaderRename}
-                className="w-full truncate rounded-md px-2 py-1 text-left text-ui-20 font-semibold text-text-base transition-colors hover:bg-surface-muted"
+                className="w-full truncate rounded-md px-2 py-1 text-left text-ui-14 font-medium text-zinc-900 transition-colors hover:bg-zinc-100"
                 title="클릭하여 채팅 이름 바꾸기"
                 aria-label={`${activeChat.name} — 이름 바꾸기`}
               >
@@ -807,37 +692,28 @@ export const ProjectDetailPage = ({
         </div>
       ) : null}
 
-      <div className="relative min-h-0 flex-1 pt-4">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-gradient-to-b from-surface to-transparent"
-          aria-hidden="true"
-        />
+      <div className="min-h-0 flex-1 pt-[12px]">
         <div
           ref={messagesViewportRef}
-          onScroll={(event) => {
-            const viewport = event.currentTarget;
-            followBottomRef.current =
-              viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 80;
-          }}
-          className="flex h-full justify-center overflow-y-auto px-6 pb-4"
+          className="h-full overflow-y-auto px-3 pb-3 flex justify-center"
         >
           {!activeChatId ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-              <p className="text-ui-12 font-medium text-text-soft">현재 프로젝트</p>
-              <h2 className="text-ui-20 font-semibold text-text-base">
+              <p className="text-ui-12 font-medium text-zinc-400">현재 프로젝트</p>
+              <h2 className="text-2xl font-semibold text-zinc-800">
                 {project.data?.data.name ?? '프로젝트'}
               </h2>
-              <p className="text-ui-14 text-text-soft">메시지를 입력하면 새 대화가 시작돼요.</p>
+              <p className="text-ui-14 text-zinc-500">메시지를 입력하면 새 대화가 시작돼요.</p>
             </div>
           ) : (
-            <div className="flex min-h-full w-full max-w-[48rem] flex-col gap-6">
+            <div className="flex min-h-full flex-col gap-6 max-w-145.5 w-full">
               {messages.isLoading ? (
-                <p className="text-ui-12 font-medium text-text-soft">메시지를 불러오는 중...</p>
+                <p className="text-ui-12 font-medium text-zinc-500">메시지를 불러오는 중...</p>
               ) : null}
 
               {messages.isError ? (
                 <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
-                  <p className="text-ui-12 font-medium text-text-subtle">
+                  <p className="text-ui-12 font-medium text-zinc-700">
                     이전 대화를 불러올 수 없습니다.
                   </p>
                   <button
@@ -845,7 +721,7 @@ export const ProjectDetailPage = ({
                     onClick={() => {
                       void messages.refetch();
                     }}
-                    className="text-ui-12 font-medium text-accent-strong hover:underline"
+                    className="text-ui-12 font-medium text-primary hover:underline"
                   >
                     다시 시도
                   </button>
@@ -873,13 +749,13 @@ export const ProjectDetailPage = ({
                       <div key={messageId} className="flex items-end justify-end gap-2">
                         <div className="flex flex-col items-end gap-0.5 w-full">
                           {isLocalFailed ? (
-                            <p className="text-ui-10 font-medium text-danger">전송 실패</p>
+                            <p className="text-ui-10 font-medium text-red-500">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-ui-16 font-medium leading-[1.6] text-text-base">
+                          <div className="max-w-[70%] rounded-xl bg-zinc-700 px-3 py-2.5 text-ui-12 font-medium text-white">
                             {messageContent}
                           </div>
                           {timeLabel ? (
-                            <p className="text-ui-10 text-text-soft">{timeLabel}</p>
+                            <p className="text-ui-10 text-zinc-400">{timeLabel}</p>
                           ) : null}
                         </div>
                       </div>
@@ -890,13 +766,11 @@ export const ProjectDetailPage = ({
                     <div key={messageId} className="flex items-end gap-2">
                       <Avatar name={senderName} />
                       <div className="flex flex-col gap-0.5 w-full">
-                        <p className="text-ui-10 font-medium text-text-soft">{senderName}</p>
-                        <div className="w-fit max-w-[70%] rounded-xl border border-line bg-surface px-3 py-2.5 text-ui-16 leading-[1.6] text-text-base">
+                        <p className="text-ui-10 font-medium text-zinc-500">{senderName}</p>
+                        <div className="max-w-[70%] w-fit rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-ui-12 text-zinc-800">
                           {messageContent}
                         </div>
-                        {timeLabel ? (
-                          <p className="text-ui-10 text-text-soft">{timeLabel}</p>
-                        ) : null}
+                        {timeLabel ? <p className="text-ui-10 text-zinc-400">{timeLabel}</p> : null}
                       </div>
                     </div>
                   );
@@ -905,60 +779,28 @@ export const ProjectDetailPage = ({
                 // ── 개인 채팅 렌더링 ────────────────────────────────────────────
                 if (isUserMessageRole(messageRole)) {
                   return (
-                    <div key={messageId} className="flex items-end justify-end">
-                      <div className="flex max-w-[70%] flex-col items-end">
-                        <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-ui-16 font-medium leading-[1.6] text-text-base">
+                    <div key={messageId} className="flex items-end justify-end gap-3">
+                      <div className="flex flex-col items-end">
+                        <div className="rounded-[12px] border border-zinc-200 bg-white px-3 py-3 text-ui-12 font-medium text-zinc-800">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (
-                          <p className="mt-1 text-ui-10 font-medium text-danger">전송 실패</p>
+                          <p className="mt-1 text-ui-10 font-medium text-red-500">전송 실패</p>
                         ) : null}
                       </div>
+                      <Avatar name={myAvatarName} />
                     </div>
                   );
                 }
 
-                const apiSources = extractSources(message);
-                const { content: cleanContent, sources: inlineSources } =
-                  extractInlineSources(messageContent);
-                const parsedSources = mergeSources(apiSources, inlineSources);
-                // 가장 최근 assistant 메시지에만 스트림 소스를 덧붙여 서버 미저장 케이스 커버.
-                if (showStream && messageId === streamMessageId) return null;
-                const isLastAssistant = isCurrentStream && messageId === streamMessageId;
-                const mergedSources = isLastAssistant
-                  ? mergeSources(parsedSources, streamSources)
-                  : parsedSources;
-
-                const hasVisibleBody = cleanContent.trim().length > 0;
-                const hasSources = mergedSources.length > 0;
-
-                // 서버가 assistant 자리만 만들고 content·sources 모두 비어있는 경우엔 카드 자체를
-                // 렌더하지 않는다. 이 케이스에서 fallback 카드를 그리면 아래 스트리밍 article 과
-                // 화면에 나란히 뜨면서 사용자가 "답변이 두 개" 로 인식하게 된다.
-                if (!hasVisibleBody && !hasSources) {
-                  return null;
-                }
+                const sources = extractSources(message);
 
                 return (
-                  <article key={messageId} className="rounded-[12px] bg-surface p-3">
-                    <div className="mb-2 flex items-center gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
-                      >
-                        <img
-                          src="/favicon.ico"
-                          alt=""
-                          aria-hidden="true"
-                          className="size-4 object-contain"
-                        />
-                      </span>
-                      <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
-                    </div>
-                    {hasVisibleBody ? <MarkdownAnswer content={cleanContent} /> : null}
+                  <article key={messageId} className="rounded-[12px] bg-white p-3">
+                    <MarkdownAnswer content={messageContent} />
 
-                    {hasSources ? (
-                      <MessageSources messageId={messageId} sources={mergedSources} />
+                    {sources.length > 0 ? (
+                      <MessageSources messageId={messageId} sources={sources} />
                     ) : null}
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -1002,38 +844,14 @@ export const ProjectDetailPage = ({
                 );
               })}
 
-              {showStream && activeChatId && isPersonalChat ? (
-                <article className="rounded-[12px] bg-surface p-3" aria-live="polite">
-                  <div className="mb-2 flex items-center gap-2">
-                    <span
-                      aria-hidden="true"
-                      className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
-                    >
-                      <img
-                        src="/favicon.ico"
-                        alt=""
-                        aria-hidden="true"
-                        className="size-4 object-contain"
-                      />
-                    </span>
-                    <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
-                    <span className="text-ui-10 text-text-soft">
-                      · {streamStatus || '스트리밍 중'}
-                    </span>
-                  </div>
-                  {(() => {
-                    if (!streamContent) return null;
-                    const parsed = extractInlineSources(streamContent);
-                    const merged = mergeSources(streamSources, parsed.sources);
-                    return (
-                      <>
-                        <MarkdownAnswer content={parsed.content} />
-                        {merged.length > 0 ? (
-                          <MessageSources messageId="__stream__" sources={merged} />
-                        ) : null}
-                      </>
-                    );
-                  })()}
+              {(isSending || streamContent || streamError) && activeChatId && isPersonalChat ? (
+                <article
+                  className="rounded-[12px] border border-zinc-200 bg-white p-3"
+                  aria-live="polite"
+                >
+                  <p className="mb-1 text-ui-10 font-medium text-zinc-500">
+                    Qode AI · {streamStatus || '스트리밍 중'}
+                  </p>
                   {streamError ? (
                     <div className="flex flex-col gap-2">
                       <p className="text-ui-12 leading-[1.6] text-danger">
@@ -1044,32 +862,35 @@ export const ProjectDetailPage = ({
                           type="button"
                           size="sm"
                           variant="secondary"
-                          disabled={!pendingUserMessage || isSending || isAnalyzing}
+                          disabled={!pendingUserMessage?.failed || isSending}
                           onClick={retryLastFailedMessage}
                         >
                           재시도
                         </Button>
                       </div>
                     </div>
-                  ) : streamContent ? null : (
-                    <p className="text-ui-12 leading-[1.6] text-text-soft">
+                  ) : streamContent ? (
+                    <MarkdownAnswer content={streamContent} />
+                  ) : (
+                    <p className="text-ui-12 leading-[1.6] text-zinc-500">
                       찾아보는 중이에요
                       <LoadingDots />
                     </p>
                   )}
-                  {!streamError && streamContent === '' && streamSources.length > 0 ? (
-                    <p className="mt-2 text-ui-10 text-text-soft">
+                  {!streamError && streamSources.length > 0 ? (
+                    <p className="mt-2 text-ui-10 text-zinc-500">
                       참조 소스 {streamSources.length}개 수집됨
                     </p>
                   ) : null}
                 </article>
               ) : null}
+              <div ref={messagesBottomRef} aria-hidden />
             </div>
           )}
         </div>
       </div>
 
-      <footer className="shrink-0 px-6 pb-6 flex justify-center">
+      <footer className="shrink-0 px-3 pb-3 flex justify-center">
         <ChatComposer
           value={draft}
           placeholder={
