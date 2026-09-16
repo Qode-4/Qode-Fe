@@ -17,13 +17,11 @@ import {
   LogoutCreateData,
   RefreshCreateData,
   SignupCreateData,
-  SignupCreatePayload,
-} from "./data-contracts";
-import { ContentType, HttpClient, RequestParams } from "./http-client";
+  SignupCreatePayload
+} from './data-contracts';
+import { ContentType, HttpClient, RequestParams } from './http-client';
 
-export class Auth<
-  SecurityDataType = unknown,
-> extends HttpClient<SecurityDataType> {
+export class Auth<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
    * No description
    *
@@ -36,11 +34,11 @@ export class Auth<
   signupCreate = (data: SignupCreatePayload, params: RequestParams = {}) =>
     this.request<SignupCreateData, any>({
       path: `/auth/signup`,
-      method: "POST",
+      method: 'POST',
       body: data,
       type: ContentType.Json,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -54,11 +52,11 @@ export class Auth<
   loginCreate = (data: LoginCreatePayload, params: RequestParams = {}) =>
     this.request<LoginCreateData, any>({
       path: `/auth/login`,
-      method: "POST",
+      method: 'POST',
       body: data,
       type: ContentType.Json,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -72,9 +70,9 @@ export class Auth<
   refreshCreate = (params: RequestParams = {}) =>
     this.request<RefreshCreateData, any>({
       path: `/auth/refresh`,
-      method: "POST",
-      format: "json",
-      ...params,
+      method: 'POST',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -88,9 +86,9 @@ export class Auth<
   getAuth = (params: RequestParams = {}) =>
     this.request<GetAuthData, any>({
       path: `/auth/me`,
-      method: "GET",
-      format: "json",
-      ...params,
+      method: 'GET',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -104,7 +102,7 @@ export class Auth<
   logoutCreate = (params: RequestParams = {}) =>
     this.request<LogoutCreateData, any>({
       path: `/auth/logout`,
-      method: "POST",
-      ...params,
+      method: 'POST',
+      ...params
     });
 }

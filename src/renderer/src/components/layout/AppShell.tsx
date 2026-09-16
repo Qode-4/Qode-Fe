@@ -455,8 +455,12 @@ export const AppShell = ({
   const updateMenuPos = useCallback((button: HTMLButtonElement) => {
     const rect = button.getBoundingClientRect();
     const menuHeight = 140; // approximate menu height
-    const spaceAbove = rect.top;
-    const top = spaceAbove >= menuHeight ? rect.top - menuHeight : rect.bottom + 4;
+    const viewportHeight = window.innerHeight;
+    // Y 는 트리거 top 에 정렬(사용자 요청). 아래로 넘치면 뷰포트 안쪽으로 위쪽 shift.
+    let top = rect.top;
+    if (top + menuHeight + VIEWPORT_MARGIN > viewportHeight) {
+      top = Math.max(VIEWPORT_MARGIN, viewportHeight - menuHeight - VIEWPORT_MARGIN);
+    }
     setMenuPos({ top, left: rect.right + 6 });
   }, []);
 
@@ -1346,7 +1350,7 @@ export const AppShell = ({
                       <div
                         className={[
                           'absolute right-1 top-1/2 -translate-y-1/2 transition-opacity',
-                          'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
+                          'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 flex items-center'
                         ].join(' ')}
                       >
                         <ChatItemMenu

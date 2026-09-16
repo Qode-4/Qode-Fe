@@ -41,13 +41,11 @@ import {
   SampleItemsDetailData,
   SampleItemsListData,
   SampleItemsPartialUpdateData,
-  SampleItemsPartialUpdatePayload,
-} from "./data-contracts";
-import { ContentType, HttpClient, RequestParams } from "./http-client";
+  SampleItemsPartialUpdatePayload
+} from './data-contracts';
+import { ContentType, HttpClient, RequestParams } from './http-client';
 
-export class Api<
-  SecurityDataType = unknown,
-> extends HttpClient<SecurityDataType> {
+export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
    * No description
    *
@@ -60,9 +58,9 @@ export class Api<
   sampleItemsList = (params: RequestParams = {}) =>
     this.request<SampleItemsListData, any>({
       path: `/api/sample-items`,
-      method: "GET",
-      format: "json",
-      ...params,
+      method: 'GET',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -73,17 +71,14 @@ export class Api<
    * @request POST:/api/sample-items
    * @response `201` `SampleItemsCreateData` Default Response
    */
-  sampleItemsCreate = (
-    data: SampleItemsCreatePayload,
-    params: RequestParams = {},
-  ) =>
+  sampleItemsCreate = (data: SampleItemsCreatePayload, params: RequestParams = {}) =>
     this.request<SampleItemsCreateData, any>({
       path: `/api/sample-items`,
-      method: "POST",
+      method: 'POST',
       body: data,
       type: ContentType.Json,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -97,9 +92,9 @@ export class Api<
   sampleItemsDetail = (id: string, params: RequestParams = {}) =>
     this.request<SampleItemsDetailData, any>({
       path: `/api/sample-items/${id}`,
-      method: "GET",
-      format: "json",
-      ...params,
+      method: 'GET',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -113,15 +108,15 @@ export class Api<
   sampleItemsPartialUpdate = (
     id: string,
     data: SampleItemsPartialUpdatePayload,
-    params: RequestParams = {},
+    params: RequestParams = {}
   ) =>
     this.request<SampleItemsPartialUpdateData, any>({
       path: `/api/sample-items/${id}`,
-      method: "PATCH",
+      method: 'PATCH',
       body: data,
       type: ContentType.Json,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -135,8 +130,8 @@ export class Api<
   sampleItemsDelete = (id: string, params: RequestParams = {}) =>
     this.request<SampleItemsDeleteData, any>({
       path: `/api/sample-items/${id}`,
-      method: "DELETE",
-      ...params,
+      method: 'DELETE',
+      ...params
     });
   /**
    * No description
@@ -150,9 +145,9 @@ export class Api<
   githubOauthDeviceStartCreate = (params: RequestParams = {}) =>
     this.request<GithubOauthDeviceStartCreateData, any>({
       path: `/api/github/oauth/device/start`,
-      method: "POST",
-      format: "json",
-      ...params,
+      method: 'POST',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -166,9 +161,9 @@ export class Api<
   githubOauthDeviceFlowsDetail = (flowId: string, params: RequestParams = {}) =>
     this.request<GithubOauthDeviceFlowsDetailData, any>({
       path: `/api/github/oauth/device/flows/${flowId}`,
-      method: "GET",
-      format: "json",
-      ...params,
+      method: 'GET',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -184,14 +179,14 @@ export class Api<
       /** @format uuid */
       flowId: string;
     },
-    params: RequestParams = {},
+    params: RequestParams = {}
   ) =>
     this.request<GithubOauthReposListData, any>({
       path: `/api/github/oauth/repos`,
-      method: "GET",
+      method: 'GET',
       query: query,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -205,9 +200,9 @@ export class Api<
   projectsList = (params: RequestParams = {}) =>
     this.request<ProjectsListData, any>({
       path: `/api/projects`,
-      method: "GET",
-      format: "json",
-      ...params,
+      method: 'GET',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -221,11 +216,11 @@ export class Api<
   projectsCreate = (data: ProjectsCreatePayload, params: RequestParams = {}) =>
     this.request<ProjectsCreateData, any>({
       path: `/api/projects`,
-      method: "POST",
+      method: 'POST',
       body: data,
       type: ContentType.Json,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -239,8 +234,8 @@ export class Api<
   projectsDelete = (id: string, params: RequestParams = {}) =>
     this.request<ProjectsDeleteData, any>({
       path: `/api/projects/${id}`,
-      method: "DELETE",
-      ...params,
+      method: 'DELETE',
+      ...params
     });
   /**
    * No description
@@ -254,9 +249,9 @@ export class Api<
   projectsDetail = (id: string, params: RequestParams = {}) =>
     this.request<ProjectsDetailData, any>({
       path: `/api/projects/${id}`,
-      method: "GET",
-      format: "json",
-      ...params,
+      method: 'GET',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -270,9 +265,9 @@ export class Api<
   projectsMembersList = (id: string, params: RequestParams = {}) =>
     this.request<ProjectsMembersListData, any>({
       path: `/api/projects/${id}/members`,
-      method: "GET",
-      format: "json",
-      ...params,
+      method: 'GET',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -286,15 +281,15 @@ export class Api<
   projectsMembersInviteCreate = (
     id: string,
     data: ProjectsMembersInviteCreatePayload,
-    params: RequestParams = {},
+    params: RequestParams = {}
   ) =>
     this.request<ProjectsMembersInviteCreateData, any>({
       path: `/api/projects/${id}/members/invite`,
-      method: "POST",
+      method: 'POST',
       body: data,
       type: ContentType.Json,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -308,9 +303,9 @@ export class Api<
   projectsSyncCreate = (id: string, params: RequestParams = {}) =>
     this.request<ProjectsSyncCreateData, any>({
       path: `/api/projects/${id}/sync`,
-      method: "POST",
-      format: "json",
-      ...params,
+      method: 'POST',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -324,9 +319,9 @@ export class Api<
   projectsSyncStatusList = (projectId: string, params: RequestParams = {}) =>
     this.request<ProjectsSyncStatusListData, any>({
       path: `/api/projects/${projectId}/sync/status`,
-      method: "GET",
-      format: "json",
-      ...params,
+      method: 'GET',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -337,16 +332,12 @@ export class Api<
    * @request GET:/api/projects/{id}/sync-jobs/{jobId}
    * @response `200` `ProjectsSyncJobsDetailData` Default Response
    */
-  projectsSyncJobsDetail = (
-    id: string,
-    jobId: string,
-    params: RequestParams = {},
-  ) =>
+  projectsSyncJobsDetail = (id: string, jobId: string, params: RequestParams = {}) =>
     this.request<ProjectsSyncJobsDetailData, any>({
       path: `/api/projects/${id}/sync-jobs/${jobId}`,
-      method: "GET",
-      format: "json",
-      ...params,
+      method: 'GET',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -360,9 +351,9 @@ export class Api<
   projectsAnalyzeCreate = (id: string, params: RequestParams = {}) =>
     this.request<ProjectsAnalyzeCreateData, any>({
       path: `/api/projects/${id}/analyze`,
-      method: "POST",
-      format: "json",
-      ...params,
+      method: 'POST',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -376,9 +367,9 @@ export class Api<
   projectsAnalysisList = (id: string, params: RequestParams = {}) =>
     this.request<ProjectsAnalysisListData, any>({
       path: `/api/projects/${id}/analysis`,
-      method: "GET",
-      format: "json",
-      ...params,
+      method: 'GET',
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -399,14 +390,14 @@ export class Api<
        */
       limit?: number;
     },
-    params: RequestParams = {},
+    params: RequestParams = {}
   ) =>
     this.request<ChatsMeListData, any>({
       path: `/api/chats/me`,
-      method: "GET",
+      method: 'GET',
       query: query,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -420,11 +411,11 @@ export class Api<
   chatsMeCreate = (data: ChatsMeCreatePayload, params: RequestParams = {}) =>
     this.request<ChatsMeCreateData, any>({
       path: `/api/chats/me`,
-      method: "POST",
+      method: 'POST',
       body: data,
       type: ContentType.Json,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -438,8 +429,8 @@ export class Api<
   chatsMeDelete = (id: string, params: RequestParams = {}) =>
     this.request<ChatsMeDeleteData, any>({
       path: `/api/chats/me/${id}`,
-      method: "DELETE",
-      ...params,
+      method: 'DELETE',
+      ...params
     });
   /**
    * No description
@@ -453,14 +444,14 @@ export class Api<
   chatsMeMessagesCreate = (
     id: string,
     data: ChatsMeMessagesCreatePayload,
-    params: RequestParams = {},
+    params: RequestParams = {}
   ) =>
     this.request<ChatsMeMessagesCreateData, any>({
       path: `/api/chats/me/${id}/messages`,
-      method: "POST",
+      method: 'POST',
       body: data,
       type: ContentType.Json,
-      ...params,
+      ...params
     });
   /**
    * No description
@@ -484,14 +475,14 @@ export class Api<
        */
       limit?: number;
     },
-    params: RequestParams = {},
+    params: RequestParams = {}
   ) =>
     this.request<ChatsMeMessagesListData, any>({
       path: `/api/chats/me/${id}/messages`,
-      method: "GET",
+      method: 'GET',
       query: query,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
   /**
    * No description
@@ -511,13 +502,13 @@ export class Api<
        */
       limit?: number;
     },
-    params: RequestParams = {},
+    params: RequestParams = {}
   ) =>
     this.request<ChatsMePromptMessagesListData, any>({
       path: `/api/chats/me/${id}/prompt-messages`,
-      method: "GET",
+      method: 'GET',
       query: query,
-      format: "json",
-      ...params,
+      format: 'json',
+      ...params
     });
 }

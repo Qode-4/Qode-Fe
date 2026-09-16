@@ -2,7 +2,11 @@ import { useMemo, useState } from 'react';
 import { usePostAuthSignup } from '../api/auth/useAuthAPI';
 import { handleApiError } from '../api/axios';
 import { tokenStorage } from '../api/tokenStorage';
+import { AuthFrame } from '../components/layout/AuthFrame';
+import { Button } from '../components/ui/Button';
+import { InlineAlert } from '../components/ui/InlineAlert';
 import { Link } from '../components/ui/Link';
+import { TextField } from '../components/ui/TextField';
 import { buildPath, navigate, resolveNextPath } from '../lib/hashRouter';
 import type { RouteLocation } from '../lib/hashRouter';
 
@@ -12,6 +16,12 @@ type Props = {
 
 const isEmail = (v: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
+const SIGNUP_BRAND = {
+  title: '큐오드에서\n지금 시작해보세요.',
+  description: '가입은 이메일 하나로 충분합니다.\n첫 프로젝트를 연결하면 바로 질문할 수 있어요.',
+  features: ['개인 대화와 팀 대화를 분리', '변경사항은 언제든 동기화']
+};
+
 export const SignupPage = ({ location }: Props): React.JSX.Element => {
   const next = resolveNextPath(location.query.next);
   const signup = usePostAuthSignup();
@@ -19,10 +29,17 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [touched, setTouched] = useState<{ name: boolean; email: boolean; password: boolean }>({
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [touched, setTouched] = useState<{
+    name: boolean;
+    email: boolean;
+    password: boolean;
+    confirmPassword: boolean;
+  }>({
     name: false,
     email: false,
-    password: false
+    password: false,
+    confirmPassword: false
   });
 
   const errors = useMemo(() => {
@@ -32,180 +49,113 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
     else if (!isEmail(email)) e.email = '이메일 형식이 올바르지 않습니다.';
     if (!password) e.password = '비밀번호를 입력해주세요.';
     else if (password.length < 8) e.password = '비밀번호는 8자 이상을 권장합니다.';
+    if (!confirmPassword) e.confirmPassword = '비밀번호를 다시 입력해주세요.';
+    else if (password !== confirmPassword) e.confirmPassword = '비밀번호가 일치하지 않습니다.';
     return e;
-  }, [name, email, password]);
+  }, [name, email, password, confirmPassword]);
 
   const canSubmit = Object.keys(errors).length === 0 && !signup.isPending;
   const showNameError = touched.name && Boolean(errors.name);
   const showEmailError = touched.email && Boolean(errors.email);
   const showPasswordError = touched.password && Boolean(errors.password);
+  const showConfirmError = touched.confirmPassword && Boolean(errors.confirmPassword);
+
+  const submitError = signup.isError ? handleApiError(signup.error).message : null;
 
   return (
-    <div className="flex h-full items-center justify-center bg-surface-muted px-4">
-      <div className="flex w-full max-w-[520px] flex-col items-center gap-8">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <h1 className="whitespace-pre-line text-ui-32 font-medium leading-[1.4] text-text-base">
-            코드가 궁금할 때,
-            {'\n'}
-            큐오드에 물어보세요!
-          </h1>
-          <p className="text-base font-medium leading-[1.6] text-text-subtle">
-            Code를 기반으로 기획자, 디자이너, 개발자 모두 같은 언어로 이야기하세요.
-          </p>
-        </div>
+    <AuthFrame
+      title="회원가입"
+      description="기본 정보를 입력하고 계정을 만들어보세요."
+      brand={SIGNUP_BRAND}
+      footer={
+        <>
+          이미 계정이 있나요? <Link to={buildPath('/login', { next })}>로그인</Link>
+        </>
+      }
+    >
+      <form
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setTouched({ name: true, email: true, password: true, confirmPassword: true });
+          if (!canSubmit) return;
 
-        <div className="w-full max-w-[360px] rounded-[20px] border border-line bg-surface p-6">
-          <div className="mb-6 text-center">
-            <h2 className="text-xl font-semibold text-text-base">회원가입</h2>
-            <p className="mt-1 text-sm text-text-soft">기본 정보를 입력해주세요.</p>
-          </div>
+          signup.mutate(
+            {
+              name: name.trim(),
+              email: email.trim(),
+              password
+            },
+            {
+              onSuccess: () => {
+                if (!tokenStorage.getAccessToken()) return;
+                navigate(next);
+              }
+            }
+          );
+        }}
+      >
+        <TextField
+          label="이름"
+          name="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+          autoComplete="name"
+          placeholder="홍길동"
+          error={showNameError ? errors.name : undefined}
+        />
 
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setTouched({ name: true, email: true, password: true });
-              if (!canSubmit) return;
+        <TextField
+          label="이메일"
+          type="email"
+          name="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+          autoComplete="email"
+          inputMode="email"
+          placeholder="planner@demo.com"
+          error={showEmailError ? errors.email : undefined}
+        />
 
-              signup.mutate(
-                {
-                  name: name.trim(),
-                  email: email.trim(),
-                  password
-                },
-                {
-                  onSuccess: () => {
-                    if (!tokenStorage.getAccessToken()) return;
-                    navigate(next);
-                  }
-                }
-              );
-            }}
-          >
-            <div>
-              <label className="sr-only" htmlFor="signup-name">
-                이름
-              </label>
-              <input
-                id="signup-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={() => setTouched((t) => ({ ...t, name: true }))}
-                autoComplete="name"
-                placeholder="이름"
-                className={[
-                  'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-text-soft focus:outline-none',
-                  showNameError
-                    ? 'border-danger text-danger'
-                    : 'border-control-line text-text-base focus:border-primary'
-                ].join(' ')}
-                aria-invalid={showNameError}
-                aria-describedby={showNameError ? 'signup-name-error' : undefined}
-              />
-              {showNameError ? (
-                <p
-                  id="signup-name-error"
-                  className="mt-2 text-xs font-medium text-danger"
-                  role="alert"
-                >
-                  {errors.name}
-                </p>
-              ) : null}
-            </div>
+        <TextField
+          label="비밀번호"
+          type="password"
+          name="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+          autoComplete="new-password"
+          placeholder="비밀번호를 입력하세요."
+          showPasswordToggle
+          hint={!showPasswordError && !password ? '8자 이상 권장' : undefined}
+          error={showPasswordError ? errors.password : undefined}
+        />
 
-            <div>
-              <label className="sr-only" htmlFor="signup-email">
-                이메일
-              </label>
-              <input
-                id="signup-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-                autoComplete="email"
-                inputMode="email"
-                placeholder="planner@demo.com"
-                className={[
-                  'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-text-soft focus:outline-none',
-                  showEmailError
-                    ? 'border-danger text-danger'
-                    : 'border-control-line text-text-base focus:border-primary'
-                ].join(' ')}
-                aria-invalid={showEmailError}
-                aria-describedby={showEmailError ? 'signup-email-error' : undefined}
-              />
-              {showEmailError ? (
-                <p
-                  id="signup-email-error"
-                  className="mt-2 text-xs font-medium text-danger"
-                  role="alert"
-                >
-                  {errors.email}
-                </p>
-              ) : null}
-            </div>
+        <TextField
+          label="비밀번호 확인"
+          type="password"
+          name="confirmPassword"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          onBlur={() => setTouched((t) => ({ ...t, confirmPassword: true }))}
+          autoComplete="new-password"
+          placeholder="비밀번호를 다시 입력하세요."
+          showPasswordToggle
+          error={showConfirmError ? errors.confirmPassword : undefined}
+        />
 
-            <div>
-              <label className="sr-only" htmlFor="signup-password">
-                비밀번호
-              </label>
-              <input
-                id="signup-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onBlur={() => setTouched((t) => ({ ...t, password: true }))}
-                autoComplete="new-password"
-                placeholder="비밀번호를 입력하세요."
-                className={[
-                  'h-10 w-full rounded-md border bg-surface px-3 text-base font-medium transition-colors',
-                  'placeholder:text-text-soft focus:outline-none',
-                  showPasswordError
-                    ? 'border-danger text-danger'
-                    : 'border-control-line text-text-base focus:border-primary'
-                ].join(' ')}
-                aria-invalid={showPasswordError}
-                aria-describedby={showPasswordError ? 'signup-password-error' : undefined}
-              />
-              {showPasswordError ? (
-                <p
-                  id="signup-password-error"
-                  className="mt-2 text-xs font-medium text-danger"
-                  role="alert"
-                >
-                  {errors.password}
-                </p>
-              ) : null}
-            </div>
+        <Button type="submit" className="w-full" isLoading={signup.isPending}>
+          시작하기
+        </Button>
 
-            <button
-              type="submit"
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-3 text-base font-medium text-primary-foreground transition-colors hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!canSubmit}
-              aria-busy={signup.isPending || undefined}
-            >
-              {signup.isPending ? (
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              ) : null}
-              <span>시작하기</span>
-            </button>
-
-            {signup.isError ? (
-              <p className="text-center text-xs font-medium text-danger" role="alert">
-                {handleApiError(signup.error).message}
-              </p>
-            ) : null}
-          </form>
-
-          <p className="mt-5 text-center text-sm text-text-subtle">
-            이미 계정이 있나요? <Link to={buildPath('/login', { next })}>로그인</Link>
-          </p>
-        </div>
-      </div>
-    </div>
+        {submitError ? (
+          <InlineAlert tone="danger" title="회원가입 실패">
+            {submitError}
+          </InlineAlert>
+        ) : null}
+      </form>
+    </AuthFrame>
   );
 };
