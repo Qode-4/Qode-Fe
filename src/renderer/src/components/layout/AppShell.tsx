@@ -1350,7 +1350,7 @@ export const AppShell = ({
                       <div
                         className={[
                           'absolute right-1 top-1/2 -translate-y-1/2 transition-opacity',
-                          'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
+                          'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 flex items-center'
                         ].join(' ')}
                       >
                         <ChatItemMenu
