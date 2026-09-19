@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetAuthMe } from './api/auth/useAuthAPI';
-import { useGetProjectChats } from './api/auth/useChatsAPI';
+import { useGetProjectChats, type ProjectChatItem } from './api/auth/useChatsAPI';
 import { useGetProject, useGetProjects } from './api/auth/useProjectsAPI';
 import { useGetProjectSections } from './api/auth/useSectionsAPI';
 import { authTransitionStorage } from './api/authTransitionStorage';
@@ -66,8 +66,13 @@ const App = (): React.JSX.Element => {
   const teamChats = useMemo(() => allChats.filter((it) => it.chat_type === 'TEAM'), [allChats]);
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [createChatModalType, setCreateChatModalType] = useState<'personal' | 'team' | null>(null);
   const autoSelectedForProjectRef = useRef<string | null>(null);
+  // 팀채팅 사이드바 메뉴 → ProjectDetailPage 로 이벤트 전달. ProjectDetailPage 가 modal
+  // 오케스트레이션을 소유하므로, 사이드바(AppShell)에서 발생하는 트리거를 ref 로 위임한다.
+  type TeamChatMenuAction = 'rename' | 'invite' | 'members' | 'delete' | 'leave' | 'create';
+  const teamChatMenuHandlerRef = useRef<
+    ((chat: ProjectChatItem | null, action: TeamChatMenuAction) => void) | null
+  >(null);
 
   const activeChatId =
     selectedChatId && allChats.some((it) => it.id === selectedChatId) ? selectedChatId : '';
@@ -273,7 +278,8 @@ const App = (): React.JSX.Element => {
       activeChatId={activeChatId}
       onSelectChat={setSelectedChatId}
       onCreatePersonalChat={() => setSelectedChatId(null)}
-      onCreateTeamChat={() => setCreateChatModalType('team')}
+      onCreateTeamChat={() => teamChatMenuHandlerRef.current?.(null, 'create')}
+      onOpenTeamChatMenu={(chat, action) => teamChatMenuHandlerRef.current?.(chat, action)}
     >
       {projects.isError ? (
         <div className="mb-3">
@@ -295,9 +301,8 @@ const App = (): React.JSX.Element => {
           activeChatId={activeChatId}
           meName={me.data?.name}
           meId={me.data?.id}
-          createChatModalType={createChatModalType}
           onSelectChat={setSelectedChatId}
-          onCloseCreateChatModal={() => setCreateChatModalType(null)}
+          teamChatMenuHandlerRef={teamChatMenuHandlerRef}
         />
       ) : null}
       {!matchPath(location.path, '/projects').matched && !projectMatch.matched ? (

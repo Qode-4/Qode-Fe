@@ -292,35 +292,20 @@ export const useGetProjectChats = (params: {
   });
 };
 
+// 팀채팅 생성은 usePostTeamChat 을 사용한다. 이 훅은 개인 채팅 생성만 담당한다.
 export const usePostProjectChats = (params: { projectId: string }) => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (body: { name?: string; type: 'personal' | 'team' }) => {
-      if (body.type === 'team') {
-        ensureTeamChatWritable();
-      }
-
-      if (body.type === 'personal') {
-        const res = await apiClient.chatsMeCreate(
-          {
-            project_id: params.projectId,
-            chat_type: 'PERSONAL',
-            name: body.name?.trim() || '새 개인 채팅'
-          },
-          { secure: true }
-        );
-        return res.data;
-      }
-
-      const res = await apiClient.request({
-        path: `/api/projects/${params.projectId}/chats`,
-        method: 'POST',
-        body: { name: body.name?.trim() || '새 팀 채팅' },
-        type: ContentType.Json,
-        secure: true,
-        format: 'json'
-      });
+    mutationFn: async (body: { name?: string; type: 'personal' }) => {
+      const res = await apiClient.chatsMeCreate(
+        {
+          project_id: params.projectId,
+          chat_type: 'PERSONAL',
+          name: body.name?.trim() || '새 개인 채팅'
+        },
+        { secure: true }
+      );
       return res.data;
     },
     onSuccess: () => {
