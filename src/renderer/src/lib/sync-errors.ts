@@ -12,6 +12,8 @@ export const mapSyncError = (code?: string | null): string => {
       return '레포지토리 크기가 500MB를 초과합니다. 더 작은 레포지토리를 선택해주세요.';
     case 'REPO_EMPTY':
       return '코드가 없는 레포지토리입니다. 코드가 있는 레포지토리를 선택해주세요.';
+    case 'PROJECT_SYNC_INDEX_FAILED':
+      return '코드 분석(인덱싱)에 실패했습니다. 다시 동기화해주세요.';
     case 'PROJECT_SYNC_STORAGE_ERROR':
       return '코드 동기화에 실패했습니다. 다시 시도해주세요.';
     case 'PROJECT_SYNC_NETWORK_ERROR':
