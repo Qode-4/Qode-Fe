@@ -15,9 +15,6 @@ export type ErrorContext =
   | 'section.rename'
   | 'section.delete'
   | 'folder.create'
-  | 'storage.create'
-  | 'storage.rename'
-  | 'storage.delete'
   | 'invite.accept'
   | 'github.connect';
 
@@ -55,9 +52,6 @@ const CONTEXT_TITLES: Record<ErrorContext, string> = {
   'section.rename': '섹션 이름 변경 실패',
   'section.delete': '섹션 삭제 실패',
   'folder.create': '폴더 생성 실패',
-  'storage.create': '저장소 등록 실패',
-  'storage.rename': '저장소 이름 변경 실패',
-  'storage.delete': '저장소 삭제 실패',
   'invite.accept': '초대 수락 실패',
   'github.connect': 'GitHub 연결 실패'
 };
