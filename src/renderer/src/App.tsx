@@ -21,7 +21,6 @@ import { LoginPage } from './pages/LoginPage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { SignupPage } from './pages/SignupPage';
-import { StoragePage } from './pages/StoragePage';
 
 const LAST_SELECTED_PROJECT_ID_KEY = 'qode:last-selected-project-id';
 
@@ -44,12 +43,7 @@ const App = (): React.JSX.Element => {
   const queryClient = useQueryClient();
 
   const projectMatch = matchPath(location.path, '/projects/:projectId');
-  const storageMatch = matchPath(location.path, '/projects/:projectId/storage');
-  const selectedProjectId = projectMatch.matched
-    ? projectMatch.params.projectId
-    : storageMatch.matched
-      ? storageMatch.params.projectId
-      : undefined;
+  const selectedProjectId = projectMatch.matched ? projectMatch.params.projectId : undefined;
   const selectedProject = useGetProject({
     projectId: selectedProjectId ?? '',
     enabled: Boolean(selectedProjectId)
@@ -124,7 +118,7 @@ const App = (): React.JSX.Element => {
     const projectList = projects.data.data;
     if (projectList.length === 0) {
       window.localStorage.removeItem(LAST_SELECTED_PROJECT_ID_KEY);
-      if (projectMatch.matched || storageMatch.matched) {
+      if (projectMatch.matched) {
         navigate('/projects', { replace: true });
       }
       return;
@@ -137,14 +131,7 @@ const App = (): React.JSX.Element => {
     const projectToSelect = lastSelectedProject ?? projectList[0];
 
     navigate(`/projects/${projectToSelect.id}`, { replace: true });
-  }, [
-    token,
-    location.path,
-    projects.isSuccess,
-    projects.data,
-    projectMatch.matched,
-    storageMatch.matched
-  ]);
+  }, [token, location.path, projects.isSuccess, projects.data, projectMatch.matched]);
 
   const autoOpenedForEmptyRef = useRef(false);
 
@@ -313,10 +300,7 @@ const App = (): React.JSX.Element => {
           onCloseCreateChatModal={() => setCreateChatModalType(null)}
         />
       ) : null}
-      {storageMatch.matched ? <StoragePage projectId={storageMatch.params.projectId} /> : null}
-      {!matchPath(location.path, '/projects').matched &&
-      !projectMatch.matched &&
-      !storageMatch.matched ? (
+      {!matchPath(location.path, '/projects').matched && !projectMatch.matched ? (
         <div className="rounded-xl border border-line bg-surface p-6">
           <h1 className="text-2xl font-semibold text-text-base">Not Found</h1>
           <p className="mt-2 text-sm text-text-subtle">{location.path}</p>
