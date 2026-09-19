@@ -1,5 +1,4 @@
 export const QUERY_KEY = {
-  health: ['health'] as const,
   me: ['me'] as const,
   githubOauthDeviceFlow: (flowId: string) => ['githubOauthDeviceFlow', flowId] as const,
   githubOauthRepos: (flowId: string) => ['githubOauthRepos', flowId] as const,
@@ -14,6 +13,5 @@ export const QUERY_KEY = {
   projectChatsByProject: (projectId: string) => ['projectChats', projectId] as const,
   chatMessages: (chatId: string, personal = false) =>
     ['chatMessages', chatId, personal ? 'personal' : 'team'] as const,
-  chatMessagesByChat: (chatId: string) => ['chatMessages', chatId] as const,
-  storageItems: (projectId: string) => ['storageItems', projectId] as const
+  chatMessagesByChat: (chatId: string) => ['chatMessages', chatId] as const
 } as const;
