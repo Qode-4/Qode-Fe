@@ -1,6 +1,5 @@
 import { Api } from './generated/Api';
 import { Auth } from './generated/Auth';
-import { Health } from './generated/Health';
 import { tokenStorage } from './tokenStorage';
 
 const defaultBaseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
@@ -22,7 +21,6 @@ const apiClientConfig = {
 
 export const apiClient = new Api(apiClientConfig);
 export const authApiClient = new Auth(apiClientConfig);
-export const healthApiClient = new Health(apiClientConfig);
 
 const redirectToLogin = (): void => {
   const raw = window.location.hash || '#/';
