@@ -72,6 +72,10 @@ export const RenameTeamChatModal = ({
         setServerError('이미 사용 중인 채팅방 이름입니다.');
         return;
       }
+      if (info.status === 403) {
+        setServerError('채팅방 이름은 방장만 바꿀 수 있어요.');
+        return;
+      }
       const friendly = friendlyErrorMessage(error, 'chat.rename');
       setServerError(friendly.description);
       toast.error(friendly);

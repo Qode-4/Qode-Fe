@@ -31,6 +31,7 @@ import {
   LeaveTeamChatConfirmModal,
   OwnerLeaveChoiceModal,
   RenameTeamChatModal,
+  TeamChatHeader,
   TeamChatMembersModal,
   TransferOwnershipModal
 } from '../components/feature/teamChat';
@@ -1113,6 +1114,33 @@ export const ProjectDetailPage = ({
             )}
           </div>
         </div>
+      ) : null}
+
+      {activeChat && isTeamChat ? (
+        <TeamChatHeader
+          chatId={activeChat.id}
+          chatName={activeChat.name}
+          viewerUserId={meId}
+          onRename={() =>
+            setTeamChatModal({
+              kind: 'rename',
+              chatId: activeChat.id,
+              currentName: activeChat.name
+            })
+          }
+          onInvite={() => setTeamChatModal({ kind: 'invite', chatId: activeChat.id })}
+          onShowMembers={() => setTeamChatModal({ kind: 'members', chatId: activeChat.id })}
+          onDelete={() =>
+            setTeamChatModal({
+              kind: 'delete-confirm',
+              chatId: activeChat.id,
+              chatName: activeChat.name
+            })
+          }
+          onLeave={() => {
+            void handleLeaveClick(activeChat);
+          }}
+        />
       ) : null}
 
       <div className="relative min-h-0 flex-1 pt-4">

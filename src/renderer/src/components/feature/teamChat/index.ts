@@ -8,4 +8,5 @@ export { TransferOwnershipModal } from './TransferOwnershipModal';
 export { DeleteTeamChatConfirmModal } from './DeleteTeamChatConfirmModal';
 export { ProjectMemberPickList, type PickListMember } from './ProjectMemberPickList';
 export { ParticipantListItem } from './ParticipantListItem';
+export { TeamChatHeader } from './TeamChatHeader';
 export { sortParticipants } from './sortParticipants';
