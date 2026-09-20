@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetChatMessages,
@@ -15,12 +15,26 @@ import {
   useGetProjectSyncStatus,
   usePostProjectSync
 } from '../api/auth/useProjectsAPI';
+import { useDeleteTeamChat, useLeaveTeamChat } from '../api/auth/useTeamChatAPI';
+import { useProjectTeamChatEvents } from '../api/auth/useProjectTeamChatEvents';
 import { useTeamChatSocket, useTeamSocketStatus } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
 import type { SourceItem } from '../api/contracts/chats';
+import type { TeamChatParticipantsResponse } from '../api/contracts/teamChat';
+import { apiClient } from '../api/apiClient';
 import { friendlyErrorMessage } from '../api/errorMessages';
-import { CreateChatModal } from '../components/feature/CreateChatModal';
+import {
+  CreateTeamChatModal,
+  DeleteTeamChatConfirmModal,
+  InviteTeamChatMembersModal,
+  LeaveTeamChatConfirmModal,
+  OwnerLeaveChoiceModal,
+  RenameTeamChatModal,
+  TeamChatHeader,
+  TeamChatMembersModal,
+  TransferOwnershipModal
+} from '../components/feature/teamChat';
 import type { IconName } from '../components/icons/iconTypes';
 import { Button } from '../components/ui/Button';
 import { ChatComposer } from '../components/ui/ChatComposer';
@@ -33,15 +47,32 @@ import { matchPath } from '../lib/hashRouter';
 import { mapResponseError } from '../lib/response-errors';
 import { mapSyncError } from '../lib/sync-errors';
 
+type TeamChatMenuAction = 'rename' | 'invite' | 'members' | 'delete' | 'leave' | 'create';
+
+type TeamChatMenuHandler = (chat: ProjectChatItem | null, action: TeamChatMenuAction) => void;
+
 type Props = {
   location: RouteLocation;
   activeChatId: string;
   meName?: string;
   meId?: string;
-  createChatModalType: 'personal' | 'team' | null;
   onSelectChat: (chatId: string) => void;
-  onCloseCreateChatModal: () => void;
+  // App.tsx 의 사이드바(AppShell)에서 발생한 팀채팅 메뉴 클릭을 여기로 전달하기 위한 브릿지.
+  // ProjectDetailPage 가 모든 팀채팅 modal 오케스트레이션을 소유하므로, App.tsx 는 이 ref
+  // 에 담긴 핸들러만 호출한다.
+  teamChatMenuHandlerRef?: MutableRefObject<TeamChatMenuHandler | null>;
 };
+
+type TeamChatModalState =
+  | { kind: 'none' }
+  | { kind: 'create' }
+  | { kind: 'rename'; chatId: string; currentName: string }
+  | { kind: 'invite'; chatId: string }
+  | { kind: 'members'; chatId: string }
+  | { kind: 'leave-confirm'; chatId: string; chatName: string }
+  | { kind: 'owner-leave-choice'; chatId: string; chatName: string }
+  | { kind: 'transfer'; chatId: string; chatName: string }
+  | { kind: 'delete-confirm'; chatId: string; chatName: string };
 
 type PendingUserMessage = {
   clientId: string;
@@ -319,9 +350,8 @@ export const ProjectDetailPage = ({
   activeChatId,
   meName,
   meId,
-  createChatModalType,
   onSelectChat,
-  onCloseCreateChatModal
+  teamChatMenuHandlerRef
 }: Props): React.JSX.Element => {
   const match = useMemo(() => matchPath(location.path, '/projects/:projectId'), [location.path]);
   const projectId = match.matched ? match.params.projectId : '';
@@ -388,6 +418,123 @@ export const ProjectDetailPage = ({
   const createChat = usePostProjectChats({ projectId });
   const patchChat = usePatchChat();
 
+  // ── 팀채팅 모달 오케스트레이션 ─────────────────────────────────────────────
+  const [teamChatModal, setTeamChatModal] = useState<TeamChatModalState>({ kind: 'none' });
+  const closeTeamChatModal = useCallback((): void => {
+    setTeamChatModal({ kind: 'none' });
+  }, []);
+  const deleteTeamChat = useDeleteTeamChat({ projectId });
+  const leaveTeamChat = useLeaveTeamChat({ projectId });
+
+  const fetchParticipants = useCallback(
+    async (chatId: string): Promise<TeamChatParticipantsResponse | null> => {
+      try {
+        return await queryClient.fetchQuery({
+          queryKey: QUERY_KEY.teamChatParticipants(chatId),
+          queryFn: async (): Promise<TeamChatParticipantsResponse> => {
+            const res = await apiClient.request<TeamChatParticipantsResponse>({
+              path: `/api/chats/${chatId}/participants`,
+              method: 'GET',
+              secure: true,
+              format: 'json'
+            });
+            return res.data;
+          }
+        });
+      } catch (error) {
+        toast.error(friendlyErrorMessage(error));
+        return null;
+      }
+    },
+    [queryClient, toast]
+  );
+
+  // 방장이면 삭제·양도 선택 모달, 아니면 곧바로 leave-confirm 으로 분기한다.
+  const handleLeaveClick = useCallback(
+    async (chat: ProjectChatItem): Promise<void> => {
+      if (!meId) {
+        setTeamChatModal({
+          kind: 'leave-confirm',
+          chatId: chat.id,
+          chatName: chat.name
+        });
+        return;
+      }
+      const participants = await fetchParticipants(chat.id);
+      const myEntry = participants?.data.find((entry) => entry.userId === meId);
+      if (myEntry?.memberRole === 'OWNER') {
+        setTeamChatModal({
+          kind: 'owner-leave-choice',
+          chatId: chat.id,
+          chatName: chat.name
+        });
+        return;
+      }
+      setTeamChatModal({
+        kind: 'leave-confirm',
+        chatId: chat.id,
+        chatName: chat.name
+      });
+    },
+    [fetchParticipants, meId]
+  );
+
+  const handleTeamChatMenu = useCallback(
+    (chat: ProjectChatItem | null, action: TeamChatMenuAction): void => {
+      if (action === 'create') {
+        setTeamChatModal({ kind: 'create' });
+        return;
+      }
+      if (!chat) return;
+      switch (action) {
+        case 'rename':
+          setTeamChatModal({
+            kind: 'rename',
+            chatId: chat.id,
+            currentName: chat.name
+          });
+          return;
+        case 'invite':
+          setTeamChatModal({ kind: 'invite', chatId: chat.id });
+          return;
+        case 'members':
+          setTeamChatModal({ kind: 'members', chatId: chat.id });
+          return;
+        case 'delete':
+          setTeamChatModal({
+            kind: 'delete-confirm',
+            chatId: chat.id,
+            chatName: chat.name
+          });
+          return;
+        case 'leave':
+          void handleLeaveClick(chat);
+          return;
+      }
+    },
+    [handleLeaveClick]
+  );
+
+  // 사이드바 트리거는 App.tsx 를 통해 여기 등록된 핸들러를 호출한다.
+  useEffect(() => {
+    if (!teamChatMenuHandlerRef) return;
+    teamChatMenuHandlerRef.current = handleTeamChatMenu;
+    return () => {
+      if (teamChatMenuHandlerRef.current === handleTeamChatMenu) {
+        teamChatMenuHandlerRef.current = null;
+      }
+    };
+  }, [handleTeamChatMenu, teamChatMenuHandlerRef]);
+
+  // 팀채팅이 삭제/나가기 등으로 사라질 때 활성 chat 을 해제하고 관련 캐시를 정리한다.
+  const dropActiveIfMatches = useCallback(
+    (chatId: string): void => {
+      if (activeChatId === chatId) onSelectChat('');
+      queryClient.removeQueries({ queryKey: QUERY_KEY.chatMessagesByChat(chatId) });
+    },
+    [activeChatId, onSelectChat, queryClient]
+  );
+
   const {
     sendMessage: socketSendMessage,
     isSending: socketIsSending,
@@ -395,6 +542,14 @@ export const ProjectDetailPage = ({
   } = useTeamChatSocket(isTeamChat ? activeChatId : undefined, meId, (msg) => {
     if (msg.userId === meId) {
       setPendingUserMessage(null);
+    }
+  });
+
+  // 프로젝트 스코프 이벤트 구독 — 활성 채팅 여부와 무관하게 새 방 생성/이름 변경/삭제/
+  // 참여자 변경/방장 양도를 실시간으로 사이드바에 반영한다.
+  useProjectTeamChatEvents(projectId || undefined, {
+    onRoomDeleted: (deletedChatId) => {
+      if (activeChatId === deletedChatId) onSelectChat('');
     }
   });
 
@@ -651,6 +806,160 @@ export const ProjectDetailPage = ({
     void sendMessage(failedContent);
   };
 
+  const teamChatModalNode = ((): React.JSX.Element | null => {
+    switch (teamChatModal.kind) {
+      case 'none':
+        return null;
+      case 'create':
+        return (
+          <CreateTeamChatModal
+            open
+            projectId={projectId}
+            meId={meId}
+            onClose={closeTeamChatModal}
+            onCreated={(newChatId) => {
+              onSelectChat(newChatId);
+            }}
+          />
+        );
+      case 'rename':
+        return (
+          <RenameTeamChatModal
+            open
+            projectId={projectId}
+            chatId={teamChatModal.chatId}
+            currentName={teamChatModal.currentName}
+            onClose={closeTeamChatModal}
+          />
+        );
+      case 'invite':
+        return (
+          <InviteTeamChatMembersModal
+            open
+            projectId={projectId}
+            chatId={teamChatModal.chatId}
+            onClose={closeTeamChatModal}
+          />
+        );
+      case 'members':
+        return (
+          <TeamChatMembersModal
+            open
+            chatId={teamChatModal.chatId}
+            projectId={projectId}
+            viewerUserId={meId}
+            onClose={closeTeamChatModal}
+            onLeave={() => {
+              const chat = allChats.find((c) => c.id === teamChatModal.chatId);
+              if (chat) void handleLeaveClick(chat);
+            }}
+          />
+        );
+      case 'leave-confirm':
+        return (
+          <LeaveTeamChatConfirmModal
+            open
+            chatName={teamChatModal.chatName}
+            isProcessing={leaveTeamChat.isPending}
+            onClose={closeTeamChatModal}
+            onConfirm={() => {
+              leaveTeamChat.mutate(
+                { chatId: teamChatModal.chatId },
+                {
+                  onSuccess: (result) => {
+                    if (result.chatDeleted) {
+                      dropActiveIfMatches(teamChatModal.chatId);
+                      toast.success('마지막 참여자로 나가면서 채팅방이 삭제되었어요');
+                    } else {
+                      dropActiveIfMatches(teamChatModal.chatId);
+                      toast.success('채팅방에서 나갔어요');
+                    }
+                    closeTeamChatModal();
+                  },
+                  onError: (error) => {
+                    toast.error(friendlyErrorMessage(error));
+                  }
+                }
+              );
+            }}
+          />
+        );
+      case 'owner-leave-choice':
+        return (
+          <OwnerLeaveChoiceModal
+            open
+            onClose={closeTeamChatModal}
+            onChooseDelete={() =>
+              setTeamChatModal({
+                kind: 'delete-confirm',
+                chatId: teamChatModal.chatId,
+                chatName: teamChatModal.chatName
+              })
+            }
+            onChooseTransfer={() =>
+              setTeamChatModal({
+                kind: 'transfer',
+                chatId: teamChatModal.chatId,
+                chatName: teamChatModal.chatName
+              })
+            }
+          />
+        );
+      case 'transfer': {
+        if (!meId) {
+          // meId 없이 방장 판단이 불가하다. 이 상태에 도달하면 안전하게 닫는다.
+          closeTeamChatModal();
+          return null;
+        }
+        return (
+          <TransferOwnershipModal
+            open
+            chatId={teamChatModal.chatId}
+            projectId={projectId}
+            currentOwnerId={meId}
+            onClose={closeTeamChatModal}
+            onTransferred={() => {
+              // 서버가 원 방장 leave 까지 처리한다. FE 는 chat 캐시 제거 + 다른 채팅으로 이동.
+              dropActiveIfMatches(teamChatModal.chatId);
+              queryClient.removeQueries({
+                queryKey: QUERY_KEY.teamChatParticipants(teamChatModal.chatId)
+              });
+              void queryClient.invalidateQueries({
+                queryKey: QUERY_KEY.projectChatsByProject(projectId)
+              });
+              toast.success('방장을 양도하고 채팅방을 나왔어요');
+              closeTeamChatModal();
+            }}
+          />
+        );
+      }
+      case 'delete-confirm':
+        return (
+          <DeleteTeamChatConfirmModal
+            open
+            chatName={teamChatModal.chatName}
+            isProcessing={deleteTeamChat.isPending}
+            onClose={closeTeamChatModal}
+            onConfirm={() => {
+              deleteTeamChat.mutate(
+                { chatId: teamChatModal.chatId },
+                {
+                  onSuccess: () => {
+                    dropActiveIfMatches(teamChatModal.chatId);
+                    toast.success('채팅방을 삭제했어요');
+                    closeTeamChatModal();
+                  },
+                  onError: (error) => {
+                    toast.error(friendlyErrorMessage(error));
+                  }
+                }
+              );
+            }}
+          />
+        );
+    }
+  })();
+
   if (!projectId) {
     return (
       <InlineAlert tone="danger" title="잘못된 경로">
@@ -805,6 +1114,33 @@ export const ProjectDetailPage = ({
             )}
           </div>
         </div>
+      ) : null}
+
+      {activeChat && isTeamChat ? (
+        <TeamChatHeader
+          chatId={activeChat.id}
+          chatName={activeChat.name}
+          viewerUserId={meId}
+          onRename={() =>
+            setTeamChatModal({
+              kind: 'rename',
+              chatId: activeChat.id,
+              currentName: activeChat.name
+            })
+          }
+          onInvite={() => setTeamChatModal({ kind: 'invite', chatId: activeChat.id })}
+          onShowMembers={() => setTeamChatModal({ kind: 'members', chatId: activeChat.id })}
+          onDelete={() =>
+            setTeamChatModal({
+              kind: 'delete-confirm',
+              chatId: activeChat.id,
+              chatName: activeChat.name
+            })
+          }
+          onLeave={() => {
+            void handleLeaveClick(activeChat);
+          }}
+        />
       ) : null}
 
       <div className="relative min-h-0 flex-1 pt-4">
@@ -1100,25 +1436,7 @@ export const ProjectDetailPage = ({
         />
       </footer>
 
-      <CreateChatModal
-        open={Boolean(createChatModalType)}
-        type={createChatModalType}
-        isSubmitting={createChat.isPending}
-        onClose={onCloseCreateChatModal}
-        onSubmit={(input) => {
-          createChat.mutate(
-            {
-              type: input.type,
-              name: input.name
-            },
-            {
-              onSuccess: () => {
-                onCloseCreateChatModal();
-              }
-            }
-          );
-        }}
-      />
+      {teamChatModalNode}
     </section>
   );
 };

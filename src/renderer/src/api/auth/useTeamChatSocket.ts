@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { QUERY_KEY } from '../queryKeys';
 import { getSocket } from '../socket';
 
@@ -21,6 +21,9 @@ type UseTeamChatSocketResult = {
   sendError: string | null;
 };
 
+// 활성 팀채팅 하나의 메시지 송수신 전용. 방·참여자·양도 등 room-level 변경은
+// useProjectTeamChatEvents 가 프로젝트 스코프로 처리한다 — 사이드바에 있지만 아직
+// join 하지 않은 방이나 초대 대기 상태에도 알림이 도달해야 하기 때문이다.
 export const useTeamChatSocket = (
   chatId: string | undefined,
   meId: string | undefined,
@@ -30,7 +33,6 @@ export const useTeamChatSocket = (
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
-  // onReceive를 ref로 관리해 effect가 불필요하게 재실행되지 않도록
   const onReceiveRef = useRef(onReceive);
   useEffect(() => {
     onReceiveRef.current = onReceive;
@@ -85,32 +87,31 @@ export const useTeamChatSocket = (
   return { sendMessage, isSending, sendError };
 };
 
-export type TeamSocketStatus = 'connected' | 'disconnected' | 'reconnecting';
+export type TeamSocketStatus = 'connected' | 'disconnected';
+
+// useSyncExternalStore 로 소켓 상태를 실시간 subscribe 한다.
+// 이전 useState + useEffect 조합은 훅 마운트 시점에 소켓이 이미 connect 돼 있으면
+// 'connect' 이벤트를 놓쳐 'disconnected' 로 고정되는 버그가 있었다.
+// (activeChatId 가 team 채팅으로 바뀌기 전에 다른 훅이 먼저 socket.connect() 를 부르는 흐름)
+const subscribeToSocketStatus = (onChange: () => void): (() => void) => {
+  const socket = getSocket();
+  const handler = (): void => onChange();
+  socket.on('connect', handler);
+  socket.on('disconnect', handler);
+  return () => {
+    socket.off('connect', handler);
+    socket.off('disconnect', handler);
+  };
+};
+
+const getSocketStatusSnapshot = (): TeamSocketStatus =>
+  getSocket().connected ? 'connected' : 'disconnected';
 
 export const useTeamSocketStatus = (enabled: boolean): TeamSocketStatus => {
-  const [status, setStatus] = useState<TeamSocketStatus>(() =>
-    getSocket().connected ? 'connected' : 'disconnected'
+  const status = useSyncExternalStore<TeamSocketStatus>(
+    subscribeToSocketStatus,
+    getSocketStatusSnapshot,
+    () => 'disconnected'
   );
-
-  useEffect(() => {
-    if (!enabled) return;
-
-    const socket = getSocket();
-
-    const onConnect = (): void => setStatus('connected');
-    const onDisconnect = (): void => setStatus('disconnected');
-    const onReconnectAttempt = (): void => setStatus('reconnecting');
-
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.io.on('reconnect_attempt', onReconnectAttempt);
-
-    return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.io.off('reconnect_attempt', onReconnectAttempt);
-    };
-  }, [enabled]);
-
-  return status;
+  return enabled ? status : 'connected';
 };

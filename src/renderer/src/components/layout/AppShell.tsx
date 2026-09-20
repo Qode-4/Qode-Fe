@@ -32,6 +32,7 @@ import {
 } from '../../api/auth/useSectionsAPI';
 import { handleApiError } from '../../api/axios';
 import { API_CAPABILITIES } from '../../api/capabilities';
+import type { ProjectChatItem } from '../../api/auth/useChatsAPI';
 import type { SectionItem } from '../../api/contracts/sections';
 import type {
   ChatsMeListData,
@@ -73,6 +74,10 @@ type Props = {
   onSelectChat?: (chatId: string) => void;
   onCreatePersonalChat?: () => void;
   onCreateTeamChat?: () => void;
+  onOpenTeamChatMenu?: (
+    chat: ProjectChatItem,
+    action: 'rename' | 'invite' | 'members' | 'delete' | 'leave'
+  ) => void;
   children: ReactNode;
 };
 
@@ -237,6 +242,7 @@ export const AppShell = ({
   onSelectChat,
   onCreatePersonalChat,
   onCreateTeamChat,
+  onOpenTeamChatMenu,
   children
 }: Props): React.JSX.Element => {
   const qc = useQueryClient();
@@ -1425,8 +1431,46 @@ export const AppShell = ({
               <nav aria-label="팀 채팅 목록" className="mt-0.5">
                 {teamChats.map((chat) => {
                   const isActive = activeChatId === chat.id;
+                  const teamChat = chat as ProjectChatItem;
+                  const teamMenuActions: ChatItemMenuAction[] = onOpenTeamChatMenu
+                    ? [
+                        {
+                          key: 'rename',
+                          label: '이름 바꾸기',
+                          iconName: 'Pencil_light',
+                          onSelect: () => onOpenTeamChatMenu(teamChat, 'rename')
+                        },
+                        {
+                          key: 'invite',
+                          label: '멤버 초대',
+                          iconName: 'Add_round_light',
+                          onSelect: () => onOpenTeamChatMenu(teamChat, 'invite')
+                        },
+                        {
+                          key: 'members',
+                          label: '멤버 보기',
+                          iconName: 'Group_light',
+                          onSelect: () => onOpenTeamChatMenu(teamChat, 'members')
+                        },
+                        {
+                          key: 'delete',
+                          label: '채팅방 삭제',
+                          iconName: 'Trash_light',
+                          danger: true,
+                          onSelect: () => onOpenTeamChatMenu(teamChat, 'delete')
+                        },
+                        {
+                          key: 'leave',
+                          label: '나가기',
+                          iconName: 'Trash_light',
+                          danger: true,
+                          onSelect: () => onOpenTeamChatMenu(teamChat, 'leave')
+                        }
+                      ]
+                    : [];
+
                   return (
-                    <div key={chat.id} className="relative min-w-0 overflow-hidden">
+                    <div key={chat.id} className="group relative min-w-0 overflow-hidden">
                       <button
                         type="button"
                         aria-current={isActive ? 'true' : undefined}
@@ -1440,8 +1484,29 @@ export const AppShell = ({
                         ].join(' ')}
                         onClick={() => onSelectChat?.(chat.id)}
                       >
-                        <span className="min-w-0 flex-1 truncate">{chat.name}</span>
+                        <span className="min-w-0 flex-1 truncate pr-6">{chat.name}</span>
                       </button>
+
+                      {onOpenTeamChatMenu ? (
+                        <div
+                          className={[
+                            'absolute right-1 top-1/2 -translate-y-1/2 transition-opacity',
+                            'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 flex items-center'
+                          ].join(' ')}
+                        >
+                          <ChatItemMenu
+                            triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
+                            ariaLabel={`${chat.name} 채팅 작업 메뉴`}
+                            triggerClassName={[
+                              'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
+                              isActive
+                                ? 'text-text-base hover:bg-line'
+                                : 'text-text-soft hover:bg-line'
+                            ].join(' ')}
+                            actions={teamMenuActions}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
