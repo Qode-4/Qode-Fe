@@ -1,19 +1,15 @@
 import type { Preview } from '@storybook/react-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { QUERY_KEY } from '../src/renderer/src/api/queryKeys';
 import '../src/renderer/src/assets/main.css';
+import { ToastProvider } from '../src/renderer/src/components/ui/ToastProvider';
 
-const createQueryClient = (): QueryClient => {
-  const queryClient = new QueryClient({
+const createQueryClient = (): QueryClient =>
+  new QueryClient({
     defaultOptions: {
       mutations: { retry: 0 },
       queries: { retry: 0, staleTime: 60 * 1000 }
     }
   });
-
-  queryClient.setQueryData(QUERY_KEY.health, { ok: true });
-  return queryClient;
-};
 
 window.electron =
   window.electron ||
@@ -45,7 +41,9 @@ const preview: Preview = {
 
       return (
         <QueryClientProvider client={queryClient}>
-          <Story />
+          <ToastProvider>
+            <Story />
+          </ToastProvider>
         </QueryClientProvider>
       );
     }

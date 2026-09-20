@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetChatMessages,
   useGetProjectChats,
   usePatchChat,
-  usePostMessageShare,
   usePostPersonalChatMessageSSE,
   usePostProjectChats,
   type ProjectChatItem
@@ -15,12 +14,32 @@ import {
   useGetProjectSyncStatus,
   usePostProjectSync
 } from '../api/auth/useProjectsAPI';
+import { useDeleteTeamChat, useLeaveTeamChat } from '../api/auth/useTeamChatAPI';
+import { useProjectTeamChatEvents } from '../api/auth/useProjectTeamChatEvents';
 import { useTeamChatSocket, useTeamSocketStatus } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
-import type { SourceItem } from '../api/contracts/chats';
+import type { ChatMessage, SourceItem } from '../api/contracts/chats';
+import { MAX_SHARE_PAIRS } from '../api/contracts/digest';
+import type { TeamChatParticipantsResponse } from '../api/contracts/teamChat';
+import { apiClient } from '../api/apiClient';
 import { friendlyErrorMessage } from '../api/errorMessages';
-import { CreateChatModal } from '../components/feature/CreateChatModal';
+import {
+  CreateTeamChatModal,
+  DeleteTeamChatConfirmModal,
+  InviteTeamChatMembersModal,
+  LeaveTeamChatConfirmModal,
+  OwnerLeaveChoiceModal,
+  RenameTeamChatModal,
+  TeamChatHeader,
+  TeamChatMembersModal,
+  TransferOwnershipModal
+} from '../components/feature/teamChat';
+import { DigestSharedCard } from '../components/feature/digest/DigestSharedCard';
+import { DigestSourceView } from '../components/feature/digest/DigestSourceView';
+import { ShareToTeamChatModal } from '../components/feature/digest/ShareToTeamChatModal';
+import { useDeleteDigestCard } from '../api/auth/useDigestAPI';
+import { useShareSelectionState } from '../hooks/useShareSelectionState';
 import type { IconName } from '../components/icons/iconTypes';
 import { Button } from '../components/ui/Button';
 import { ChatComposer } from '../components/ui/ChatComposer';
@@ -33,15 +52,32 @@ import { matchPath } from '../lib/hashRouter';
 import { mapResponseError } from '../lib/response-errors';
 import { mapSyncError } from '../lib/sync-errors';
 
+type TeamChatMenuAction = 'rename' | 'invite' | 'members' | 'delete' | 'leave' | 'create';
+
+type TeamChatMenuHandler = (chat: ProjectChatItem | null, action: TeamChatMenuAction) => void;
+
 type Props = {
   location: RouteLocation;
   activeChatId: string;
   meName?: string;
   meId?: string;
-  createChatModalType: 'personal' | 'team' | null;
   onSelectChat: (chatId: string) => void;
-  onCloseCreateChatModal: () => void;
+  // App.tsx 의 사이드바(AppShell)에서 발생한 팀채팅 메뉴 클릭을 여기로 전달하기 위한 브릿지.
+  // ProjectDetailPage 가 모든 팀채팅 modal 오케스트레이션을 소유하므로, App.tsx 는 이 ref
+  // 에 담긴 핸들러만 호출한다.
+  teamChatMenuHandlerRef?: MutableRefObject<TeamChatMenuHandler | null>;
 };
+
+type TeamChatModalState =
+  | { kind: 'none' }
+  | { kind: 'create' }
+  | { kind: 'rename'; chatId: string; currentName: string }
+  | { kind: 'invite'; chatId: string }
+  | { kind: 'members'; chatId: string }
+  | { kind: 'leave-confirm'; chatId: string; chatName: string }
+  | { kind: 'owner-leave-choice'; chatId: string; chatName: string }
+  | { kind: 'transfer'; chatId: string; chatName: string }
+  | { kind: 'delete-confirm'; chatId: string; chatName: string };
 
 type PendingUserMessage = {
   clientId: string;
@@ -201,6 +237,13 @@ const isUserMessageRole = (role: string): boolean => {
   return role === 'user' || role === 'USER';
 };
 
+// 팀채팅 메시지 중 개인채팅 답변 요약 공유 카드 여부를 판정한다.
+// BE 는 role='ASSISTANT' + user_id=공유자 로 실어 준다.
+const isDigestTeamMessage = (message: unknown): boolean => {
+  const role = String((message as { role?: string }).role ?? '').toLowerCase();
+  return role === 'assistant';
+};
+
 const LoadingDots = (): React.JSX.Element => {
   const [dots, setDots] = useState('.');
   useEffect(() => {
@@ -319,9 +362,8 @@ export const ProjectDetailPage = ({
   activeChatId,
   meName,
   meId,
-  createChatModalType,
   onSelectChat,
-  onCloseCreateChatModal
+  teamChatMenuHandlerRef
 }: Props): React.JSX.Element => {
   const match = useMemo(() => matchPath(location.path, '/projects/:projectId'), [location.path]);
   const projectId = match.matched ? match.params.projectId : '';
@@ -381,12 +423,139 @@ export const ProjectDetailPage = ({
   });
 
   const postPersonalMessage = usePostPersonalChatMessageSSE({ projectId });
-  const postShare = usePostMessageShare({
-    projectId,
-    chatId: activeChatId || '__empty__'
-  });
   const createChat = usePostProjectChats({ projectId });
   const patchChat = usePatchChat();
+
+  // 개인채팅 답변 여러 개를 골라 요약 후 팀채팅에 공유하는 wizard 관련 상태.
+  // 기존 단일 메시지 공유 훅(usePostMessageShare)은 useChatsAPI 에 남아 있지만 이 페이지에선 안 씀.
+  const shareSelection = useShareSelectionState();
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareModalInitialIds, setShareModalInitialIds] = useState<Set<string>>(new Set());
+  // 팀채팅에 도착한 공유 카드의 "공유 취소" 처리(공유자 본인만 노출).
+  const deleteDigestCard = useDeleteDigestCard({ chatId: activeChatId || '__empty__' });
+  // "원본 대화 보기" 오버레이 뷰 상태. 카드가 클릭되면 채워지고, 닫으면 null.
+  const [digestSourceView, setDigestSourceView] = useState<{
+    messageId: string;
+    sharerName: string;
+    sharedAt: string;
+  } | null>(null);
+
+  // ── 팀채팅 모달 오케스트레이션 ─────────────────────────────────────────────
+  const [teamChatModal, setTeamChatModal] = useState<TeamChatModalState>({ kind: 'none' });
+  const closeTeamChatModal = useCallback((): void => {
+    setTeamChatModal({ kind: 'none' });
+  }, []);
+  const deleteTeamChat = useDeleteTeamChat({ projectId });
+  const leaveTeamChat = useLeaveTeamChat({ projectId });
+
+  const fetchParticipants = useCallback(
+    async (chatId: string): Promise<TeamChatParticipantsResponse | null> => {
+      try {
+        return await queryClient.fetchQuery({
+          queryKey: QUERY_KEY.teamChatParticipants(chatId),
+          queryFn: async (): Promise<TeamChatParticipantsResponse> => {
+            const res = await apiClient.request<TeamChatParticipantsResponse>({
+              path: `/api/chats/${chatId}/participants`,
+              method: 'GET',
+              secure: true,
+              format: 'json'
+            });
+            return res.data;
+          }
+        });
+      } catch (error) {
+        toast.error(friendlyErrorMessage(error));
+        return null;
+      }
+    },
+    [queryClient, toast]
+  );
+
+  // 방장이면 삭제·양도 선택 모달, 아니면 곧바로 leave-confirm 으로 분기한다.
+  const handleLeaveClick = useCallback(
+    async (chat: ProjectChatItem): Promise<void> => {
+      if (!meId) {
+        setTeamChatModal({
+          kind: 'leave-confirm',
+          chatId: chat.id,
+          chatName: chat.name
+        });
+        return;
+      }
+      const participants = await fetchParticipants(chat.id);
+      const myEntry = participants?.data.find((entry) => entry.userId === meId);
+      if (myEntry?.memberRole === 'OWNER') {
+        setTeamChatModal({
+          kind: 'owner-leave-choice',
+          chatId: chat.id,
+          chatName: chat.name
+        });
+        return;
+      }
+      setTeamChatModal({
+        kind: 'leave-confirm',
+        chatId: chat.id,
+        chatName: chat.name
+      });
+    },
+    [fetchParticipants, meId]
+  );
+
+  const handleTeamChatMenu = useCallback(
+    (chat: ProjectChatItem | null, action: TeamChatMenuAction): void => {
+      if (action === 'create') {
+        setTeamChatModal({ kind: 'create' });
+        return;
+      }
+      if (!chat) return;
+      switch (action) {
+        case 'rename':
+          setTeamChatModal({
+            kind: 'rename',
+            chatId: chat.id,
+            currentName: chat.name
+          });
+          return;
+        case 'invite':
+          setTeamChatModal({ kind: 'invite', chatId: chat.id });
+          return;
+        case 'members':
+          setTeamChatModal({ kind: 'members', chatId: chat.id });
+          return;
+        case 'delete':
+          setTeamChatModal({
+            kind: 'delete-confirm',
+            chatId: chat.id,
+            chatName: chat.name
+          });
+          return;
+        case 'leave':
+          void handleLeaveClick(chat);
+          return;
+      }
+    },
+    [handleLeaveClick]
+  );
+
+  // 사이드바 트리거는 App.tsx 를 통해 여기 등록된 핸들러를 호출한다.
+  useEffect(() => {
+    if (!teamChatMenuHandlerRef) return;
+    teamChatMenuHandlerRef.current = handleTeamChatMenu;
+    return () => {
+      if (teamChatMenuHandlerRef.current === handleTeamChatMenu) {
+        teamChatMenuHandlerRef.current = null;
+      }
+    };
+  }, [handleTeamChatMenu, teamChatMenuHandlerRef]);
+
+  // 팀채팅이 삭제/나가기 등으로 사라질 때 활성 chat 을 해제하고 관련 캐시를 정리한다.
+  const dropActiveIfMatches = useCallback(
+    (chatId: string): void => {
+      if (activeChatId === chatId) onSelectChat('');
+      queryClient.removeQueries({ queryKey: QUERY_KEY.chatMessagesByChat(chatId) });
+    },
+    [activeChatId, onSelectChat, queryClient]
+  );
 
   const {
     sendMessage: socketSendMessage,
@@ -395,6 +564,14 @@ export const ProjectDetailPage = ({
   } = useTeamChatSocket(isTeamChat ? activeChatId : undefined, meId, (msg) => {
     if (msg.userId === meId) {
       setPendingUserMessage(null);
+    }
+  });
+
+  // 프로젝트 스코프 이벤트 구독 — 활성 채팅 여부와 무관하게 새 방 생성/이름 변경/삭제/
+  // 참여자 변경/방장 양도를 실시간으로 사이드바에 반영한다.
+  useProjectTeamChatEvents(projectId || undefined, {
+    onRoomDeleted: (deletedChatId) => {
+      if (activeChatId === deletedChatId) onSelectChat('');
     }
   });
 
@@ -410,6 +587,38 @@ export const ProjectDetailPage = ({
     const payload = messages.data;
     return payload?.data ?? [];
   }, [messages.data]);
+
+  // wizard 모달에 넘길 정규화된 메시지 배열. 서버가 role/status 를 대/소문자 어느 쪽으로 주든
+  // ChatMessage 계약(lowercase)에 맞춰 재작성한다.
+  const modalMessages: ChatMessage[] = useMemo(
+    () =>
+      messageItems.map((m) => {
+        const rawRole = getMessageRole(m).toLowerCase();
+        const rawStatus = String((m as { status?: string }).status ?? 'complete').toLowerCase();
+        const status: ChatMessage['status'] =
+          rawStatus === 'streaming' ? 'streaming' : rawStatus === 'failed' ? 'failed' : 'complete';
+        return {
+          id: getMessageId(m),
+          role: rawRole === 'user' ? 'user' : 'assistant',
+          content: getMessageContent(m),
+          createdAt: getMessageCreatedAt(m),
+          status,
+          sources: extractSources(m)
+        };
+      }),
+    [messageItems]
+  );
+  // 개인채팅에서 선택 가능한 assistant 메시지 id 집합. 체크박스 렌더 판정에 쓴다.
+  const selectableAssistantIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of modalMessages) {
+      if (m.role !== 'assistant') continue;
+      if ((m.status ?? 'complete') !== 'complete') continue;
+      if (!m.content.trim()) continue;
+      set.add(m.id);
+    }
+    return set;
+  }, [modalMessages]);
   const isCurrentStream = streamChatId === activeChatId;
   const hasSavedAnswer =
     Boolean(streamMessageId) &&
@@ -499,8 +708,16 @@ export const ProjectDetailPage = ({
     }
   }, [socketSendError, toast]);
 
+  // 활성 채팅 바뀌면 진행 중이던 팀 공유 관련 UI(선택 모드/모달/원본 뷰)를 전부 정리.
   useEffect(() => {
     followBottomRef.current = true;
+    shareSelection.exit();
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setShareModalOpen(false);
+    setDigestSourceView(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // shareSelection.exit 은 훅 객체 identity 가 매 렌더 갱신되므로 deps 에 넣으면 항상 재실행된다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChatId]);
 
   useEffect(() => {
@@ -651,6 +868,160 @@ export const ProjectDetailPage = ({
     void sendMessage(failedContent);
   };
 
+  const teamChatModalNode = ((): React.JSX.Element | null => {
+    switch (teamChatModal.kind) {
+      case 'none':
+        return null;
+      case 'create':
+        return (
+          <CreateTeamChatModal
+            open
+            projectId={projectId}
+            meId={meId}
+            onClose={closeTeamChatModal}
+            onCreated={(newChatId) => {
+              onSelectChat(newChatId);
+            }}
+          />
+        );
+      case 'rename':
+        return (
+          <RenameTeamChatModal
+            open
+            projectId={projectId}
+            chatId={teamChatModal.chatId}
+            currentName={teamChatModal.currentName}
+            onClose={closeTeamChatModal}
+          />
+        );
+      case 'invite':
+        return (
+          <InviteTeamChatMembersModal
+            open
+            projectId={projectId}
+            chatId={teamChatModal.chatId}
+            onClose={closeTeamChatModal}
+          />
+        );
+      case 'members':
+        return (
+          <TeamChatMembersModal
+            open
+            chatId={teamChatModal.chatId}
+            projectId={projectId}
+            viewerUserId={meId}
+            onClose={closeTeamChatModal}
+            onLeave={() => {
+              const chat = allChats.find((c) => c.id === teamChatModal.chatId);
+              if (chat) void handleLeaveClick(chat);
+            }}
+          />
+        );
+      case 'leave-confirm':
+        return (
+          <LeaveTeamChatConfirmModal
+            open
+            chatName={teamChatModal.chatName}
+            isProcessing={leaveTeamChat.isPending}
+            onClose={closeTeamChatModal}
+            onConfirm={() => {
+              leaveTeamChat.mutate(
+                { chatId: teamChatModal.chatId },
+                {
+                  onSuccess: (result) => {
+                    if (result.chatDeleted) {
+                      dropActiveIfMatches(teamChatModal.chatId);
+                      toast.success('마지막 참여자로 나가면서 채팅방이 삭제되었어요');
+                    } else {
+                      dropActiveIfMatches(teamChatModal.chatId);
+                      toast.success('채팅방에서 나갔어요');
+                    }
+                    closeTeamChatModal();
+                  },
+                  onError: (error) => {
+                    toast.error(friendlyErrorMessage(error));
+                  }
+                }
+              );
+            }}
+          />
+        );
+      case 'owner-leave-choice':
+        return (
+          <OwnerLeaveChoiceModal
+            open
+            onClose={closeTeamChatModal}
+            onChooseDelete={() =>
+              setTeamChatModal({
+                kind: 'delete-confirm',
+                chatId: teamChatModal.chatId,
+                chatName: teamChatModal.chatName
+              })
+            }
+            onChooseTransfer={() =>
+              setTeamChatModal({
+                kind: 'transfer',
+                chatId: teamChatModal.chatId,
+                chatName: teamChatModal.chatName
+              })
+            }
+          />
+        );
+      case 'transfer': {
+        if (!meId) {
+          // meId 없이 방장 판단이 불가하다. 이 상태에 도달하면 안전하게 닫는다.
+          closeTeamChatModal();
+          return null;
+        }
+        return (
+          <TransferOwnershipModal
+            open
+            chatId={teamChatModal.chatId}
+            projectId={projectId}
+            currentOwnerId={meId}
+            onClose={closeTeamChatModal}
+            onTransferred={() => {
+              // 서버가 원 방장 leave 까지 처리한다. FE 는 chat 캐시 제거 + 다른 채팅으로 이동.
+              dropActiveIfMatches(teamChatModal.chatId);
+              queryClient.removeQueries({
+                queryKey: QUERY_KEY.teamChatParticipants(teamChatModal.chatId)
+              });
+              void queryClient.invalidateQueries({
+                queryKey: QUERY_KEY.projectChatsByProject(projectId)
+              });
+              toast.success('방장을 양도하고 채팅방을 나왔어요');
+              closeTeamChatModal();
+            }}
+          />
+        );
+      }
+      case 'delete-confirm':
+        return (
+          <DeleteTeamChatConfirmModal
+            open
+            chatName={teamChatModal.chatName}
+            isProcessing={deleteTeamChat.isPending}
+            onClose={closeTeamChatModal}
+            onConfirm={() => {
+              deleteTeamChat.mutate(
+                { chatId: teamChatModal.chatId },
+                {
+                  onSuccess: () => {
+                    dropActiveIfMatches(teamChatModal.chatId);
+                    toast.success('채팅방을 삭제했어요');
+                    closeTeamChatModal();
+                  },
+                  onError: (error) => {
+                    toast.error(friendlyErrorMessage(error));
+                  }
+                }
+              );
+            }}
+          />
+        );
+    }
+  })();
+
   if (!projectId) {
     return (
       <InlineAlert tone="danger" title="잘못된 경로">
@@ -769,42 +1140,86 @@ export const ProjectDetailPage = ({
 
       {activeChat && isPersonalChat ? (
         <div className="flex justify-center bg-surface px-6 py-3">
-          <div className="w-full max-w-[48rem]">
-            {isEditingHeaderTitle ? (
-              <input
-                autoFocus
-                value={headerRenameDraft}
-                maxLength={100}
-                disabled={patchChat.isPending}
-                onChange={(e) => setHeaderRenameDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
+          <div className="flex w-full max-w-[48rem] items-center gap-2">
+            <div className="min-w-0 flex-1">
+              {isEditingHeaderTitle ? (
+                <input
+                  autoFocus
+                  value={headerRenameDraft}
+                  maxLength={100}
+                  disabled={patchChat.isPending}
+                  onChange={(e) => setHeaderRenameDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void commitHeaderRename(headerRenameDraft);
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      cancelHeaderRename();
+                    }
+                  }}
+                  onBlur={() => {
                     void commitHeaderRename(headerRenameDraft);
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    cancelHeaderRename();
-                  }
-                }}
-                onBlur={() => {
-                  void commitHeaderRename(headerRenameDraft);
-                }}
-                className="w-full rounded-md border border-control-line bg-surface px-2 py-1 text-ui-20 font-semibold text-text-base outline-none focus:border-primary"
-                aria-label={`${activeChat.name} 이름 바꾸기`}
-              />
-            ) : (
-              <button
+                  }}
+                  className="w-full rounded-md border border-control-line bg-surface px-2 py-1 text-ui-20 font-semibold text-text-base outline-none focus:border-primary"
+                  aria-label={`${activeChat.name} 이름 바꾸기`}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={beginHeaderRename}
+                  className="w-full truncate rounded-md px-2 py-1 text-left text-ui-20 font-semibold text-text-base transition-colors hover:bg-surface-muted"
+                  title="클릭하여 채팅 이름 바꾸기"
+                  aria-label={`${activeChat.name} — 이름 바꾸기`}
+                >
+                  {activeChat.name}
+                </button>
+              )}
+            </div>
+            {shareSelection.selectionMode ? (
+              <span className="shrink-0 text-ui-12 font-medium text-text-soft">
+                {shareSelection.count}/{MAX_SHARE_PAIRS}개 선택됨
+              </span>
+            ) : selectableAssistantIds.size > 0 ? (
+              <Button
                 type="button"
-                onClick={beginHeaderRename}
-                className="w-full truncate rounded-md px-2 py-1 text-left text-ui-20 font-semibold text-text-base transition-colors hover:bg-surface-muted"
-                title="클릭하여 채팅 이름 바꾸기"
-                aria-label={`${activeChat.name} — 이름 바꾸기`}
+                size="sm"
+                variant="ghost"
+                onClick={() => shareSelection.enter()}
+                title="답변을 골라 팀채팅에 공유합니다"
               >
-                {activeChat.name}
-              </button>
-            )}
+                팀 공유
+              </Button>
+            ) : null}
           </div>
         </div>
+      ) : null}
+
+      {activeChat && isTeamChat ? (
+        <TeamChatHeader
+          chatId={activeChat.id}
+          chatName={activeChat.name}
+          viewerUserId={meId}
+          onRename={() =>
+            setTeamChatModal({
+              kind: 'rename',
+              chatId: activeChat.id,
+              currentName: activeChat.name
+            })
+          }
+          onInvite={() => setTeamChatModal({ kind: 'invite', chatId: activeChat.id })}
+          onShowMembers={() => setTeamChatModal({ kind: 'members', chatId: activeChat.id })}
+          onDelete={() =>
+            setTeamChatModal({
+              kind: 'delete-confirm',
+              chatId: activeChat.id,
+              chatName: activeChat.name
+            })
+          }
+          onLeave={() => {
+            void handleLeaveClick(activeChat);
+          }}
+        />
       ) : null}
 
       <div className="relative min-h-0 flex-1 pt-4">
@@ -860,7 +1275,51 @@ export const ProjectDetailPage = ({
 
                 // ── 팀 채팅 렌더링 ──────────────────────────────────────────────
                 if (isTeamChat) {
-                  // TeamChatMessage shape: { userId, userName, content, createdAt } — role 필드 없음
+                  // TeamChatMessage shape: { userId, userName, content, createdAt } — 일반 메시지엔 role 없음.
+                  // 개인채팅에서 온 요약 공유는 role='ASSISTANT' + user_id=공유자 로 실려 온다.
+                  if (isDigestTeamMessage(message)) {
+                    const senderId =
+                      getTeamMessageUserId(message) ||
+                      String((message as { user_id?: string }).user_id ?? '');
+                    const senderName = getTeamMessageUserName(message);
+                    const digestCreatedAt = getMessageCreatedAt(message);
+                    const digestContent = getMessageContent(message);
+                    const digestSources = extractSources(message);
+                    const isMineShare = Boolean(meId && senderId === meId);
+                    return (
+                      <DigestSharedCard
+                        key={messageId}
+                        content={digestContent}
+                        sources={digestSources}
+                        senderName={senderName}
+                        createdAt={digestCreatedAt}
+                        isMe={isMineShare}
+                        hasSourceLink
+                        onOpenSource={() =>
+                          setDigestSourceView({
+                            messageId,
+                            sharerName: senderName,
+                            sharedAt: digestCreatedAt
+                          })
+                        }
+                        isDeleting={deleteDigestCard.isPending}
+                        onDeleteShare={
+                          isMineShare
+                            ? () => {
+                                deleteDigestCard.mutate(
+                                  { messageId },
+                                  {
+                                    onSuccess: () => toast.success('공유를 취소했어요'),
+                                    onError: (error) => toast.error(handleApiError(error).message)
+                                  }
+                                );
+                              }
+                            : undefined
+                        }
+                      />
+                    );
+                  }
+
                   const msgUserId = getTeamMessageUserId(message);
                   const senderName = getTeamMessageUserName(message);
                   const createdAt = getMessageCreatedAt(message);
@@ -939,8 +1398,19 @@ export const ProjectDetailPage = ({
                   return null;
                 }
 
-                return (
-                  <article key={messageId} className="rounded-[12px] bg-surface p-3">
+                const isSelectable = selectableAssistantIds.has(messageId);
+                const isSelected = shareSelection.isSelected(messageId);
+                const showCheckbox = shareSelection.selectionMode && isSelectable;
+
+                const articleNode = (
+                  <article
+                    className={[
+                      'flex-1 rounded-[12px] bg-surface p-3 transition-shadow',
+                      showCheckbox && isSelected ? 'ring-2 ring-primary' : '',
+                      showCheckbox ? 'cursor-pointer' : ''
+                    ].join(' ')}
+                    onClick={showCheckbox ? () => shareSelection.toggle(messageId) : undefined}
+                  >
                     <div className="mb-2 flex items-center gap-2">
                       <span
                         aria-hidden="true"
@@ -961,44 +1431,50 @@ export const ProjectDetailPage = ({
                       <MessageSources messageId={messageId} sources={mergedSources} />
                     ) : null}
 
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <MessageActionButton
-                        iconName="Copy_light"
-                        label="복사"
-                        onClick={() => copyText(messageContent)}
-                      />
-                      <MessageActionButton
-                        iconName="shared"
-                        label="팀 공유"
-                        disabled={postShare.isPending || !API_CAPABILITIES.messageShareEnabled}
-                        disabledReason={
-                          !API_CAPABILITIES.messageShareEnabled ? teamReadOnlyReason : undefined
-                        }
-                        onClick={() =>
-                          postShare.mutate(
-                            {
-                              messageId,
-                              body: { comment: `${chatName}에서 공유한 답변입니다.` }
-                            },
-                            {
-                              onSuccess: () => {
-                                toast.success('팀에 공유했어요');
-                              },
-                              onError: (error) => {
-                                toast.error(friendlyErrorMessage(error, 'message.share'));
-                              }
-                            }
-                          )
-                        }
-                      />
-                      <MessageActionButton
-                        iconName="create_box"
-                        label="팀 채팅 생성"
-                        disabled
-                        disabledReason={teamReadOnlyReason}
-                      />
-                    </div>
+                    {shareSelection.selectionMode ? null : (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <MessageActionButton
+                          iconName="Copy_light"
+                          label="복사"
+                          onClick={() => copyText(messageContent)}
+                        />
+                        {isSelectable && API_CAPABILITIES.messageShareEnabled ? (
+                          <MessageActionButton
+                            iconName="shared"
+                            label="팀 공유"
+                            onClick={() => {
+                              // 선택 모드 진입 + 이 답변 자동 체크. 사용자는 하단 액션 바에서
+                              // 추가 선택 후 '팀 공유'로 wizard 를 연다.
+                              shareSelection.enter(messageId);
+                            }}
+                          />
+                        ) : null}
+                      </div>
+                    )}
                   </article>
+                );
+
+                return (
+                  <div
+                    key={messageId}
+                    className={showCheckbox ? 'flex items-start gap-3' : undefined}
+                  >
+                    {showCheckbox ? (
+                      <label
+                        className="mt-4 shrink-0 cursor-pointer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-primary"
+                          checked={isSelected}
+                          onChange={() => shareSelection.toggle(messageId)}
+                          aria-label="이 답변을 팀 공유에 포함"
+                        />
+                      </label>
+                    ) : null}
+                    {articleNode}
+                  </div>
                 );
               })}
 
@@ -1069,56 +1545,90 @@ export const ProjectDetailPage = ({
         </div>
       </div>
 
-      <footer className="shrink-0 px-6 pb-6 flex justify-center">
-        <ChatComposer
-          value={draft}
-          placeholder={
-            isAnalyzing
-              ? `동기화 중... (${syncProgress}%)`
-              : !activeChatId
-                ? '새 대화를 시작해보세요...'
+      {shareSelection.selectionMode && isPersonalChat ? (
+        <footer className="shrink-0 border-t border-line bg-surface px-6 py-3">
+          <div className="mx-auto flex w-full max-w-[48rem] items-center justify-between gap-3">
+            <span className="text-ui-14 text-text-base">
+              <b>{shareSelection.count}</b>개 선택됨 · 최대 {MAX_SHARE_PAIRS}개
+            </span>
+            <div className="flex items-center gap-2">
+              <Button type="button" size="sm" variant="ghost" onClick={() => shareSelection.exit()}>
+                취소
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={shareSelection.count === 0}
+                onClick={() => {
+                  setShareModalInitialIds(new Set(shareSelection.selectedIds));
+                  setShareModalOpen(true);
+                }}
+              >
+                팀 공유 ({shareSelection.count})
+              </Button>
+            </div>
+          </div>
+        </footer>
+      ) : (
+        <footer className="shrink-0 px-6 pb-6 flex justify-center">
+          <ChatComposer
+            value={draft}
+            placeholder={
+              isAnalyzing
+                ? `동기화 중... (${syncProgress}%)`
+                : !activeChatId
+                  ? '새 대화를 시작해보세요...'
+                  : isTeamChatReadOnly
+                    ? '팀채팅은 현재 읽기 전용입니다.'
+                    : isTeamChat
+                      ? '팀에게 메시지 보내기...'
+                      : '무엇이든 물어보세요!'
+            }
+            disabled={isTeamChatReadOnly || isAnalyzing}
+            canSend={canSend}
+            sendDisabledReason={
+              isAnalyzing
+                ? SYNC_IN_PROGRESS_HINT
                 : isTeamChatReadOnly
-                  ? '팀채팅은 현재 읽기 전용입니다.'
-                  : isTeamChat
-                    ? '팀에게 메시지 보내기...'
-                    : '무엇이든 물어보세요!'
-          }
-          disabled={isTeamChatReadOnly || isAnalyzing}
-          canSend={canSend}
-          sendDisabledReason={
-            isAnalyzing
-              ? SYNC_IN_PROGRESS_HINT
-              : isTeamChatReadOnly
-                ? teamReadOnlyReason
-                : undefined
-          }
-          isSending={isSending}
-          onChange={setDraft}
-          onSend={() => {
-            void sendMessage();
+                  ? teamReadOnlyReason
+                  : undefined
+            }
+            isSending={isSending}
+            onChange={setDraft}
+            onSend={() => {
+              void sendMessage();
+            }}
+          />
+        </footer>
+      )}
+
+      {teamChatModalNode}
+
+      {shareModalOpen && activeChatId && chatName && isPersonalChat ? (
+        <ShareToTeamChatModal
+          open={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          chatId={activeChatId}
+          chatName={chatName}
+          projectId={projectId}
+          messages={modalMessages}
+          initialSelectedIds={shareModalInitialIds}
+          onShared={() => {
+            shareSelection.exit();
+            setShareModalOpen(false);
           }}
         />
-      </footer>
+      ) : null}
 
-      <CreateChatModal
-        open={Boolean(createChatModalType)}
-        type={createChatModalType}
-        isSubmitting={createChat.isPending}
-        onClose={onCloseCreateChatModal}
-        onSubmit={(input) => {
-          createChat.mutate(
-            {
-              type: input.type,
-              name: input.name
-            },
-            {
-              onSuccess: () => {
-                onCloseCreateChatModal();
-              }
-            }
-          );
-        }}
-      />
+      {digestSourceView ? (
+        <DigestSourceView
+          open
+          onClose={() => setDigestSourceView(null)}
+          digestMessageId={digestSourceView.messageId}
+          sharerName={digestSourceView.sharerName}
+          sharedAt={digestSourceView.sharedAt}
+        />
+      ) : null}
     </section>
   );
 };
