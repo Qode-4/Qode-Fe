@@ -36,6 +36,7 @@ import {
   TransferOwnershipModal
 } from '../components/feature/teamChat';
 import { DigestSharedCard } from '../components/feature/digest/DigestSharedCard';
+import { DigestSourceView } from '../components/feature/digest/DigestSourceView';
 import { ShareToTeamChatModal } from '../components/feature/digest/ShareToTeamChatModal';
 import { useDeleteDigestCard } from '../api/auth/useDigestAPI';
 import { useShareSelectionState } from '../hooks/useShareSelectionState';
@@ -432,6 +433,12 @@ export const ProjectDetailPage = ({
   const [shareModalInitialIds, setShareModalInitialIds] = useState<Set<string>>(new Set());
   // 팀채팅에 도착한 공유 카드의 "공유 취소" 처리(공유자 본인만 노출).
   const deleteDigestCard = useDeleteDigestCard({ chatId: activeChatId || '__empty__' });
+  // "원본 대화 보기" 오버레이 뷰 상태. 카드가 클릭되면 채워지고, 닫으면 null.
+  const [digestSourceView, setDigestSourceView] = useState<{
+    messageId: string;
+    sharerName: string;
+    sharedAt: string;
+  } | null>(null);
 
   // ── 팀채팅 모달 오케스트레이션 ─────────────────────────────────────────────
   const [teamChatModal, setTeamChatModal] = useState<TeamChatModalState>({ kind: 'none' });
@@ -1284,7 +1291,14 @@ export const ProjectDetailPage = ({
                         senderName={senderName}
                         createdAt={digestCreatedAt}
                         isMe={isMineShare}
-                        hasSourceLink={false}
+                        hasSourceLink
+                        onOpenSource={() =>
+                          setDigestSourceView({
+                            messageId,
+                            sharerName: senderName,
+                            sharedAt: digestCreatedAt
+                          })
+                        }
                         isDeleting={deleteDigestCard.isPending}
                         onDeleteShare={
                           isMineShare
@@ -1602,6 +1616,16 @@ export const ProjectDetailPage = ({
             shareSelection.exit();
             setShareModalOpen(false);
           }}
+        />
+      ) : null}
+
+      {digestSourceView ? (
+        <DigestSourceView
+          open
+          onClose={() => setDigestSourceView(null)}
+          digestMessageId={digestSourceView.messageId}
+          sharerName={digestSourceView.sharerName}
+          sharedAt={digestSourceView.sharedAt}
         />
       ) : null}
     </section>
