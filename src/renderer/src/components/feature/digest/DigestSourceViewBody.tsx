@@ -77,7 +77,7 @@ export const DigestSourceViewBody = ({
         {status === 'ready' && pairs.length > 0 ? (
           <ol className="flex flex-col gap-6" aria-label="공유된 질문·답변">
             {pairs.map((pair, idx) => (
-              <li key={`${pair.answer_message_id ?? idx}-${idx}`}>
+              <li key={`${pair.answerMessageId ?? idx}-${idx}`}>
                 <PairView pair={pair} />
               </li>
             ))}
@@ -112,21 +112,22 @@ const MetaLine = ({
   );
 };
 
-// BE 가 snake_case / camelCase 어느 쪽을 실어 주든 안전하게 꺼내는 접근자.
-const readPairField = (
-  pair: DigestSourcePair,
-  snake: keyof DigestSourcePair,
-  camel: string
-): unknown => {
-  const raw = pair as unknown as Record<string, unknown>;
-  return raw[snake as string] ?? raw[camel];
+// BE 필드명은 { question, answer, sources } (camelCase). 혹시 서버가 다른 이름으로 실어 줄 때를 대비해
+// legacy snake_case 이름도 fallback 으로 시도한다.
+const readFirst = (obj: unknown, ...keys: string[]): unknown => {
+  if (!obj || typeof obj !== 'object') return undefined;
+  const rec = obj as Record<string, unknown>;
+  for (const k of keys) {
+    if (rec[k] != null) return rec[k];
+  }
+  return undefined;
 };
 
 // 개인채팅과 시각 통일: 질문은 우측 primary-soft 말풍선, 답변은 좌측 흰 카드.
 const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
-  const questionContent = String(readPairField(pair, 'question_content', 'questionContent') ?? '');
-  const answerContent = String(readPairField(pair, 'answer_content', 'answerContent') ?? '');
-  const rawSources = readPairField(pair, 'answer_sources', 'answerSources');
+  const questionContent = String(readFirst(pair, 'question', 'question_content') ?? '');
+  const answerContent = String(readFirst(pair, 'answer', 'answer_content') ?? '');
+  const rawSources = readFirst(pair, 'sources', 'answer_sources');
   const answerSources = Array.isArray(rawSources) ? rawSources : [];
 
   return (

@@ -75,18 +75,17 @@ export type RecentDigestSharesResponse = {
 };
 
 // GET /api/digests/:digestMessageId/source (원본 pair 스냅샷)
+// BE 응답 형태(camelCase). 서버가 {ok, data:{...}} 로 감싸 주면 훅에서 unwrap 한다.
 export type DigestSourcePair = {
-  question_message_id: string;
-  question_content: string;
-  answer_message_id: string;
-  answer_content: string;
-  answer_sources?: SourceItem[] | null;
+  questionMessageId: string;
+  question: string;
+  answerMessageId: string;
+  answer: string;
+  sources?: SourceItem[] | null;
 };
 
 export type DigestSourceResponse = {
-  digest_message_id: string;
-  origin_chat_id: string;
-  origin_chat_name: string;
   note?: string | null;
   pairs: DigestSourcePair[];
+  sharedAt?: string;
 };
