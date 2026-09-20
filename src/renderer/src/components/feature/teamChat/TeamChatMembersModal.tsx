@@ -32,7 +32,10 @@ export const TeamChatMembersModal = ({
   const kick = useDeleteTeamChatParticipant({ chatId, projectId });
   const toast = useToast();
 
-  const list = useMemo(() => sortParticipants(participants.data?.data ?? []), [participants.data]);
+  const list = useMemo(
+    () => sortParticipants(participants.data?.data ?? [], undefined, viewerUserId),
+    [participants.data, viewerUserId]
+  );
 
   const viewer = useMemo(
     () => (viewerUserId ? list.find((participant) => participant.userId === viewerUserId) : null),

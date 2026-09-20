@@ -56,6 +56,33 @@ describe('sortParticipants', () => {
     expect(result.map((it) => it.userName)).toEqual(['alice', 'Bob', 'Charlie']);
   });
 
+  it('viewerId 를 넘기면 방장 바로 다음에 뷰어가 온다', () => {
+    const result = sortParticipants(
+      [
+        p({ userId: 'me', userName: '지호' }),
+        p({ userId: 'u2', userName: '가온', memberRole: 'OWNER' }),
+        p({ userId: 'u3', userName: '나연' }),
+        p({ userId: 'u4', userName: '다희' })
+      ],
+      undefined,
+      'me'
+    );
+    expect(result.map((it) => it.userName)).toEqual(['가온', '지호', '나연', '다희']);
+  });
+
+  it('뷰어가 방장이면 그대로 최상단에 있고 정렬에 영향 없음', () => {
+    const result = sortParticipants(
+      [
+        p({ userId: 'me', userName: '가온', memberRole: 'OWNER' }),
+        p({ userId: 'u2', userName: '지호' }),
+        p({ userId: 'u3', userName: '나연' })
+      ],
+      undefined,
+      'me'
+    );
+    expect(result.map((it) => it.userName)).toEqual(['가온', '나연', '지호']);
+  });
+
   it('입력 배열을 변형하지 않는다', () => {
     const list: TeamChatParticipant[] = [
       p({ userId: 'u1', userName: '지호' }),
