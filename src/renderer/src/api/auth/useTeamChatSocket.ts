@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ProjectChatItem } from './useChatsAPI';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { QUERY_KEY } from '../queryKeys';
 import { getSocket } from '../socket';
 
@@ -15,34 +14,6 @@ export type TeamChatSocketMessage = {
 };
 
 type MessagesCache = { data?: TeamChatSocketMessage[] } | undefined;
-type ProjectChatsCache = { data?: ProjectChatItem[] } | undefined;
-
-type ParticipantsChangedPayload = {
-  chatId: string;
-  reason?: 'invite' | 'kick' | 'leave' | 'transfer';
-};
-
-type RoomRenamedPayload = {
-  chatId: string;
-  name: string;
-};
-
-type RoomDeletedPayload = {
-  chatId: string;
-};
-
-type OwnershipTransferredPayload = {
-  chatId: string;
-  newOwnerId: string;
-  previousOwnerId?: string;
-};
-
-type UseTeamChatSocketOptions = {
-  projectId?: string;
-  onReceive?: (message: TeamChatSocketMessage) => void;
-  onRoomDeleted?: (chatId: string) => void;
-  onOwnershipTransferred?: (payload: OwnershipTransferredPayload) => void;
-};
 
 type UseTeamChatSocketResult = {
   sendMessage: (content: string) => void;
@@ -50,27 +21,22 @@ type UseTeamChatSocketResult = {
   sendError: string | null;
 };
 
+// 활성 팀채팅 하나의 메시지 송수신 전용. 방·참여자·양도 등 room-level 변경은
+// useProjectTeamChatEvents 가 프로젝트 스코프로 처리한다 — 사이드바에 있지만 아직
+// join 하지 않은 방이나 초대 대기 상태에도 알림이 도달해야 하기 때문이다.
 export const useTeamChatSocket = (
   chatId: string | undefined,
   meId: string | undefined,
-  onReceiveOrOptions?: UseTeamChatSocketOptions | ((message: TeamChatSocketMessage) => void)
+  onReceive?: (message: TeamChatSocketMessage) => void
 ): UseTeamChatSocketResult => {
   const qc = useQueryClient();
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
-  // 하위 호환: 세 번째 인자가 함수면 onReceive 만 넘긴 옛 시그니처, 아니면 옵션 객체.
-  const options: UseTeamChatSocketOptions =
-    typeof onReceiveOrOptions === 'function'
-      ? { onReceive: onReceiveOrOptions }
-      : (onReceiveOrOptions ?? {});
-
-  const optionsRef = useRef(options);
+  const onReceiveRef = useRef(onReceive);
   useEffect(() => {
-    optionsRef.current = options;
+    onReceiveRef.current = onReceive;
   });
-
-  const projectId = options.projectId;
 
   useEffect(() => {
     if (!chatId) return;
@@ -88,7 +54,7 @@ export const useTeamChatSocket = (
         if (prev.data?.some((m) => m.id === message.id)) return prev;
         return { ...prev, data: [...(prev.data ?? []), message] };
       });
-      optionsRef.current.onReceive?.(message);
+      onReceiveRef.current?.(message);
     };
 
     const handleError = (payload: { message: string }): void => {
@@ -96,70 +62,16 @@ export const useTeamChatSocket = (
       setSendError(payload.message ?? '메시지 전송에 실패했습니다.');
     };
 
-    const handleParticipantsChanged = (payload: ParticipantsChangedPayload): void => {
-      const targetChatId = payload?.chatId ?? chatId;
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.teamChatParticipants(targetChatId) });
-      if (projectId) {
-        void qc.invalidateQueries({
-          queryKey: QUERY_KEY.projectChatsByProject(projectId)
-        });
-      }
-    };
-
-    const handleRoomRenamed = (payload: RoomRenamedPayload): void => {
-      if (!payload?.chatId || typeof payload.name !== 'string') return;
-
-      if (projectId) {
-        const cacheKey = QUERY_KEY.projectChatsByProject(projectId);
-        qc.setQueriesData<ProjectChatsCache>({ queryKey: cacheKey }, (old) => {
-          if (!old || !old.data) return old;
-          return {
-            ...old,
-            data: old.data.map((chat) =>
-              chat.id === payload.chatId ? { ...chat, name: payload.name } : chat
-            )
-          };
-        });
-        void qc.invalidateQueries({ queryKey: cacheKey });
-      }
-    };
-
-    const handleRoomDeleted = (payload: RoomDeletedPayload): void => {
-      const targetChatId = payload?.chatId ?? chatId;
-      qc.removeQueries({ queryKey: QUERY_KEY.chatMessagesByChat(targetChatId) });
-      qc.removeQueries({ queryKey: QUERY_KEY.teamChatParticipants(targetChatId) });
-      if (projectId) {
-        void qc.invalidateQueries({
-          queryKey: QUERY_KEY.projectChatsByProject(projectId)
-        });
-      }
-      optionsRef.current.onRoomDeleted?.(targetChatId);
-    };
-
-    const handleOwnershipTransferred = (payload: OwnershipTransferredPayload): void => {
-      const targetChatId = payload?.chatId ?? chatId;
-      void qc.invalidateQueries({ queryKey: QUERY_KEY.teamChatParticipants(targetChatId) });
-      optionsRef.current.onOwnershipTransferred?.(payload);
-    };
-
     socket.on('team:message:receive', handleMessage);
     socket.on('team:message:error', handleError);
     socket.on('team:message:sent', handleMessage);
-    socket.on('team:participants:changed', handleParticipantsChanged);
-    socket.on('team:room:renamed', handleRoomRenamed);
-    socket.on('team:room:deleted', handleRoomDeleted);
-    socket.on('team:ownership:transferred', handleOwnershipTransferred);
 
     return () => {
       socket.off('team:message:receive', handleMessage);
       socket.off('team:message:error', handleError);
       socket.off('team:message:sent', handleMessage);
-      socket.off('team:participants:changed', handleParticipantsChanged);
-      socket.off('team:room:renamed', handleRoomRenamed);
-      socket.off('team:room:deleted', handleRoomDeleted);
-      socket.off('team:ownership:transferred', handleOwnershipTransferred);
     };
-  }, [chatId, projectId, qc]);
+  }, [chatId, qc]);
 
   const sendMessage = useCallback(
     (content: string): void => {
@@ -175,32 +87,31 @@ export const useTeamChatSocket = (
   return { sendMessage, isSending, sendError };
 };
 
-export type TeamSocketStatus = 'connected' | 'disconnected' | 'reconnecting';
+export type TeamSocketStatus = 'connected' | 'disconnected';
+
+// useSyncExternalStore 로 소켓 상태를 실시간 subscribe 한다.
+// 이전 useState + useEffect 조합은 훅 마운트 시점에 소켓이 이미 connect 돼 있으면
+// 'connect' 이벤트를 놓쳐 'disconnected' 로 고정되는 버그가 있었다.
+// (activeChatId 가 team 채팅으로 바뀌기 전에 다른 훅이 먼저 socket.connect() 를 부르는 흐름)
+const subscribeToSocketStatus = (onChange: () => void): (() => void) => {
+  const socket = getSocket();
+  const handler = (): void => onChange();
+  socket.on('connect', handler);
+  socket.on('disconnect', handler);
+  return () => {
+    socket.off('connect', handler);
+    socket.off('disconnect', handler);
+  };
+};
+
+const getSocketStatusSnapshot = (): TeamSocketStatus =>
+  getSocket().connected ? 'connected' : 'disconnected';
 
 export const useTeamSocketStatus = (enabled: boolean): TeamSocketStatus => {
-  const [status, setStatus] = useState<TeamSocketStatus>(() =>
-    getSocket().connected ? 'connected' : 'disconnected'
+  const status = useSyncExternalStore<TeamSocketStatus>(
+    subscribeToSocketStatus,
+    getSocketStatusSnapshot,
+    () => 'disconnected'
   );
-
-  useEffect(() => {
-    if (!enabled) return;
-
-    const socket = getSocket();
-
-    const onConnect = (): void => setStatus('connected');
-    const onDisconnect = (): void => setStatus('disconnected');
-    const onReconnectAttempt = (): void => setStatus('reconnecting');
-
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.io.on('reconnect_attempt', onReconnectAttempt);
-
-    return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.io.off('reconnect_attempt', onReconnectAttempt);
-    };
-  }, [enabled]);
-
-  return status;
+  return enabled ? status : 'connected';
 };

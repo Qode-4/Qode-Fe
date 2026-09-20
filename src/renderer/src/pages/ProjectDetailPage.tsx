@@ -16,6 +16,7 @@ import {
   usePostProjectSync
 } from '../api/auth/useProjectsAPI';
 import { useDeleteTeamChat, useLeaveTeamChat } from '../api/auth/useTeamChatAPI';
+import { useProjectTeamChatEvents } from '../api/auth/useProjectTeamChatEvents';
 import { useTeamChatSocket, useTeamSocketStatus } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
@@ -540,6 +541,14 @@ export const ProjectDetailPage = ({
   } = useTeamChatSocket(isTeamChat ? activeChatId : undefined, meId, (msg) => {
     if (msg.userId === meId) {
       setPendingUserMessage(null);
+    }
+  });
+
+  // 프로젝트 스코프 이벤트 구독 — 활성 채팅 여부와 무관하게 새 방 생성/이름 변경/삭제/
+  // 참여자 변경/방장 양도를 실시간으로 사이드바에 반영한다.
+  useProjectTeamChatEvents(projectId || undefined, {
+    onRoomDeleted: (deletedChatId) => {
+      if (activeChatId === deletedChatId) onSelectChat('');
     }
   });
 
