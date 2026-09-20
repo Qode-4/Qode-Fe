@@ -4,7 +4,6 @@ import {
   useGetChatMessages,
   useGetProjectChats,
   usePatchChat,
-  usePostMessageShare,
   usePostPersonalChatMessageSSE,
   usePostProjectChats,
   type ProjectChatItem
@@ -20,7 +19,8 @@ import { useProjectTeamChatEvents } from '../api/auth/useProjectTeamChatEvents';
 import { useTeamChatSocket, useTeamSocketStatus } from '../api/auth/useTeamChatSocket';
 import { handleApiError } from '../api/axios';
 import { API_CAPABILITIES, TEAM_CHAT_READONLY_TOOLTIP } from '../api/capabilities';
-import type { SourceItem } from '../api/contracts/chats';
+import type { ChatMessage, SourceItem } from '../api/contracts/chats';
+import { MAX_SHARE_PAIRS } from '../api/contracts/digest';
 import type { TeamChatParticipantsResponse } from '../api/contracts/teamChat';
 import { apiClient } from '../api/apiClient';
 import { friendlyErrorMessage } from '../api/errorMessages';
@@ -35,6 +35,11 @@ import {
   TeamChatMembersModal,
   TransferOwnershipModal
 } from '../components/feature/teamChat';
+import { DigestSharedCard } from '../components/feature/digest/DigestSharedCard';
+import { DigestSourceView } from '../components/feature/digest/DigestSourceView';
+import { ShareToTeamChatModal } from '../components/feature/digest/ShareToTeamChatModal';
+import { useDeleteDigestCard } from '../api/auth/useDigestAPI';
+import { useShareSelectionState } from '../hooks/useShareSelectionState';
 import type { IconName } from '../components/icons/iconTypes';
 import { Button } from '../components/ui/Button';
 import { ChatComposer } from '../components/ui/ChatComposer';
@@ -232,6 +237,13 @@ const isUserMessageRole = (role: string): boolean => {
   return role === 'user' || role === 'USER';
 };
 
+// 팀채팅 메시지 중 개인채팅 답변 요약 공유 카드 여부를 판정한다.
+// BE 는 role='ASSISTANT' + user_id=공유자 로 실어 준다.
+const isDigestTeamMessage = (message: unknown): boolean => {
+  const role = String((message as { role?: string }).role ?? '').toLowerCase();
+  return role === 'assistant';
+};
+
 const LoadingDots = (): React.JSX.Element => {
   const [dots, setDots] = useState('.');
   useEffect(() => {
@@ -411,12 +423,22 @@ export const ProjectDetailPage = ({
   });
 
   const postPersonalMessage = usePostPersonalChatMessageSSE({ projectId });
-  const postShare = usePostMessageShare({
-    projectId,
-    chatId: activeChatId || '__empty__'
-  });
   const createChat = usePostProjectChats({ projectId });
   const patchChat = usePatchChat();
+
+  // 개인채팅 답변 여러 개를 골라 요약 후 팀채팅에 공유하는 wizard 관련 상태.
+  // 기존 단일 메시지 공유 훅(usePostMessageShare)은 useChatsAPI 에 남아 있지만 이 페이지에선 안 씀.
+  const shareSelection = useShareSelectionState();
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareModalInitialIds, setShareModalInitialIds] = useState<Set<string>>(new Set());
+  // 팀채팅에 도착한 공유 카드의 "공유 취소" 처리(공유자 본인만 노출).
+  const deleteDigestCard = useDeleteDigestCard({ chatId: activeChatId || '__empty__' });
+  // "원본 대화 보기" 오버레이 뷰 상태. 카드가 클릭되면 채워지고, 닫으면 null.
+  const [digestSourceView, setDigestSourceView] = useState<{
+    messageId: string;
+    sharerName: string;
+    sharedAt: string;
+  } | null>(null);
 
   // ── 팀채팅 모달 오케스트레이션 ─────────────────────────────────────────────
   const [teamChatModal, setTeamChatModal] = useState<TeamChatModalState>({ kind: 'none' });
@@ -565,6 +587,38 @@ export const ProjectDetailPage = ({
     const payload = messages.data;
     return payload?.data ?? [];
   }, [messages.data]);
+
+  // wizard 모달에 넘길 정규화된 메시지 배열. 서버가 role/status 를 대/소문자 어느 쪽으로 주든
+  // ChatMessage 계약(lowercase)에 맞춰 재작성한다.
+  const modalMessages: ChatMessage[] = useMemo(
+    () =>
+      messageItems.map((m) => {
+        const rawRole = getMessageRole(m).toLowerCase();
+        const rawStatus = String((m as { status?: string }).status ?? 'complete').toLowerCase();
+        const status: ChatMessage['status'] =
+          rawStatus === 'streaming' ? 'streaming' : rawStatus === 'failed' ? 'failed' : 'complete';
+        return {
+          id: getMessageId(m),
+          role: rawRole === 'user' ? 'user' : 'assistant',
+          content: getMessageContent(m),
+          createdAt: getMessageCreatedAt(m),
+          status,
+          sources: extractSources(m)
+        };
+      }),
+    [messageItems]
+  );
+  // 개인채팅에서 선택 가능한 assistant 메시지 id 집합. 체크박스 렌더 판정에 쓴다.
+  const selectableAssistantIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of modalMessages) {
+      if (m.role !== 'assistant') continue;
+      if ((m.status ?? 'complete') !== 'complete') continue;
+      if (!m.content.trim()) continue;
+      set.add(m.id);
+    }
+    return set;
+  }, [modalMessages]);
   const isCurrentStream = streamChatId === activeChatId;
   const hasSavedAnswer =
     Boolean(streamMessageId) &&
@@ -654,8 +708,16 @@ export const ProjectDetailPage = ({
     }
   }, [socketSendError, toast]);
 
+  // 활성 채팅 바뀌면 진행 중이던 팀 공유 관련 UI(선택 모드/모달/원본 뷰)를 전부 정리.
   useEffect(() => {
     followBottomRef.current = true;
+    shareSelection.exit();
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setShareModalOpen(false);
+    setDigestSourceView(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // shareSelection.exit 은 훅 객체 identity 가 매 렌더 갱신되므로 deps 에 넣으면 항상 재실행된다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChatId]);
 
   useEffect(() => {
@@ -1078,40 +1140,57 @@ export const ProjectDetailPage = ({
 
       {activeChat && isPersonalChat ? (
         <div className="flex justify-center bg-surface px-6 py-3">
-          <div className="w-full max-w-[48rem]">
-            {isEditingHeaderTitle ? (
-              <input
-                autoFocus
-                value={headerRenameDraft}
-                maxLength={100}
-                disabled={patchChat.isPending}
-                onChange={(e) => setHeaderRenameDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
+          <div className="flex w-full max-w-[48rem] items-center gap-2">
+            <div className="min-w-0 flex-1">
+              {isEditingHeaderTitle ? (
+                <input
+                  autoFocus
+                  value={headerRenameDraft}
+                  maxLength={100}
+                  disabled={patchChat.isPending}
+                  onChange={(e) => setHeaderRenameDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void commitHeaderRename(headerRenameDraft);
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      cancelHeaderRename();
+                    }
+                  }}
+                  onBlur={() => {
                     void commitHeaderRename(headerRenameDraft);
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    cancelHeaderRename();
-                  }
-                }}
-                onBlur={() => {
-                  void commitHeaderRename(headerRenameDraft);
-                }}
-                className="w-full rounded-md border border-control-line bg-surface px-2 py-1 text-ui-20 font-semibold text-text-base outline-none focus:border-primary"
-                aria-label={`${activeChat.name} 이름 바꾸기`}
-              />
-            ) : (
-              <button
+                  }}
+                  className="w-full rounded-md border border-control-line bg-surface px-2 py-1 text-ui-20 font-semibold text-text-base outline-none focus:border-primary"
+                  aria-label={`${activeChat.name} 이름 바꾸기`}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={beginHeaderRename}
+                  className="w-full truncate rounded-md px-2 py-1 text-left text-ui-20 font-semibold text-text-base transition-colors hover:bg-surface-muted"
+                  title="클릭하여 채팅 이름 바꾸기"
+                  aria-label={`${activeChat.name} — 이름 바꾸기`}
+                >
+                  {activeChat.name}
+                </button>
+              )}
+            </div>
+            {shareSelection.selectionMode ? (
+              <span className="shrink-0 text-ui-12 font-medium text-text-soft">
+                {shareSelection.count}/{MAX_SHARE_PAIRS}개 선택됨
+              </span>
+            ) : selectableAssistantIds.size > 0 && API_CAPABILITIES.messageShareEnabled ? (
+              <Button
                 type="button"
-                onClick={beginHeaderRename}
-                className="w-full truncate rounded-md px-2 py-1 text-left text-ui-20 font-semibold text-text-base transition-colors hover:bg-surface-muted"
-                title="클릭하여 채팅 이름 바꾸기"
-                aria-label={`${activeChat.name} — 이름 바꾸기`}
+                size="sm"
+                variant="ghost"
+                onClick={() => shareSelection.enter()}
+                title="답변을 골라 팀채팅에 공유합니다"
               >
-                {activeChat.name}
-              </button>
-            )}
+                팀 공유
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -1196,7 +1275,51 @@ export const ProjectDetailPage = ({
 
                 // ── 팀 채팅 렌더링 ──────────────────────────────────────────────
                 if (isTeamChat) {
-                  // TeamChatMessage shape: { userId, userName, content, createdAt } — role 필드 없음
+                  // TeamChatMessage shape: { userId, userName, content, createdAt } — 일반 메시지엔 role 없음.
+                  // 개인채팅에서 온 요약 공유는 role='ASSISTANT' + user_id=공유자 로 실려 온다.
+                  if (isDigestTeamMessage(message)) {
+                    const senderId =
+                      getTeamMessageUserId(message) ||
+                      String((message as { user_id?: string }).user_id ?? '');
+                    const senderName = getTeamMessageUserName(message);
+                    const digestCreatedAt = getMessageCreatedAt(message);
+                    const digestContent = getMessageContent(message);
+                    const digestSources = extractSources(message);
+                    const isMineShare = Boolean(meId && senderId === meId);
+                    return (
+                      <DigestSharedCard
+                        key={messageId}
+                        content={digestContent}
+                        sources={digestSources}
+                        senderName={senderName}
+                        createdAt={digestCreatedAt}
+                        isMe={isMineShare}
+                        hasSourceLink
+                        onOpenSource={() =>
+                          setDigestSourceView({
+                            messageId,
+                            sharerName: senderName,
+                            sharedAt: digestCreatedAt
+                          })
+                        }
+                        isDeleting={deleteDigestCard.isPending}
+                        onDeleteShare={
+                          isMineShare
+                            ? () => {
+                                deleteDigestCard.mutate(
+                                  { messageId },
+                                  {
+                                    onSuccess: () => toast.success('공유를 취소했어요'),
+                                    onError: (error) => toast.error(handleApiError(error).message)
+                                  }
+                                );
+                              }
+                            : undefined
+                        }
+                      />
+                    );
+                  }
+
                   const msgUserId = getTeamMessageUserId(message);
                   const senderName = getTeamMessageUserName(message);
                   const createdAt = getMessageCreatedAt(message);
@@ -1275,8 +1398,19 @@ export const ProjectDetailPage = ({
                   return null;
                 }
 
-                return (
-                  <article key={messageId} className="rounded-[12px] bg-surface p-3">
+                const isSelectable = selectableAssistantIds.has(messageId);
+                const isSelected = shareSelection.isSelected(messageId);
+                const showCheckbox = shareSelection.selectionMode && isSelectable;
+
+                const articleNode = (
+                  <article
+                    className={[
+                      'flex-1 rounded-[12px] bg-surface p-3 transition-shadow',
+                      showCheckbox && isSelected ? 'ring-2 ring-primary' : '',
+                      showCheckbox ? 'cursor-pointer' : ''
+                    ].join(' ')}
+                    onClick={showCheckbox ? () => shareSelection.toggle(messageId) : undefined}
+                  >
                     <div className="mb-2 flex items-center gap-2">
                       <span
                         aria-hidden="true"
@@ -1297,44 +1431,50 @@ export const ProjectDetailPage = ({
                       <MessageSources messageId={messageId} sources={mergedSources} />
                     ) : null}
 
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <MessageActionButton
-                        iconName="Copy_light"
-                        label="복사"
-                        onClick={() => copyText(messageContent)}
-                      />
-                      <MessageActionButton
-                        iconName="shared"
-                        label="팀 공유"
-                        disabled={postShare.isPending || !API_CAPABILITIES.messageShareEnabled}
-                        disabledReason={
-                          !API_CAPABILITIES.messageShareEnabled ? teamReadOnlyReason : undefined
-                        }
-                        onClick={() =>
-                          postShare.mutate(
-                            {
-                              messageId,
-                              body: { comment: `${chatName}에서 공유한 답변입니다.` }
-                            },
-                            {
-                              onSuccess: () => {
-                                toast.success('팀에 공유했어요');
-                              },
-                              onError: (error) => {
-                                toast.error(friendlyErrorMessage(error, 'message.share'));
-                              }
-                            }
-                          )
-                        }
-                      />
-                      <MessageActionButton
-                        iconName="create_box"
-                        label="팀 채팅 생성"
-                        disabled
-                        disabledReason={teamReadOnlyReason}
-                      />
-                    </div>
+                    {shareSelection.selectionMode ? null : (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <MessageActionButton
+                          iconName="Copy_light"
+                          label="복사"
+                          onClick={() => copyText(messageContent)}
+                        />
+                        {isSelectable && API_CAPABILITIES.messageShareEnabled ? (
+                          <MessageActionButton
+                            iconName="shared"
+                            label="팀 공유"
+                            onClick={() => {
+                              // 선택 모드 진입 + 이 답변 자동 체크. 사용자는 하단 액션 바에서
+                              // 추가 선택 후 '팀 공유'로 wizard 를 연다.
+                              shareSelection.enter(messageId);
+                            }}
+                          />
+                        ) : null}
+                      </div>
+                    )}
                   </article>
+                );
+
+                return (
+                  <div
+                    key={messageId}
+                    className={showCheckbox ? 'flex items-start gap-3' : undefined}
+                  >
+                    {showCheckbox ? (
+                      <label
+                        className="mt-4 shrink-0 cursor-pointer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-primary"
+                          checked={isSelected}
+                          onChange={() => shareSelection.toggle(messageId)}
+                          aria-label="이 답변을 팀 공유에 포함"
+                        />
+                      </label>
+                    ) : null}
+                    {articleNode}
+                  </div>
                 );
               })}
 
@@ -1405,38 +1545,90 @@ export const ProjectDetailPage = ({
         </div>
       </div>
 
-      <footer className="shrink-0 px-6 pb-6 flex justify-center">
-        <ChatComposer
-          value={draft}
-          placeholder={
-            isAnalyzing
-              ? `동기화 중... (${syncProgress}%)`
-              : !activeChatId
-                ? '새 대화를 시작해보세요...'
+      {shareSelection.selectionMode && isPersonalChat ? (
+        <footer className="shrink-0 border-t border-line bg-surface px-6 py-3">
+          <div className="mx-auto flex w-full max-w-[48rem] items-center justify-between gap-3">
+            <span className="text-ui-14 text-text-base">
+              <b>{shareSelection.count}</b>개 선택됨 · 최대 {MAX_SHARE_PAIRS}개
+            </span>
+            <div className="flex items-center gap-2">
+              <Button type="button" size="sm" variant="ghost" onClick={() => shareSelection.exit()}>
+                취소
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={shareSelection.count === 0}
+                onClick={() => {
+                  setShareModalInitialIds(new Set(shareSelection.selectedIds));
+                  setShareModalOpen(true);
+                }}
+              >
+                팀 공유 ({shareSelection.count})
+              </Button>
+            </div>
+          </div>
+        </footer>
+      ) : (
+        <footer className="shrink-0 px-6 pb-6 flex justify-center">
+          <ChatComposer
+            value={draft}
+            placeholder={
+              isAnalyzing
+                ? `동기화 중... (${syncProgress}%)`
+                : !activeChatId
+                  ? '새 대화를 시작해보세요...'
+                  : isTeamChatReadOnly
+                    ? '팀채팅은 현재 읽기 전용입니다.'
+                    : isTeamChat
+                      ? '팀에게 메시지 보내기...'
+                      : '무엇이든 물어보세요!'
+            }
+            disabled={isTeamChatReadOnly || isAnalyzing}
+            canSend={canSend}
+            sendDisabledReason={
+              isAnalyzing
+                ? SYNC_IN_PROGRESS_HINT
                 : isTeamChatReadOnly
-                  ? '팀채팅은 현재 읽기 전용입니다.'
-                  : isTeamChat
-                    ? '팀에게 메시지 보내기...'
-                    : '무엇이든 물어보세요!'
-          }
-          disabled={isTeamChatReadOnly || isAnalyzing}
-          canSend={canSend}
-          sendDisabledReason={
-            isAnalyzing
-              ? SYNC_IN_PROGRESS_HINT
-              : isTeamChatReadOnly
-                ? teamReadOnlyReason
-                : undefined
-          }
-          isSending={isSending}
-          onChange={setDraft}
-          onSend={() => {
-            void sendMessage();
-          }}
-        />
-      </footer>
+                  ? teamReadOnlyReason
+                  : undefined
+            }
+            isSending={isSending}
+            onChange={setDraft}
+            onSend={() => {
+              void sendMessage();
+            }}
+          />
+        </footer>
+      )}
 
       {teamChatModalNode}
+
+      {shareModalOpen && activeChatId && chatName && isPersonalChat ? (
+        <ShareToTeamChatModal
+          open={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          chatId={activeChatId}
+          chatName={chatName}
+          projectId={projectId}
+          messages={modalMessages}
+          initialSelectedIds={shareModalInitialIds}
+          onShared={() => {
+            shareSelection.exit();
+            setShareModalOpen(false);
+          }}
+        />
+      ) : null}
+
+      {digestSourceView ? (
+        <DigestSourceView
+          open
+          onClose={() => setDigestSourceView(null)}
+          digestMessageId={digestSourceView.messageId}
+          sharerName={digestSourceView.sharerName}
+          sharedAt={digestSourceView.sharedAt}
+        />
+      ) : null}
     </section>
   );
 };
