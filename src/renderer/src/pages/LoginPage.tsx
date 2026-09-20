@@ -17,9 +17,19 @@ type Props = {
 
 const isEmail = (v: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
+const QUICK_LOGIN_EMAIL = import.meta.env.VITE_QUICK_LOGIN_EMAIL ?? '';
+const QUICK_LOGIN_PASSWORD = import.meta.env.VITE_QUICK_LOGIN_PASSWORD ?? '';
+const QUICK_LOGIN_ENABLED = Boolean(QUICK_LOGIN_EMAIL && QUICK_LOGIN_PASSWORD);
+
 export const LoginPage = ({ location }: Props): React.JSX.Element => {
   const next = resolveNextPath(location.query.next);
   const login = usePostAuthLogin();
+
+  const handleLoginSuccess = (userName: string) => {
+    authTransitionStorage.setLoginTransitionUserName(userName);
+    if (!tokenStorage.getAccessToken()) return;
+    navigate(next);
+  };
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,66 +63,91 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
       title="로그인"
       description="큐오드에 오신 걸 환영합니다."
       footer={
-        <>
-          계정이 없나요? <Link to={buildPath('/signup', { next })}>회원가입하기</Link>
-        </>
+        QUICK_LOGIN_ENABLED ? undefined : (
+          <>
+            계정이 없나요? <Link to={buildPath('/signup', { next })}>회원가입하기</Link>
+          </>
+        )
       }
     >
-      <form
-        className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setTouched({ email: true, password: true });
-          if (!canSubmit) return;
+      {QUICK_LOGIN_ENABLED ? (
+        <div className="space-y-4">
+          <Button
+            type="button"
+            variant="primary"
+            className="w-full"
+            isLoading={login.isPending}
+            onClick={() => {
+              login.mutate(
+                { email: QUICK_LOGIN_EMAIL, password: QUICK_LOGIN_PASSWORD },
+                {
+                  onSuccess: (data) => handleLoginSuccess(data.user.name)
+                }
+              );
+            }}
+          >
+            Qode 시작하기
+          </Button>
 
-          login.mutate(
-            { email, password },
-            {
-              onSuccess: (data) => {
-                authTransitionStorage.setLoginTransitionUserName(data.user.name);
-                if (!tokenStorage.getAccessToken()) return;
-                navigate(next);
+          {submitError ? (
+            <InlineAlert tone="danger" title="로그인 실패">
+              {submitError}
+            </InlineAlert>
+          ) : null}
+        </div>
+      ) : (
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setTouched({ email: true, password: true });
+            if (!canSubmit) return;
+
+            login.mutate(
+              { email, password },
+              {
+                onSuccess: (data) => handleLoginSuccess(data.user.name)
               }
-            }
-          );
-        }}
-      >
-        <TextField
-          label="이메일"
-          type="email"
-          name="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-          autoComplete="email"
-          inputMode="email"
-          placeholder="planner@demo.com"
-          error={showEmailError ? errors.email : undefined}
-        />
+            );
+          }}
+        >
+          <TextField
+            label="이메일"
+            type="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            autoComplete="email"
+            inputMode="email"
+            placeholder="planner@demo.com"
+            error={showEmailError ? errors.email : undefined}
+          />
 
-        <TextField
-          label="비밀번호"
-          type="password"
-          name="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onBlur={() => setTouched((t) => ({ ...t, password: true }))}
-          autoComplete="current-password"
-          placeholder="비밀번호를 입력하세요."
-          showPasswordToggle
-          error={showPasswordError ? errors.password : undefined}
-        />
+          <TextField
+            label="비밀번호"
+            type="password"
+            name="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+            autoComplete="current-password"
+            placeholder="비밀번호를 입력하세요."
+            showPasswordToggle
+            error={showPasswordError ? errors.password : undefined}
+          />
 
-        <Button type="submit" className="w-full" isLoading={login.isPending}>
-          로그인
-        </Button>
+          <Button type="submit" className="w-full" isLoading={login.isPending}>
+            로그인
+          </Button>
 
-        {submitError ? (
-          <InlineAlert tone="danger" title="로그인 실패">
-            {submitError}
-          </InlineAlert>
-        ) : null}
-      </form>
+          {submitError ? (
+            <InlineAlert tone="danger" title="로그인 실패">
+              {submitError}
+            </InlineAlert>
+          ) : null}
+        </form>
+      )}
     </AuthFrame>
   );
 };
