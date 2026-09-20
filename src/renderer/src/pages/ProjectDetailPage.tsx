@@ -708,12 +708,15 @@ export const ProjectDetailPage = ({
     }
   }, [socketSendError, toast]);
 
+  // 활성 채팅 바뀌면 진행 중이던 팀 공유 관련 UI(선택 모드/모달/원본 뷰)를 전부 정리.
   useEffect(() => {
     followBottomRef.current = true;
-    // 활성 채팅 바뀌면 진행 중이던 팀 공유 선택 모드도 해제.
     shareSelection.exit();
-    // shareSelection.exit 은 안정적 identity(useCallback)이지만 훅 객체 자체는 매 렌더 갱신되므로
-    // 의존성으로 두면 activeChatId 무관하게 계속 재실행된다.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setShareModalOpen(false);
+    setDigestSourceView(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // shareSelection.exit 은 훅 객체 identity 가 매 렌더 갱신되므로 deps 에 넣으면 항상 재실행된다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChatId]);
 
@@ -1177,7 +1180,7 @@ export const ProjectDetailPage = ({
               <span className="shrink-0 text-ui-12 font-medium text-text-soft">
                 {shareSelection.count}/{MAX_SHARE_PAIRS}개 선택됨
               </span>
-            ) : selectableAssistantIds.size > 0 ? (
+            ) : selectableAssistantIds.size > 0 && API_CAPABILITIES.messageShareEnabled ? (
               <Button
                 type="button"
                 size="sm"
@@ -1435,19 +1438,17 @@ export const ProjectDetailPage = ({
                           label="복사"
                           onClick={() => copyText(messageContent)}
                         />
-                        <MessageActionButton
-                          iconName="shared"
-                          label="팀 공유"
-                          disabled={!isSelectable || !API_CAPABILITIES.messageShareEnabled}
-                          disabledReason={
-                            !API_CAPABILITIES.messageShareEnabled ? teamReadOnlyReason : undefined
-                          }
-                          onClick={() => {
-                            // 선택 모드 진입 + 이 답변 자동 체크. 사용자는 하단 액션 바에서
-                            // 추가 선택 후 '팀 공유'로 wizard 를 연다.
-                            shareSelection.enter(messageId);
-                          }}
-                        />
+                        {isSelectable && API_CAPABILITIES.messageShareEnabled ? (
+                          <MessageActionButton
+                            iconName="shared"
+                            label="팀 공유"
+                            onClick={() => {
+                              // 선택 모드 진입 + 이 답변 자동 체크. 사용자는 하단 액션 바에서
+                              // 추가 선택 후 '팀 공유'로 wizard 를 연다.
+                              shareSelection.enter(messageId);
+                            }}
+                          />
+                        ) : null}
                       </div>
                     )}
                   </article>
