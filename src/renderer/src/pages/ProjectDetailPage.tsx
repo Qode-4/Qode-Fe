@@ -35,7 +35,9 @@ import {
   TeamChatMembersModal,
   TransferOwnershipModal
 } from '../components/feature/teamChat';
+import { DigestSharedCard } from '../components/feature/digest/DigestSharedCard';
 import { ShareToTeamChatModal } from '../components/feature/digest/ShareToTeamChatModal';
+import { useDeleteDigestCard } from '../api/auth/useDigestAPI';
 import { useShareSelectionState } from '../hooks/useShareSelectionState';
 import type { IconName } from '../components/icons/iconTypes';
 import { Button } from '../components/ui/Button';
@@ -234,6 +236,13 @@ const isUserMessageRole = (role: string): boolean => {
   return role === 'user' || role === 'USER';
 };
 
+// 팀채팅 메시지 중 개인채팅 답변 요약 공유 카드 여부를 판정한다.
+// BE 는 role='ASSISTANT' + user_id=공유자 로 실어 준다.
+const isDigestTeamMessage = (message: unknown): boolean => {
+  const role = String((message as { role?: string }).role ?? '').toLowerCase();
+  return role === 'assistant';
+};
+
 const LoadingDots = (): React.JSX.Element => {
   const [dots, setDots] = useState('.');
   useEffect(() => {
@@ -421,6 +430,8 @@ export const ProjectDetailPage = ({
   const shareSelection = useShareSelectionState();
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareModalInitialIds, setShareModalInitialIds] = useState<Set<string>>(new Set());
+  // 팀채팅에 도착한 공유 카드의 "공유 취소" 처리(공유자 본인만 노출).
+  const deleteDigestCard = useDeleteDigestCard({ chatId: activeChatId || '__empty__' });
 
   // ── 팀채팅 모달 오케스트레이션 ─────────────────────────────────────────────
   const [teamChatModal, setTeamChatModal] = useState<TeamChatModalState>({ kind: 'none' });
@@ -1254,7 +1265,44 @@ export const ProjectDetailPage = ({
 
                 // ── 팀 채팅 렌더링 ──────────────────────────────────────────────
                 if (isTeamChat) {
-                  // TeamChatMessage shape: { userId, userName, content, createdAt } — role 필드 없음
+                  // TeamChatMessage shape: { userId, userName, content, createdAt } — 일반 메시지엔 role 없음.
+                  // 개인채팅에서 온 요약 공유는 role='ASSISTANT' + user_id=공유자 로 실려 온다.
+                  if (isDigestTeamMessage(message)) {
+                    const senderId =
+                      getTeamMessageUserId(message) ||
+                      String((message as { user_id?: string }).user_id ?? '');
+                    const senderName = getTeamMessageUserName(message);
+                    const digestCreatedAt = getMessageCreatedAt(message);
+                    const digestContent = getMessageContent(message);
+                    const digestSources = extractSources(message);
+                    const isMineShare = Boolean(meId && senderId === meId);
+                    return (
+                      <DigestSharedCard
+                        key={messageId}
+                        content={digestContent}
+                        sources={digestSources}
+                        senderName={senderName}
+                        createdAt={digestCreatedAt}
+                        isMe={isMineShare}
+                        hasSourceLink={false}
+                        isDeleting={deleteDigestCard.isPending}
+                        onDeleteShare={
+                          isMineShare
+                            ? () => {
+                                deleteDigestCard.mutate(
+                                  { messageId },
+                                  {
+                                    onSuccess: () => toast.success('공유를 취소했어요'),
+                                    onError: (error) => toast.error(handleApiError(error).message)
+                                  }
+                                );
+                              }
+                            : undefined
+                        }
+                      />
+                    );
+                  }
+
                   const msgUserId = getTeamMessageUserId(message);
                   const senderName = getTeamMessageUserName(message);
                   const createdAt = getMessageCreatedAt(message);
