@@ -1180,7 +1180,7 @@ export const ProjectDetailPage = ({
               <span className="shrink-0 text-ui-12 font-medium text-text-soft">
                 {shareSelection.count}/{MAX_SHARE_PAIRS}개 선택됨
               </span>
-            ) : selectableAssistantIds.size > 0 && API_CAPABILITIES.messageShareEnabled ? (
+            ) : selectableAssistantIds.size > 0 ? (
               <Button
                 type="button"
                 size="sm"
