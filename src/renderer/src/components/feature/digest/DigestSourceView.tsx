@@ -22,7 +22,9 @@ export const DigestSourceView = ({
   sharedAt
 }: Props): React.JSX.Element | null => {
   const query = useGetDigestSource({ digestMessageId, enabled: open });
-  const headerChatName = query.data?.origin_chat_name;
+  // BE 가 snake_case / camelCase 어느 쪽을 실어 주든 헤더 채팅명을 안전하게 꺼낸다.
+  const rawData = query.data as { origin_chat_name?: string; originChatName?: string } | undefined;
+  const headerChatName = rawData?.origin_chat_name ?? rawData?.originChatName ?? '';
   const status: 'loading' | 'error' | 'ready' = query.isPending
     ? 'loading'
     : query.isError

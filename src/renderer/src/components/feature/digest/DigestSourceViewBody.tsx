@@ -38,6 +38,8 @@ export const DigestSourceViewBody = ({
   onClose
 }: DigestSourceViewBodyProps): React.JSX.Element => {
   const note = source?.note?.trim() ?? '';
+  // 서버 응답이 계약과 어긋나 pairs 가 없거나 배열이 아닐 수 있어 방어적으로 파싱.
+  const pairs: DigestSourcePair[] = Array.isArray(source?.pairs) ? source!.pairs : [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,14 +70,14 @@ export const DigestSourceViewBody = ({
           </div>
         ) : null}
 
-        {status === 'ready' && source && source.pairs.length === 0 ? (
+        {status === 'ready' && pairs.length === 0 ? (
           <p className="py-8 text-center text-sm text-text-subtle">공유된 대화가 없습니다.</p>
         ) : null}
 
-        {status === 'ready' && source && source.pairs.length > 0 ? (
+        {status === 'ready' && pairs.length > 0 ? (
           <ol className="flex flex-col gap-6" aria-label="공유된 질문·답변">
-            {source.pairs.map((pair, idx) => (
-              <li key={`${pair.answer_message_id}-${idx}`}>
+            {pairs.map((pair, idx) => (
+              <li key={`${pair.answer_message_id ?? idx}-${idx}`}>
                 <PairView pair={pair} />
               </li>
             ))}
@@ -110,50 +112,80 @@ const MetaLine = ({
   );
 };
 
+// BE 가 snake_case / camelCase 어느 쪽을 실어 주든 안전하게 꺼내는 접근자.
+const readPairField = (
+  pair: DigestSourcePair,
+  snake: keyof DigestSourcePair,
+  camel: string
+): unknown => {
+  const raw = pair as unknown as Record<string, unknown>;
+  return raw[snake as string] ?? raw[camel];
+};
+
 // 개인채팅과 시각 통일: 질문은 우측 primary-soft 말풍선, 답변은 좌측 흰 카드.
-const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => (
-  <div className="flex flex-col gap-3">
-    <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-[12px] bg-primary-soft px-3 py-3 text-ui-14 font-medium leading-[1.6] text-text-base">
-        {pair.question_content}
+const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
+  const questionContent = String(readPairField(pair, 'question_content', 'questionContent') ?? '');
+  const answerContent = String(readPairField(pair, 'answer_content', 'answerContent') ?? '');
+  const rawSources = readPairField(pair, 'answer_sources', 'answerSources');
+  const answerSources = Array.isArray(rawSources) ? rawSources : [];
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex justify-end">
+        <div className="max-w-[85%] rounded-[12px] bg-primary-soft px-3 py-3 text-ui-14 font-medium leading-[1.6] text-text-base">
+          {questionContent || <span className="text-text-subtle">(질문 없음)</span>}
+        </div>
       </div>
+
+      <article className="rounded-[12px] bg-surface p-3">
+        <div className="mb-2 flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="inline-flex size-6 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
+          >
+            <img src="/favicon.ico" alt="" aria-hidden="true" className="size-3.5 object-contain" />
+          </span>
+          <span className="text-ui-12 font-semibold text-text-base">Qode AI</span>
+        </div>
+
+        {answerContent ? <MarkdownAnswer content={answerContent} /> : null}
+
+        {answerSources.length > 0 ? (
+          <section className="mt-2 rounded-[8px] border border-line bg-surface-muted p-2">
+            <h4 className="mb-1 text-ui-10 font-semibold text-text-soft">
+              참조 코드 {answerSources.length}개
+            </h4>
+            <ul className="flex flex-col gap-0.5 text-ui-10 text-text-soft">
+              {answerSources.map((s, idx) => {
+                const src = s as {
+                  filePath?: string;
+                  file_path?: string;
+                  startLine?: number | null;
+                  start_line?: number | null;
+                  endLine?: number | null;
+                  end_line?: number | null;
+                };
+                const path = src.filePath ?? src.file_path ?? '';
+                const start = src.startLine ?? src.start_line ?? null;
+                const end = src.endLine ?? src.end_line ?? null;
+                return (
+                  <li
+                    key={`${path}-${start ?? 0}-${idx}`}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <code className="min-w-0 flex-1 truncate rounded bg-surface px-1 py-0.5">
+                      {path}
+                    </code>
+                    <span className="shrink-0">
+                      ({start ?? '-'}-{end ?? '-'})
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
+      </article>
     </div>
-
-    <article className="rounded-[12px] bg-surface p-3">
-      <div className="mb-2 flex items-center gap-2">
-        <span
-          aria-hidden="true"
-          className="inline-flex size-6 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
-        >
-          <img src="/favicon.ico" alt="" aria-hidden="true" className="size-3.5 object-contain" />
-        </span>
-        <span className="text-ui-12 font-semibold text-text-base">Qode AI</span>
-      </div>
-
-      <MarkdownAnswer content={pair.answer_content} />
-
-      {pair.answer_sources && pair.answer_sources.length > 0 ? (
-        <section className="mt-2 rounded-[8px] border border-line bg-surface-muted p-2">
-          <h4 className="mb-1 text-ui-10 font-semibold text-text-soft">
-            참조 코드 {pair.answer_sources.length}개
-          </h4>
-          <ul className="flex flex-col gap-0.5 text-ui-10 text-text-soft">
-            {pair.answer_sources.map((s, idx) => (
-              <li
-                key={`${s.filePath}-${s.startLine ?? 0}-${idx}`}
-                className="flex items-center justify-between gap-2"
-              >
-                <code className="min-w-0 flex-1 truncate rounded bg-surface px-1 py-0.5">
-                  {s.filePath}
-                </code>
-                <span className="shrink-0">
-                  ({s.startLine ?? '-'}-{s.endLine ?? '-'})
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-    </article>
-  </div>
-);
+  );
+};

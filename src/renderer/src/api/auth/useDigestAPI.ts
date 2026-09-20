@@ -230,17 +230,43 @@ export const useRecentDigestShares = (params: {
 // 원본 대화 스냅샷 조회 (팀채팅에서 "원본 대화 보기" 클릭 시).
 // ─────────────────────────────────────────────────────────
 
+// 서버가 {ok, data:{...}} 로 감싸 주는 경우와 그렇지 않은 경우를 모두 지원한다.
+// pairs 필드 유무로 wrapped 여부를 판정한다(가장 안정적인 시그니처).
+const unwrapDigestSource = (raw: unknown): DigestSourceResponse => {
+  const value = raw as
+    | (DigestSourceResponse & { data?: DigestSourceResponse })
+    | { data?: DigestSourceResponse }
+    | null
+    | undefined;
+  if (value && typeof value === 'object') {
+    if ('pairs' in value && Array.isArray((value as DigestSourceResponse).pairs)) {
+      return value as DigestSourceResponse;
+    }
+    if ('data' in value && value.data && typeof value.data === 'object') {
+      return value.data as DigestSourceResponse;
+    }
+  }
+  // 응답이 예상 형태가 아니면 빈 스냅샷으로 폴백(뷰에서 "공유된 대화 없음" 안내).
+  return {
+    digest_message_id: '',
+    origin_chat_id: '',
+    origin_chat_name: '',
+    note: null,
+    pairs: []
+  };
+};
+
 export const useGetDigestSource = (params: { digestMessageId: string; enabled?: boolean }) =>
   useQuery({
     queryKey: ['digestSource', params.digestMessageId] as const,
     queryFn: async (): Promise<DigestSourceResponse> => {
-      const res = await apiClient.request<DigestSourceResponse>({
+      const res = await apiClient.request<unknown>({
         path: `/api/digests/${params.digestMessageId}/source`,
         method: 'GET',
         secure: true,
         format: 'json'
       });
-      return res.data;
+      return unwrapDigestSource(res.data);
     },
     enabled: (params.enabled ?? true) && Boolean(params.digestMessageId)
   });
