@@ -61,7 +61,14 @@ export const useProjectTeamChatEvents = (
     const socket = getSocket();
     if (!socket.connected) socket.connect();
 
+    // 최초 join. 소켓이 아직 connect 전이면 socket.io 가 emit 을 버퍼링해 연결 직후 전송한다.
     socket.emit('project:join', projectId);
+
+    // 소켓이 끊겼다 재연결되면 서버 rooms 목록이 초기화되므로 project:join 을 다시 보내야 한다.
+    // socket.io 는 자동 rejoin 을 해주지 않는다.
+    const handleReconnect = (): void => {
+      socket.emit('project:join', projectId);
+    };
 
     const projectChatsKey = QUERY_KEY.projectChatsByProject(projectId);
 
@@ -110,6 +117,7 @@ export const useProjectTeamChatEvents = (
       optionsRef.current?.onOwnershipTransferred?.(payload);
     };
 
+    socket.on('connect', handleReconnect);
     socket.on('team:room:created', handleRoomCreated);
     socket.on('team:room:renamed', handleRoomRenamed);
     socket.on('team:room:deleted', handleRoomDeleted);
@@ -117,6 +125,7 @@ export const useProjectTeamChatEvents = (
     socket.on('team:ownership:transferred', handleOwnershipTransferred);
 
     return () => {
+      socket.off('connect', handleReconnect);
       socket.off('team:room:created', handleRoomCreated);
       socket.off('team:room:renamed', handleRoomRenamed);
       socket.off('team:room:deleted', handleRoomDeleted);
