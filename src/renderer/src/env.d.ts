@@ -9,6 +9,8 @@ declare module '*.svg?react' {
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
+  readonly VITE_QUICK_LOGIN_EMAIL?: string;
+  readonly VITE_QUICK_LOGIN_PASSWORD?: string;
 }
 
 interface ImportMeta {
