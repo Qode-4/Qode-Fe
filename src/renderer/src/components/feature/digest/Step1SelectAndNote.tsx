@@ -37,7 +37,7 @@ export const Step1SelectAndNote = ({
       </header>
 
       <ul
-        className="flex max-h-[320px] flex-col gap-2 overflow-y-auto rounded-md border border-line bg-surface-muted p-2"
+        className="flex flex-col gap-2 rounded-md border border-line bg-surface-muted p-2"
         role="list"
       >
         {pairs.map((pair) => {

@@ -87,7 +87,7 @@ export const ToastProvider = ({ children }: Props): React.JSX.Element => {
       {createPortal(
         <div
           aria-live="polite"
-          className="pointer-events-none fixed right-6 top-6 z-50 flex flex-col gap-2"
+          className="pointer-events-none fixed right-6 top-6 z-50 flex flex-col gap-2 max-sm:left-3 max-sm:right-3 max-sm:top-3"
         >
           {toasts.map((toast) => (
             <Toast key={toast.id} toast={toast} onDismiss={dismiss} />

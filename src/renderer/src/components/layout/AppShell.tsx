@@ -32,6 +32,8 @@ import {
 } from '../../api/auth/useSectionsAPI';
 import { handleApiError } from '../../api/axios';
 import { API_CAPABILITIES } from '../../api/capabilities';
+import { useIsMobile } from '../../hooks/useMediaQuery';
+import { useHashLocation } from '../../lib/useHashLocation';
 import type { ProjectChatItem } from '../../api/auth/useChatsAPI';
 import type { SectionItem } from '../../api/contracts/sections';
 import type {
@@ -98,6 +100,10 @@ const SETTINGS_MENU_WIDTH = 196;
 const PROFILE_DIALOG_WIDTH = 240;
 const FLOATING_PANEL_BOTTOM = 20;
 const PROFILE_DIALOG_GAP = 17;
+
+// sm(640) 미만: 팝오버/메뉴는 바텀시트 (모달 풀스크린은 OverlayModal 자체에서 처리).
+const MOBILE_SHEET_CLASS =
+  'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl border-t border-line bg-surface p-2 shadow-lg';
 
 const avatarSizeClassMap: Record<AvatarSize, string> = {
   sm: 'size-7 text-ui-12',
@@ -247,6 +253,12 @@ export const AppShell = ({
 }: Props): React.JSX.Element => {
   const qc = useQueryClient();
   const profileSettingsTitleId = useId();
+  const isMobile = useIsMobile();
+  const location = useHashLocation();
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [drawerDragOffset, setDrawerDragOffset] = useState(0);
+  const drawerDragStartXRef = useRef<number | null>(null);
+  const drawerDragPointerIdRef = useRef<number | null>(null);
   const [openMenuProjectId, setOpenMenuProjectId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -280,6 +292,64 @@ export const AppShell = ({
     if (nextSize === uiFontSize) return;
     setUiFontSize(nextSize);
     persistUiFontSize(nextSize);
+  };
+
+  // 라우트/채팅 전환 시 모바일 드로어는 자동으로 닫는다 — 사용자가 이동 후 매번 닫을 필요 없게.
+  // 외부 상태(해시 라우트 / 뷰포트) 변화에 UI를 동기화하는 케이스라 이펙트가 맞다.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMobileDrawerOpen(false);
+  }, [location.path, activeChatId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!isMobile) setMobileDrawerOpen(false);
+  }, [isMobile]);
+
+  // 드로어 열린 동안 body 스크롤 잠금 (뒤 콘텐츠가 함께 스크롤되면 UX 파괴) + Escape 로 닫기.
+  useEffect(() => {
+    if (!isMobile || !mobileDrawerOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setMobileDrawerOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [isMobile, mobileDrawerOpen]);
+
+  // 열린 드로어를 왼쪽으로 스와이프하면 닫힌다. 마우스/펜 제외 — 데스크톱 드래그 회귀 방지.
+  const handleDrawerPointerDown = (e: React.PointerEvent<HTMLElement>): void => {
+    if (!isMobile || !mobileDrawerOpen) return;
+    if (e.pointerType !== 'touch') return;
+    drawerDragStartXRef.current = e.clientX;
+    drawerDragPointerIdRef.current = e.pointerId;
+  };
+  const handleDrawerPointerMove = (e: React.PointerEvent<HTMLElement>): void => {
+    if (drawerDragStartXRef.current === null) return;
+    if (drawerDragPointerIdRef.current !== e.pointerId) return;
+    const delta = e.clientX - drawerDragStartXRef.current;
+    // 왼쪽 방향(음수)만 따라간다. 오른쪽으로 당기면 저항 없이 0에 고정.
+    setDrawerDragOffset(Math.min(0, delta));
+  };
+  const finishDrawerDrag = (shouldEvaluateClose: boolean): void => {
+    if (drawerDragStartXRef.current === null) return;
+    const shouldClose = shouldEvaluateClose && drawerDragOffset < -60;
+    drawerDragStartXRef.current = null;
+    drawerDragPointerIdRef.current = null;
+    setDrawerDragOffset(0);
+    if (shouldClose) setMobileDrawerOpen(false);
+  };
+  const handleDrawerPointerUp = (e: React.PointerEvent<HTMLElement>): void => {
+    if (drawerDragPointerIdRef.current !== e.pointerId) return;
+    finishDrawerDrag(true);
+  };
+  const handleDrawerPointerCancel = (e: React.PointerEvent<HTMLElement>): void => {
+    if (drawerDragPointerIdRef.current !== e.pointerId) return;
+    finishDrawerDrag(false);
   };
   const deleteProject = useDeleteProject();
   const deleteChat = useDeleteChat();
@@ -1035,8 +1105,54 @@ export const AppShell = ({
 
   return (
     <div className="h-full w-full bg-app-bg">
-      <div className="grid h-full grid-cols-[240px_minmax(0,1fr)]">
-        <aside aria-label="사이드바 네비게이션" className="flex min-h-0 flex-col bg-sidebar">
+      <div className="grid h-full grid-cols-[240px_minmax(0,1fr)] max-sm:grid-cols-1">
+        {isMobile && mobileDrawerOpen ? (
+          <button
+            type="button"
+            aria-label="사이드바 닫기"
+            className="fixed inset-0 z-30 bg-black/40 sm:hidden"
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+        ) : null}
+        <aside
+          id="app-mobile-drawer"
+          aria-label="사이드바 네비게이션"
+          aria-hidden={isMobile && !mobileDrawerOpen}
+          className={[
+            'flex min-h-0 flex-col bg-sidebar touch-pan-y',
+            'max-sm:fixed max-sm:inset-y-0 max-sm:left-0 max-sm:z-40 max-sm:w-[280px] max-sm:max-w-[85vw]',
+            'max-sm:shadow-lg max-sm:transition-transform',
+            isMobile && !mobileDrawerOpen ? 'max-sm:-translate-x-full' : 'max-sm:translate-x-0'
+          ].join(' ')}
+          onPointerDown={handleDrawerPointerDown}
+          onPointerMove={handleDrawerPointerMove}
+          onPointerUp={handleDrawerPointerUp}
+          onPointerCancel={handleDrawerPointerCancel}
+          style={
+            isMobile && mobileDrawerOpen && drawerDragOffset < 0
+              ? { transform: `translateX(${drawerDragOffset}px)`, transition: 'none' }
+              : undefined
+          }
+        >
+          <button
+            type="button"
+            aria-label="사이드바 닫기"
+            onClick={() => setMobileDrawerOpen(false)}
+            className="absolute right-2 top-2 z-10 hidden h-11 w-11 items-center justify-center rounded-md text-text-subtle hover:bg-surface-muted active:bg-line max-sm:inline-flex"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <path d="M5 5 L15 15 M15 5 L5 15" />
+            </svg>
+          </button>
           <DrawerHeader
             className="w-full"
             projects={projects}
@@ -1535,26 +1651,82 @@ export const AppShell = ({
           </div>
         </aside>
 
-        <main className="flex min-h-0 flex-col overflow-hidden bg-app-bg p-3 pl-0">
+        <main className="flex min-h-0 flex-col overflow-hidden bg-app-bg p-3 pl-0 max-sm:p-0">
+          <header className="sticky top-0 z-20 hidden items-center gap-1 bg-app-bg px-1 py-1 max-sm:flex">
+            <button
+              type="button"
+              aria-label="사이드바 열기"
+              aria-expanded={mobileDrawerOpen}
+              aria-controls="app-mobile-drawer"
+              onClick={() => setMobileDrawerOpen(true)}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-base hover:bg-surface-muted active:bg-line"
+            >
+              <span aria-hidden className="flex flex-col gap-[3px]">
+                <span className="block h-[2px] w-5 rounded-full bg-current" />
+                <span className="block h-[2px] w-5 rounded-full bg-current" />
+                <span className="block h-[2px] w-5 rounded-full bg-current" />
+              </span>
+            </button>
+            <p className="min-w-0 flex-1 truncate text-center text-ui-14 font-semibold text-text-base">
+              {(() => {
+                const active =
+                  personalChats.find((c) => c.id === activeChatId) ??
+                  teamChats.find((c) => c.id === activeChatId);
+                if (active) return active.name;
+                return projects.find((p) => p.id === selectedProjectId)?.name ?? 'Qode';
+              })()}
+            </p>
+            <button
+              type="button"
+              aria-label="새 개인 채팅"
+              onClick={() => {
+                setMobileDrawerOpen(false);
+                onCreatePersonalChat?.();
+              }}
+              disabled={!selectedProjectId}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-base hover:bg-surface-muted active:bg-line disabled:opacity-40"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M10 4 L10 16 M4 10 L16 10" />
+              </svg>
+            </button>
+          </header>
           {selectedProjectId && selectedProjectSyncStatus.isError ? (
-            <div className="px-6 pt-3" role="alert" aria-live="assertive">
+            <div className="px-6 pt-3 max-sm:px-3" role="alert" aria-live="assertive">
               <InlineAlert tone="danger" title="동기화 상태 조회 실패">
                 {handleApiError(selectedProjectSyncStatus.error).message}
               </InlineAlert>
             </div>
           ) : null}
-          <div className="min-h-0 flex-1 overflow-hidden rounded-[16px] border border-line bg-surface">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[16px] border border-line bg-surface max-sm:rounded-none max-sm:border-0">
             {children}
           </div>
         </main>
       </div>
 
-      {openSettingsMenu && settingsMenuPos
+      {openSettingsMenu && (isMobile || settingsMenuPos)
         ? createPortal(
             <div
               data-settings-menu
-              className="fixed z-50 w-[196px] rounded-[12px] border border-line bg-surface p-1 shadow-none"
-              style={{ bottom: FLOATING_PANEL_BOTTOM, left: settingsMenuPos.left }}
+              className={
+                isMobile
+                  ? MOBILE_SHEET_CLASS
+                  : 'fixed z-50 w-[196px] rounded-[12px] border border-line bg-surface p-1 shadow-none'
+              }
+              style={
+                isMobile
+                  ? undefined
+                  : { bottom: FLOATING_PANEL_BOTTOM, left: settingsMenuPos?.left }
+              }
               role="menu"
               aria-label="설정 메뉴"
               onKeyDown={handleSettingsMenuKeyDown}
@@ -1606,13 +1778,19 @@ export const AppShell = ({
           )
         : null}
 
-      {openSectionMenuId && sectionMenuPos
+      {openSectionMenuId && (isMobile || sectionMenuPos)
         ? createPortal(
             <div
               id={sectionMenuId}
               data-section-actions-menu
-              className="fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none"
-              style={{ top: sectionMenuPos.top, left: sectionMenuPos.left }}
+              className={
+                isMobile
+                  ? MOBILE_SHEET_CLASS
+                  : 'fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none'
+              }
+              style={
+                isMobile ? undefined : { top: sectionMenuPos?.top, left: sectionMenuPos?.left }
+              }
               role="menu"
               aria-label="섹션 작업 메뉴"
               onKeyDown={handleSectionMenuKeyDown}
@@ -1790,12 +1968,20 @@ export const AppShell = ({
         </form>
       </OverlayModal>
 
-      {profileDialogOpen && profileDialogPos
+      {profileDialogOpen && (isMobile || profileDialogPos)
         ? createPortal(
             <section
               data-profile-settings-dialog
-              className="fixed z-50 w-[240px] rounded-[12px] border border-line bg-surface shadow-none"
-              style={{ bottom: FLOATING_PANEL_BOTTOM, left: profileDialogPos.left }}
+              className={
+                isMobile
+                  ? 'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl border-t border-line bg-surface shadow-lg'
+                  : 'fixed z-50 w-[240px] rounded-[12px] border border-line bg-surface shadow-none'
+              }
+              style={
+                isMobile
+                  ? undefined
+                  : { bottom: FLOATING_PANEL_BOTTOM, left: profileDialogPos?.left }
+              }
               role="dialog"
               aria-modal="false"
               aria-labelledby={profileSettingsTitleId}
@@ -1908,13 +2094,17 @@ export const AppShell = ({
         : null}
 
       {/* ── Context menu (portal) ── */}
-      {openMenuProjectId && menuPos
+      {openMenuProjectId && (isMobile || menuPos)
         ? createPortal(
             <div
               id={projectMenuId}
               data-project-actions-menu
-              className="fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none"
-              style={{ top: menuPos.top, left: menuPos.left }}
+              className={
+                isMobile
+                  ? MOBILE_SHEET_CLASS
+                  : 'fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none'
+              }
+              style={isMobile ? undefined : { top: menuPos?.top, left: menuPos?.left }}
               role="menu"
               aria-label="프로젝트 작업 메뉴"
               onKeyDown={handleProjectMenuKeyDown}
@@ -2159,7 +2349,7 @@ export const AppShell = ({
             </div>
           ) : (
             <div className="mt-3 overflow-hidden rounded-lg border border-line">
-              <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-xs font-semibold text-text-soft">
+              <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-xs font-semibold text-text-soft max-sm:hidden">
                 <div>멤버</div>
                 <div className="text-center">역할</div>
                 <div className="text-right">액션</div>
@@ -2179,7 +2369,7 @@ export const AppShell = ({
                 return (
                   <div
                     key={member.id}
-                    className="grid grid-cols-[minmax(0,1fr)_120px_160px] items-center border-b border-line-soft px-3 py-3 last:border-b-0"
+                    className="grid grid-cols-[minmax(0,1fr)_120px_160px] max-sm:grid-cols-1 max-sm:gap-y-2 items-center border-b border-line-soft px-3 py-3 last:border-b-0"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size="sm" />
@@ -2195,7 +2385,7 @@ export const AppShell = ({
                         </div>
                       </div>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center max-sm:text-left">
                       <span
                         className={[
                           'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
@@ -2207,7 +2397,7 @@ export const AppShell = ({
                         {member.role}
                       </span>
                     </div>
-                    <div className="flex justify-end">
+                    <div className="flex justify-end max-sm:justify-start">
                       {canRemove ? (
                         <Button
                           type="button"

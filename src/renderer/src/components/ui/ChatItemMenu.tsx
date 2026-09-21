@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { IconName } from '../icons/iconTypes';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { Icon } from './Icon';
 
 export type ChatItemMenuAction = {
@@ -33,8 +34,15 @@ export const ChatItemMenu = ({
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const isMobile = useIsMobile();
 
   const openMenu = (): void => {
+    if (isMobile) {
+      // 모바일에선 위치 계산 없이 하단 시트로 띄운다.
+      setPos({ top: 0, left: 0 });
+      setOpen(true);
+      return;
+    }
     const el = triggerRef.current;
     if (!el) return;
     const triggerRect = el.getBoundingClientRect();
@@ -115,8 +123,12 @@ export const ChatItemMenu = ({
               data-chat-item-menu
               role="menu"
               aria-label={ariaLabel}
-              className="fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none"
-              style={{ top: pos.top, left: pos.left }}
+              className={
+                isMobile
+                  ? 'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl border-t border-line bg-surface p-2 shadow-lg'
+                  : 'fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none'
+              }
+              style={isMobile ? undefined : { top: pos.top, left: pos.left }}
             >
               {actions.map((action) => (
                 <button
@@ -125,7 +137,7 @@ export const ChatItemMenu = ({
                   role="menuitem"
                   disabled={action.disabled}
                   className={[
-                    'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs',
+                    'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs max-sm:py-3 max-sm:text-sm',
                     action.danger
                       ? 'text-red-600 hover:bg-red-50'
                       : 'text-text-base hover:bg-surface-muted',

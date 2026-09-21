@@ -119,6 +119,16 @@
       'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   }
 
+  /* iOS Safari 는 입력 포커스 시 폰트가 16px 미만이면 뷰포트를 강제로 확대한다.
+     sm(640) 미만에서 모든 텍스트성 입력의 최소 폰트 크기를 16px 로 고정해 자동확대를 막는다. */
+  @media (max-width: 639.98px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+
   /* Global scrollbar: 6px thumb + 2px inset on both sides, transparent track, radius 8px */
   * {
     scrollbar-width: thin;

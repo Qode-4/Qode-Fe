@@ -92,7 +92,7 @@ export const ProjectSwitcher = ({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-full min-w-[220px] overflow-hidden rounded-md border border-line bg-surface py-1 shadow-none">
+        <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-full min-w-[220px] overflow-hidden rounded-md border border-line bg-surface py-1 shadow-none max-sm:min-w-0">
           <div
             role="listbox"
             aria-label="내 프로젝트 목록"

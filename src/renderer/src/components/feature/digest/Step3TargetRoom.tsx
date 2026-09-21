@@ -62,7 +62,7 @@ export const Step3TargetRoom = ({
     <ul
       role="radiogroup"
       aria-label="공유할 팀채팅"
-      className="flex max-h-[320px] flex-col gap-1 overflow-y-auto rounded-md border border-line bg-surface-muted p-2"
+      className="flex flex-col gap-1 rounded-md border border-line bg-surface-muted p-2"
     >
       {chats.map((chat) => {
         const selected = chat.id === selectedChatId;

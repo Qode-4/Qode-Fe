@@ -63,7 +63,7 @@ export const AuthFrame = ({
         )}
       </aside>
 
-      <main className="flex flex-1 items-center justify-center bg-surface px-6 py-10 sm:px-8">
+      <main className="flex flex-1 items-center justify-center bg-surface px-4 py-6 sm:px-8 sm:py-10">
         <div className="w-full max-w-[400px] space-y-6">
           <div className="flex items-center gap-2 lg:hidden">
             <img src={qodeMark} alt="" aria-hidden="true" className="h-8 w-8" />
