@@ -306,6 +306,21 @@ export const AppShell = ({
     if (!isMobile) setMobileDrawerOpen(false);
   }, [isMobile]);
 
+  // 드로어 열린 동안 body 스크롤 잠금 (뒤 콘텐츠가 함께 스크롤되면 UX 파괴) + Escape 로 닫기.
+  useEffect(() => {
+    if (!isMobile || !mobileDrawerOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setMobileDrawerOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [isMobile, mobileDrawerOpen]);
+
   // 열린 드로어를 왼쪽으로 스와이프하면 닫힌다. 마우스/펜 제외 — 데스크톱 드래그 회귀 방지.
   const handleDrawerPointerDown = (e: React.PointerEvent<HTMLElement>): void => {
     if (!isMobile || !mobileDrawerOpen) return;

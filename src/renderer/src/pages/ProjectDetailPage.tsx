@@ -1139,9 +1139,9 @@ export const ProjectDetailPage = ({
       ) : null}
 
       {activeChat && isPersonalChat ? (
-        <div className="flex justify-center bg-surface px-6 py-3 max-sm:px-3 max-sm:py-2">
-          <div className="flex w-full max-w-[48rem] items-center gap-2">
-            <div className="min-w-0 flex-1">
+        <div className="flex justify-center bg-surface px-6 py-3 max-sm:justify-end max-sm:px-3 max-sm:py-2">
+          <div className="flex w-full max-w-[48rem] items-center gap-2 max-sm:w-auto">
+            <div className="min-w-0 flex-1 max-sm:hidden">
               {isEditingHeaderTitle ? (
                 <input
                   autoFocus
