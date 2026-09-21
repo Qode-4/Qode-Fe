@@ -1,9 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { apiClient } from '../apiClient';
-import type { PatchProjectGitBody, PatchProjectGitResponse } from '../contracts/projects';
+import type {
+  PatchProjectGitBody,
+  PatchProjectGitResponse,
+  SyncStatus
+} from '../contracts/projects';
 import type { ProjectsCreatePayload, ProjectsListData } from '../generated/data-contracts';
 import { ContentType } from '../generated/http-client';
 import { QUERY_KEY } from '../queryKeys';
+
+const isSyncActive = (status: SyncStatus | null | undefined): boolean =>
+  status === 'queued' || status === 'syncing';
 
 export const useGetProjects = (params: { search?: string; enabled?: boolean } = {}) =>
   useQuery({
@@ -112,8 +120,11 @@ export const usePostProjectSync = (params: { projectId: string }) => {
   });
 };
 
-export const useGetProjectSyncStatus = (params: { projectId: string; enabled?: boolean }) =>
-  useQuery({
+export const useGetProjectSyncStatus = (params: { projectId: string; enabled?: boolean }) => {
+  const qc = useQueryClient();
+  const previousStatusRef = useRef<SyncStatus | null>(null);
+
+  const query = useQuery({
     queryKey: QUERY_KEY.syncStatus(params.projectId),
     queryFn: async () => {
       const res = await apiClient.projectsSyncStatusList(params.projectId, { secure: true });
@@ -122,10 +133,26 @@ export const useGetProjectSyncStatus = (params: { projectId: string; enabled?: b
     enabled: (params.enabled ?? true) && Boolean(params.projectId),
     refetchInterval: (query) => {
       const status = query.state.data?.data.status;
-      if (status === 'queued' || status === 'syncing') return 500;
+      if (isSyncActive(status)) return 500;
       return false;
     }
   });
+
+  const currentStatus = query.data?.data.status ?? null;
+
+  // 폴링이 활성 → 종료 상태로 전이될 때 projects 를 다시 불러와
+  // lastSyncedAt 이 즉시 화면에 반영되도록 한다.
+  useEffect(() => {
+    const previousStatus = previousStatusRef.current;
+    if (isSyncActive(previousStatus) && !isSyncActive(currentStatus) && currentStatus !== null) {
+      void qc.invalidateQueries({ queryKey: ['projects'] });
+      void qc.invalidateQueries({ queryKey: QUERY_KEY.project(params.projectId) });
+    }
+    previousStatusRef.current = currentStatus;
+  }, [currentStatus, params.projectId, qc]);
+
+  return query;
+};
 
 export const useGetProjectMembers = (params: { projectId: string; enabled?: boolean }) =>
   useQuery({
