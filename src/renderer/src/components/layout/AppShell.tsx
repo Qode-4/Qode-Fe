@@ -1119,6 +1119,25 @@ export const AppShell = ({
               : undefined
           }
         >
+          <button
+            type="button"
+            aria-label="사이드바 닫기"
+            onClick={() => setMobileDrawerOpen(false)}
+            className="absolute right-2 top-2 z-10 hidden h-11 w-11 items-center justify-center rounded-md text-text-subtle hover:bg-surface-muted active:bg-line max-sm:inline-flex"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <path d="M5 5 L15 15 M15 5 L5 15" />
+            </svg>
+          </button>
           <DrawerHeader
             className="w-full"
             projects={projects}
