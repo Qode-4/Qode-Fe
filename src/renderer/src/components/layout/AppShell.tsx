@@ -306,6 +306,21 @@ export const AppShell = ({
     if (!isMobile) setMobileDrawerOpen(false);
   }, [isMobile]);
 
+  // 드로어 열린 동안 body 스크롤 잠금 (뒤 콘텐츠가 함께 스크롤되면 UX 파괴) + Escape 로 닫기.
+  useEffect(() => {
+    if (!isMobile || !mobileDrawerOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setMobileDrawerOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [isMobile, mobileDrawerOpen]);
+
   // 열린 드로어를 왼쪽으로 스와이프하면 닫힌다. 마우스/펜 제외 — 데스크톱 드래그 회귀 방지.
   const handleDrawerPointerDown = (e: React.PointerEvent<HTMLElement>): void => {
     if (!isMobile || !mobileDrawerOpen) return;
@@ -1119,6 +1134,25 @@ export const AppShell = ({
               : undefined
           }
         >
+          <button
+            type="button"
+            aria-label="사이드바 닫기"
+            onClick={() => setMobileDrawerOpen(false)}
+            className="absolute right-2 top-2 z-10 hidden h-11 w-11 items-center justify-center rounded-md text-text-subtle hover:bg-surface-muted active:bg-line max-sm:inline-flex"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <path d="M5 5 L15 15 M15 5 L5 15" />
+            </svg>
+          </button>
           <DrawerHeader
             className="w-full"
             projects={projects}
@@ -1617,15 +1651,15 @@ export const AppShell = ({
           </div>
         </aside>
 
-        <main className="flex min-h-0 flex-col overflow-hidden bg-app-bg p-3 pl-0 max-sm:p-2">
-          <header className="sticky top-0 z-20 hidden items-center gap-2 bg-app-bg px-2 py-2 max-sm:flex">
+        <main className="flex min-h-0 flex-col overflow-hidden bg-app-bg p-3 pl-0 max-sm:p-0">
+          <header className="sticky top-0 z-20 hidden items-center gap-1 bg-app-bg px-1 py-1 max-sm:flex">
             <button
               type="button"
               aria-label="사이드바 열기"
               aria-expanded={mobileDrawerOpen}
               aria-controls="app-mobile-drawer"
               onClick={() => setMobileDrawerOpen(true)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-text-base hover:bg-surface-muted active:bg-line"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-base hover:bg-surface-muted active:bg-line"
             >
               <span aria-hidden className="flex flex-col gap-[3px]">
                 <span className="block h-[2px] w-5 rounded-full bg-current" />
@@ -1633,9 +1667,38 @@ export const AppShell = ({
                 <span className="block h-[2px] w-5 rounded-full bg-current" />
               </span>
             </button>
-            <p className="min-w-0 flex-1 truncate text-ui-14 font-semibold text-text-base">
-              {projects.find((project) => project.id === selectedProjectId)?.name ?? 'Qode'}
+            <p className="min-w-0 flex-1 truncate text-center text-ui-14 font-semibold text-text-base">
+              {(() => {
+                const active =
+                  personalChats.find((c) => c.id === activeChatId) ??
+                  teamChats.find((c) => c.id === activeChatId);
+                if (active) return active.name;
+                return projects.find((p) => p.id === selectedProjectId)?.name ?? 'Qode';
+              })()}
             </p>
+            <button
+              type="button"
+              aria-label="새 개인 채팅"
+              onClick={() => {
+                setMobileDrawerOpen(false);
+                onCreatePersonalChat?.();
+              }}
+              disabled={!selectedProjectId}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-base hover:bg-surface-muted active:bg-line disabled:opacity-40"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M10 4 L10 16 M4 10 L16 10" />
+              </svg>
+            </button>
           </header>
           {selectedProjectId && selectedProjectSyncStatus.isError ? (
             <div className="px-6 pt-3 max-sm:px-3" role="alert" aria-live="assertive">
@@ -1644,7 +1707,7 @@ export const AppShell = ({
               </InlineAlert>
             </div>
           ) : null}
-          <div className="min-h-0 flex-1 overflow-hidden rounded-[16px] border border-line bg-surface max-sm:rounded-[12px]">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[16px] border border-line bg-surface max-sm:rounded-none max-sm:border-0">
             {children}
           </div>
         </main>

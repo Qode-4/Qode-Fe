@@ -101,8 +101,8 @@ export const TeamChatHeader = ({
   ];
 
   return (
-    <div className="flex items-center justify-between gap-3 bg-surface px-6 py-3">
-      <div className="flex min-w-0 items-baseline gap-2">
+    <div className="flex items-center justify-between gap-3 bg-surface px-6 py-3 max-sm:justify-end max-sm:px-3 max-sm:py-2">
+      <div className="flex min-w-0 items-baseline gap-2 max-sm:hidden">
         <h1 className="truncate text-ui-20 font-semibold text-text-base">{chatName}</h1>
         {participants.length > 0 ? (
           <span className="shrink-0 text-ui-12 text-text-soft">· {participants.length}명 참여</span>

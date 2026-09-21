@@ -161,6 +161,29 @@ export const ShareToTeamChatModal = ({
       onClose={onClose}
       title="팀에 공유하기"
       widthClassName="max-w-[640px]"
+      footer={
+        <FooterActions
+          step={step}
+          onBack={() => {
+            if (step === 2) setStep(1);
+            if (step === 3) setStep(2);
+          }}
+          onNext={() => {
+            if (step === 1) {
+              setStep(2);
+              startPreviewIfNeeded();
+            } else if (step === 2) {
+              setStep(3);
+            }
+          }}
+          onShare={handleShare}
+          onCancel={onClose}
+          canNext={step === 1 ? canGoNextFromStep1 : step === 2 ? canGoNextFromStep2 : false}
+          canShare={canShareFromStep3}
+          isSharing={share.isPending}
+          chatName={chatName}
+        />
+      }
     >
       <div className="flex flex-col gap-5">
         <StepIndicator current={step} />
@@ -199,28 +222,6 @@ export const ShareToTeamChatModal = ({
             }
           />
         ) : null}
-
-        <FooterActions
-          step={step}
-          onBack={() => {
-            if (step === 2) setStep(1);
-            if (step === 3) setStep(2);
-          }}
-          onNext={() => {
-            if (step === 1) {
-              setStep(2);
-              startPreviewIfNeeded();
-            } else if (step === 2) {
-              setStep(3);
-            }
-          }}
-          onShare={handleShare}
-          onCancel={onClose}
-          canNext={step === 1 ? canGoNextFromStep1 : step === 2 ? canGoNextFromStep2 : false}
-          canShare={canShareFromStep3}
-          isSharing={share.isPending}
-          chatName={chatName}
-        />
       </div>
     </OverlayModal>
   );
@@ -236,7 +237,7 @@ const StepIndicator = ({ current }: { current: Step }): React.JSX.Element => (
         <li key={n} className="flex items-center gap-2">
           <span
             className={[
-              'flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold',
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
               isActive
                 ? 'border-primary bg-primary text-primary-foreground'
                 : isDone
@@ -250,7 +251,9 @@ const StepIndicator = ({ current }: { current: Step }): React.JSX.Element => (
           <span
             className={[
               'text-xs',
-              isActive ? 'text-text-base font-medium' : 'text-text-subtle'
+              isActive ? 'text-text-base font-medium' : 'text-text-subtle',
+              // 모바일에선 진행중 스텝 라벨만 보여 320px 에서 가로 초과를 방지.
+              isActive ? '' : 'max-sm:hidden'
             ].join(' ')}
           >
             {stepLabels[stepNum]}
@@ -285,11 +288,12 @@ const FooterActions = ({
   isSharing,
   chatName
 }: FooterActionsProps): React.JSX.Element => (
-  <div className="flex items-center justify-between gap-2 pt-2">
-    <span className="truncate text-xs text-text-subtle">
+  // OverlayModal 의 footer 슬롯에 렌더되므로 sticky/음수마진 불필요 — 항상 바디 아래 shrink-0 로 붙는다.
+  <div className="flex items-center justify-between gap-2">
+    <span className="min-w-0 truncate text-xs text-text-subtle max-sm:hidden">
       원본: <span className="font-medium text-text-base">{chatName}</span>
     </span>
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 max-sm:w-full max-sm:justify-end">
       {step > 1 ? (
         <Button type="button" size="sm" variant="ghost" onClick={onBack}>
           뒤로

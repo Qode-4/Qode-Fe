@@ -20,7 +20,7 @@ type Props = {
 const MAX_ROWS = 5;
 
 const sendButtonClass = [
-  'inline-flex size-8 shrink-0 items-center justify-center rounded-[6px] text-primary-foreground transition-colors',
+  'inline-flex size-8 shrink-0 items-center justify-center rounded-[6px] text-primary-foreground transition-colors max-sm:size-11',
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-1'
 ].join(' ');
 
@@ -76,12 +76,12 @@ export const ChatComposer = ({
 
   return (
     <div className={['w-full max-w-[48rem]', className ?? ''].join(' ')}>
-      <div className="flex items-center gap-2 rounded-[6px] bg-line-soft px-3 py-2 transition-colors focus-within:bg-primary-soft">
+      <div className="flex items-center gap-2 rounded-[6px] bg-line-soft px-3 py-2 transition-colors focus-within:bg-primary-soft max-sm:rounded-[10px] max-sm:px-3 max-sm:py-2.5">
         <textarea
           ref={textareaRef}
           rows={1}
           aria-label="메시지 입력"
-          className="block min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-ui-14 leading-[1.6] text-text-base placeholder:text-text-soft disabled:cursor-not-allowed"
+          className="block min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-ui-14 leading-[1.6] text-text-base placeholder:text-text-soft disabled:cursor-not-allowed max-sm:text-[16px]"
           style={{ outline: 'none', boxShadow: 'none' }}
           placeholder={placeholder}
           value={value}
