@@ -146,7 +146,7 @@ export const OverlayModal = ({
         </div>
         <div
           className={[
-            'min-h-0 flex-1 overflow-y-auto px-6 max-sm:overflow-hidden max-sm:px-4',
+            'min-h-0 flex-1 overflow-y-auto px-6 max-sm:px-4',
             footer ? 'pb-4 max-sm:pb-3' : 'pb-6 max-sm:pb-4'
           ].join(' ')}
         >

@@ -89,7 +89,18 @@ export const Step2SummaryPreview = ({
           {/* 스크롤은 wrapper div 가 소유하고, ul 은 block 레이아웃으로 자연스럽게 흐른다.
              flex flex-col + max-height 조합은 브라우저가 flex 자식을 shrink 시켜 아이템들이
              겹쳐 보이는 이슈를 만든다 — 그래서 명시적으로 wrapper 로 분리한다. */}
-          <div style={{ maxHeight: 'min(140px, 22dvh)' }} className="overflow-y-auto pr-1">
+          {/* mask 로 상하 가장자리를 페이드시켜 스크롤 잘림이 자연스럽게 흐려지도록.
+             partial item 이 딱딱하게 잘려 보이는 시각 이슈를 완화한다. */}
+          <div
+            style={{
+              maxHeight: 'min(140px, 22dvh)',
+              maskImage:
+                'linear-gradient(to bottom, transparent 0, black 10px, black calc(100% - 10px), transparent 100%)',
+              WebkitMaskImage:
+                'linear-gradient(to bottom, transparent 0, black 10px, black calc(100% - 10px), transparent 100%)'
+            }}
+            className="overflow-y-auto py-1 pr-1"
+          >
             <ul className="space-y-1 text-xs text-text-subtle">
               {sources.map((s, idx) => (
                 <li key={`${s.filePath}-${idx}`} className="truncate">

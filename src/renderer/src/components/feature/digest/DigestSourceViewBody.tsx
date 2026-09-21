@@ -156,7 +156,16 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
             <h4 className="mb-1 text-ui-10 font-semibold text-text-soft">
               참조 코드 {answerSources.length}개
             </h4>
-            <div style={{ maxHeight: 'min(180px, 26dvh)' }} className="overflow-y-auto pr-1">
+            <div
+              style={{
+                maxHeight: 'min(180px, 26dvh)',
+                maskImage:
+                  'linear-gradient(to bottom, transparent 0, black 10px, black calc(100% - 10px), transparent 100%)',
+                WebkitMaskImage:
+                  'linear-gradient(to bottom, transparent 0, black 10px, black calc(100% - 10px), transparent 100%)'
+              }}
+              className="overflow-y-auto py-1 pr-1"
+            >
               <ul className="space-y-0.5 text-ui-10 text-text-soft">
                 {answerSources.map((s, idx) => {
                   const src = s as {
