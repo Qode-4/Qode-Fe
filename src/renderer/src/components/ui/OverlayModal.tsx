@@ -146,9 +146,10 @@ export const OverlayModal = ({
         </div>
         <div
           className={[
-            // min-w-0: flex 자식이 콘텐츠(넓은 code line 등) 폭에 맞춰 팽창하는 걸 막아
-            // 내부 pre/table 이 자기 overflow-x-auto 로 스크롤을 소유하게 한다.
-            'min-h-0 min-w-0 flex-1 overflow-y-auto px-6 max-sm:px-4',
+            // min-w-0 + overflow-x-hidden: flex 자식이 콘텐츠(넓은 code line 등) 폭에 맞춰
+            // 팽창하거나 부모를 밀지 못하게 이중 방어. 내부 pre/table 은 자기 overflow-x-auto
+            // 로 국지 스크롤을 소유. 특히 모바일(뷰포트 여유가 적음)에서 필수.
+            'min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-6 max-sm:px-4',
             footer ? 'pb-4 max-sm:pb-3' : 'pb-6 max-sm:pb-4'
           ].join(' ')}
         >
