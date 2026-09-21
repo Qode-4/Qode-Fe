@@ -14,9 +14,9 @@ type Props = {
 
 export const ProjectsPage = ({ projectCount, onOpenCreateProject }: Props): React.JSX.Element => {
   return (
-    <section className="flex h-full min-h-[640px] flex-col items-center justify-center bg-surface text-center">
+    <section className="flex h-full min-h-[640px] flex-col items-center justify-center bg-surface px-4 text-center max-sm:min-h-0 max-sm:px-3 max-sm:py-8">
       <div className="w-full max-w-[406px]">
-        <h1 className="text-ui-44 font-medium leading-[1.4] text-text-base">
+        <h1 className="text-ui-44 font-medium leading-[1.4] text-text-base max-sm:text-ui-32">
           프로젝트를 추가하고
           <br />
           코드에 질문하세요.

@@ -115,7 +115,7 @@ export const OverlayModal = ({
     >
       <section
         ref={dialogRef}
-        className={`w-full ${widthClassName} rounded-[20px] border border-control-line bg-surface p-6 shadow-none`}
+        className={`w-full ${widthClassName} rounded-[20px] border border-control-line bg-surface p-6 shadow-none max-sm:h-full max-sm:max-w-none max-sm:overflow-y-auto max-sm:rounded-none max-sm:p-4`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -128,7 +128,7 @@ export const OverlayModal = ({
           </h2>
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-xs text-text-subtle hover:bg-surface-muted"
+            className="rounded-md px-2 py-1 text-xs text-text-subtle hover:bg-surface-muted max-sm:min-h-[44px] max-sm:min-w-[44px] max-sm:text-sm"
             onClick={() => onCloseRef.current()}
             aria-label={`${title} 닫기`}
           >

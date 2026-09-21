@@ -39,6 +39,7 @@ export const IconButton = ({
         'hover:bg-surface-muted active:bg-line',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-50',
+        'max-sm:min-h-[44px] max-sm:min-w-[44px]',
         sizeClassMap[size],
         className ?? ''
       ].join(' ')}
