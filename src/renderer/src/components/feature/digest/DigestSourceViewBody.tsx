@@ -52,7 +52,7 @@ export const DigestSourceViewBody = ({
         </div>
       ) : null}
 
-      <div className="max-h-[520px] overflow-y-auto rounded-md border border-line bg-surface-muted p-4">
+      <div className="rounded-md border border-line bg-surface-muted p-4">
         {status === 'loading' ? (
           <p className="py-8 text-center text-sm text-text-subtle">원본 대화를 불러오는 중…</p>
         ) : null}

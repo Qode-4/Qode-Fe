@@ -236,7 +236,7 @@ const StepIndicator = ({ current }: { current: Step }): React.JSX.Element => (
         <li key={n} className="flex items-center gap-2">
           <span
             className={[
-              'flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold',
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
               isActive
                 ? 'border-primary bg-primary text-primary-foreground'
                 : isDone
@@ -250,7 +250,9 @@ const StepIndicator = ({ current }: { current: Step }): React.JSX.Element => (
           <span
             className={[
               'text-xs',
-              isActive ? 'text-text-base font-medium' : 'text-text-subtle'
+              isActive ? 'text-text-base font-medium' : 'text-text-subtle',
+              // 모바일에선 진행중 스텝 라벨만 보여 320px 에서 가로 초과를 방지.
+              isActive ? '' : 'max-sm:hidden'
             ].join(' ')}
           >
             {stepLabels[stepNum]}
@@ -285,11 +287,13 @@ const FooterActions = ({
   isSharing,
   chatName
 }: FooterActionsProps): React.JSX.Element => (
-  <div className="flex items-center justify-between gap-2 pt-2">
-    <span className="truncate text-xs text-text-subtle">
+  // OverlayModal 바디가 자체 스크롤을 소유하므로 액션 바를 sticky 로 붙여 항상 도달 가능하게.
+  // 음수 마진으로 바디 좌우 padding 을 뚫어 화면 폭 전체에서 상단 구분선을 그린다.
+  <div className="sticky bottom-0 -mx-6 -mb-6 flex items-center justify-between gap-2 border-t border-line bg-surface px-6 py-3 max-sm:-mx-4 max-sm:-mb-4 max-sm:px-4">
+    <span className="min-w-0 truncate text-xs text-text-subtle max-sm:hidden">
       원본: <span className="font-medium text-text-base">{chatName}</span>
     </span>
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 max-sm:w-full max-sm:justify-end">
       {step > 1 ? (
         <Button type="button" size="sm" variant="ghost" onClick={onBack}>
           뒤로

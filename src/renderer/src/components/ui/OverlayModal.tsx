@@ -115,14 +115,14 @@ export const OverlayModal = ({
     >
       <section
         ref={dialogRef}
-        className={`w-full ${widthClassName} rounded-[20px] border border-control-line bg-surface p-6 shadow-none max-sm:h-full max-sm:max-w-none max-sm:overflow-y-auto max-sm:rounded-none max-sm:p-4`}
+        className={`flex w-full ${widthClassName} max-h-[90vh] flex-col overflow-hidden rounded-[20px] border border-control-line bg-surface shadow-none max-sm:h-full max-sm:max-h-none max-sm:max-w-none max-sm:rounded-none`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex shrink-0 items-start justify-between gap-3 px-6 pt-6 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3">
           <h2 id={titleId} className="text-xl font-semibold text-text-base">
             {title}
           </h2>
@@ -135,7 +135,9 @@ export const OverlayModal = ({
             닫기
           </button>
         </div>
-        <div className="mt-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 max-sm:px-4 max-sm:pb-4">
+          {children}
+        </div>
       </section>
     </div>
   );

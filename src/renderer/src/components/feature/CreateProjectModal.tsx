@@ -202,10 +202,9 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
       open={open}
       onClose={closeAndReset}
       title="새 프로젝트"
-      widthClassName="max-w-[620px] max-h-[90vh] overflow-hidden"
+      widthClassName="max-w-[620px]"
     >
       <form
-        className="flex max-h-[calc(90vh-120px)] flex-col"
         onSubmit={(e) => {
           e.preventDefault();
           setTouched({ name: true, repo: true });
@@ -234,7 +233,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           );
         }}
       >
-        <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+        <div className="space-y-4">
           <section className="rounded-lg border border-line bg-surface p-3">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold text-text-base">1. 프로젝트 정보</p>

@@ -64,7 +64,7 @@ export const Step2SummaryPreview = ({
       </header>
 
       <article
-        className="min-h-[220px] max-h-[360px] overflow-y-auto rounded-md border border-line bg-surface p-4"
+        className="min-h-[220px] rounded-md border border-line bg-surface p-4"
         aria-live="polite"
         aria-busy={isStreaming || undefined}
       >
