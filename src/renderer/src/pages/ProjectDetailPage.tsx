@@ -1139,7 +1139,7 @@ export const ProjectDetailPage = ({
       ) : null}
 
       {activeChat && isPersonalChat ? (
-        <div className="flex justify-center bg-surface px-6 py-3">
+        <div className="flex justify-center bg-surface px-6 py-3 max-sm:px-3 max-sm:py-2">
           <div className="flex w-full max-w-[48rem] items-center gap-2">
             <div className="min-w-0 flex-1">
               {isEditingHeaderTitle ? (
@@ -1234,7 +1234,7 @@ export const ProjectDetailPage = ({
             followBottomRef.current =
               viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 80;
           }}
-          className="flex h-full justify-center overflow-y-auto px-6 pb-4"
+          className="flex h-full justify-center overflow-y-auto px-6 pb-4 max-sm:px-3"
         >
           {!activeChatId ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
@@ -1334,7 +1334,7 @@ export const ProjectDetailPage = ({
                           {isLocalFailed ? (
                             <p className="text-ui-10 font-medium text-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-ui-16 font-medium leading-[1.6] text-text-base">
+                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-ui-16 font-medium leading-[1.6] text-text-base max-sm:max-w-[85%]">
                             {messageContent}
                           </div>
                           {timeLabel ? (
@@ -1350,7 +1350,7 @@ export const ProjectDetailPage = ({
                       <Avatar name={senderName} />
                       <div className="flex flex-col gap-0.5 w-full">
                         <p className="text-ui-10 font-medium text-text-soft">{senderName}</p>
-                        <div className="w-fit max-w-[70%] rounded-xl border border-line bg-surface px-3 py-2.5 text-ui-16 leading-[1.6] text-text-base">
+                        <div className="w-fit max-w-[70%] rounded-xl border border-line bg-surface px-3 py-2.5 text-ui-16 leading-[1.6] text-text-base max-sm:max-w-[85%]">
                           {messageContent}
                         </div>
                         {timeLabel ? (
@@ -1365,7 +1365,7 @@ export const ProjectDetailPage = ({
                 if (isUserMessageRole(messageRole)) {
                   return (
                     <div key={messageId} className="flex items-end justify-end">
-                      <div className="flex max-w-[70%] flex-col items-end">
+                      <div className="flex max-w-[70%] flex-col items-end max-sm:max-w-[85%]">
                         <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-ui-16 font-medium leading-[1.6] text-text-base">
                           {messageContent}
                         </div>
@@ -1546,7 +1546,7 @@ export const ProjectDetailPage = ({
       </div>
 
       {shareSelection.selectionMode && isPersonalChat ? (
-        <footer className="shrink-0 border-t border-line bg-surface px-6 py-3">
+        <footer className="shrink-0 border-t border-line bg-surface px-6 py-3 max-sm:px-3">
           <div className="mx-auto flex w-full max-w-[48rem] items-center justify-between gap-3">
             <span className="text-ui-14 text-text-base">
               <b>{shareSelection.count}</b>개 선택됨 · 최대 {MAX_SHARE_PAIRS}개
@@ -1570,7 +1570,10 @@ export const ProjectDetailPage = ({
           </div>
         </footer>
       ) : (
-        <footer className="shrink-0 px-6 pb-6 flex justify-center">
+        <footer
+          className="shrink-0 px-6 pb-6 flex justify-center max-sm:px-3"
+          style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        >
           <ChatComposer
             value={draft}
             placeholder={
