@@ -7,19 +7,24 @@ Electron + React + TypeScript 기반의 Qode 데스크톱 프론트엔드입니�
 Qode FE는 팀이 프로젝트 코드를 이해하고 협업할 수 있도록 돕는 데스크톱 앱입니다.
 현재 저장소 기준으로 아래 기능이 구현되어 있습니다.
 
-- 온보딩: 로그인, 회원가입, 초대 수락 플로우
+- 온보딩: 로그인, 회원가입, 초대 수락, 해커톤 데모용 퀵 로그인
 - 프로젝트 관리: 프로젝트 목록 조회/생성, 프로젝트 상세 화면
+- 개인 AI 채팅: SSE 스트리밍 응답, 마크다운/코드 하이라이팅
+- 팀 채팅: socket.io 실시간 메시지, 참여자/오너 관리 모달 8종
+- 요약 공유(Digest): 개인 채팅 답변을 3단계 wizard로 팀 채팅에 공유
 - API 연동: Axios + React Query + OpenAPI 생성 클라이언트
 
 ## 기술 스택
 
-- Electron
-- React 19
-- TypeScript
-- Vite (electron-vite)
-- Tailwind CSS v4
-- TanStack Query (React Query)
-- Axios
+- Electron + electron-vite
+- React 19 / TypeScript
+- Tailwind CSS v4 (설정 파일 없이 `@theme` 토큰 사용)
+- TanStack Query (React Query) + Zustand
+- Axios + swagger-typescript-api (OpenAPI 클라이언트 생성)
+- socket.io-client (팀 채팅), Fetch + ReadableStream (AI 채팅 SSE)
+- react-markdown + remark-gfm + prism-react-renderer
+- Storybook 8 (컴포넌트 샌드박스)
+- Vitest + Testing Library (jsdom)
 
 ## 사전 준비
 
@@ -67,28 +72,50 @@ yarn dev
 
 ## 환경 변수
 
-프론트엔드 루트(`Qode-Fe`)에 `.env` 파일을 두고 설정합니다.
+저장소 루트에 `.env` 파일을 두고 설정합니다. (`.env.example` 참고)
 
 ```bash
+# API 서버 주소 (스킴 포함) — axios baseURL 과 socket.io 접속에 쓰인다
 VITE_API_BASE_URL=http://localhost:3000
-```
 
-- `VITE_API_BASE_URL`: API 서버 주소
+# 위 주소의 호스트 부분만 — index.html 의 CSP connect-src 에 치환된다
+# VITE_API_BASE_URL 과 반드시 같은 호스트여야 하며, 어긋나면 API 가 전부 CSP 로 막힌다
+VITE_API_HOST=localhost:3000
+
+# (선택) socket.io 서버 주소 — 비워두면 VITE_API_BASE_URL 을 그대로 사용
+VITE_SOCKET_URL=
+
+# (선택) 해커톤 데모용 퀵 로그인 계정 — 둘 다 채우면 로그인 화면에
+# "Qode 시작하기" 버튼이 노출되고 클릭 한 번으로 로그인된다
+# 프로덕션 빌드에는 반드시 비워둘 것
+VITE_QUICK_LOGIN_EMAIL=
+VITE_QUICK_LOGIN_PASSWORD=
+```
 
 ## 주요 명령어
 
 ```bash
-yarn dev          # Electron + Vite 개발 서버
-yarn web:build    # 웹 정적 파일 빌드 (src/renderer/dist)
-yarn start        # 빌드 결과 프리뷰
-yarn lint         # ESLint 검사
-yarn typecheck    # TypeScript 타입 검사
-yarn build        # 타입 검사 + 앱 빌드
-yarn build:win    # Windows 패키징
-yarn build:mac    # macOS 패키징
-yarn build:linux  # Linux 패키징
-yarn format       # Prettier 포맷 적용
+yarn dev              # Electron 개발 모드 (main + preload + renderer HMR)
+yarn web:dev          # 렌더러만 브라우저에서 실행
+yarn web:build        # 웹 정적 파일 빌드 (src/renderer/dist)
+yarn web:preview      # 웹 빌드 결과 프리뷰
+yarn start            # Electron 빌드 결과 프리뷰
+yarn lint             # ESLint 검사
+yarn typecheck        # tsc (node + web 두 프로젝트)
+yarn test             # Vitest 1회 실행
+yarn test:watch       # Vitest watch 모드
+yarn storybook        # Storybook 실행 (포트 6006)
+yarn build-storybook  # Storybook 정적 빌드
+yarn swagger:local    # OpenAPI → src/renderer/src/api/generated 재생성
+yarn build            # 타입 검사 + Electron 앱 빌드
+yarn build:win        # Windows 패키징
+yarn build:mac        # macOS 패키징
+yarn build:linux      # Linux 패키징
+yarn format           # Prettier 포맷 적용
 ```
+
+> `swagger:local` 은 기본적으로 로컬 백엔드(`http://localhost:3000/docs/json`)를 바라봅니다.
+> 다른 스펙으로 생성하려면 `package.json` 의 `-p` URL 을 수정한 뒤 실행하세요.
 
 ## GitHub Releases 배포
 
@@ -166,32 +193,34 @@ sudo systemctl reload nginx
 - 수동 실행은 `Actions > Deploy Web To EC2 > Run workflow`
 - 워크플로 파일: `.github/workflows/web-deploy-ec2.yml`
 
-OpenAPI 타입/클라이언트 재생성이 필요하면:
-
-```bash
-yarn swagger:local
-```
-
-실행 전 백엔드가 `http://localhost:3000/swagger/json`에서 응답해야 합니다.
-
 ## 프로젝트 구조
 
 ```text
-src/main                 # Electron 메인 프로세스
-src/preload              # preload 브리지
-src/renderer             # 렌더러 앱(Vite + React)
-src/renderer/src/api     # API 계층(Axios, Query, generated client)
-src/renderer/src/components
-src/renderer/src/pages
-build/                   # 패키징 리소스
-resources/               # 아이콘/배포 리소스
+src/main                        # Electron 메인 프로세스
+src/preload                     # preload 브리지 (현재 window.api 는 빈 객체)
+src/renderer                    # 렌더러 앱 (Vite + React)
+src/renderer/src/api            # API 계층 (apiClient, Query 훅, generated client, socket)
+src/renderer/src/components/ui       # 범용 컴포넌트 (Storybook 스토리 동반)
+src/renderer/src/components/layout   # AppShell, AuthFrame, ProjectTabs
+src/renderer/src/components/feature  # 도메인 컴포넌트 (teamChat, digest ...)
+src/renderer/src/components/icons    # SVGR 아이콘 + iconRegistry
+src/renderer/src/pages          # 라우팅 대상 페이지
+src/renderer/src/hooks          # 공용 React 훅
+src/renderer/src/lib            # hashRouter, SSE 파서, 유틸
+build/                          # 패키징 리소스
+resources/                      # 아이콘/배포 리소스
 ```
+
+렌더러 코드는 Electron API에 의존하지 않아야 합니다. 웹(EC2 Nginx) 배포를 위해
+라우팅은 자체 해시 라우터(`lib/hashRouter.ts`)를 씁니다. 자세한 아키텍처는
+[`AGENTS.md`](./AGENTS.md) 를 참고하세요.
 
 ## 품질 게이트 및 Git 훅
 
-- 권장 확인: `yarn lint && yarn typecheck && yarn build`
-- pre-commit: `yarn lint-staged && yarn typecheck`
-- pre-push: `yarn build`
+- 권장 확인: `yarn lint && yarn typecheck && yarn test && yarn build`
+- pre-commit: `yarn lint-staged` + `yarn typecheck`
+- pre-push: `yarn build` (typecheck 가 함께 실행됨)
+- commit-msg: 브랜치 이름의 숫자를 이슈 번호로 뽑아 커밋 제목 끝에 ` (#123)` 자동 추가
 
 ## 함께 보면 좋은 문서
 
