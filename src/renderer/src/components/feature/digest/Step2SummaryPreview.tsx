@@ -66,8 +66,9 @@ export const Step2SummaryPreview = ({
       <article
         // 뷰포트 높이에 반응하도록 dvh 를 함께 걸어, 뷰포트가 낮을 땐 자연히 작아져 모달 전체
         // 스크롤이 발생하지 않도록 한다. 큰 뷰포트에선 최대 360px 로 가독성 유지.
+        // min-w-0: flex 부모 안에서 wide 코드블럭이 이 컨테이너를 밀지 못하게.
         style={{ maxHeight: 'min(360px, 40dvh)' }}
-        className="min-h-[220px] overflow-y-auto rounded-md border border-line bg-surface p-4"
+        className="min-h-[220px] min-w-0 overflow-y-auto rounded-md border border-line bg-surface p-4"
         aria-live="polite"
         aria-busy={isStreaming || undefined}
       >
