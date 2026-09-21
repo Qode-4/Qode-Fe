@@ -161,6 +161,29 @@ export const ShareToTeamChatModal = ({
       onClose={onClose}
       title="팀에 공유하기"
       widthClassName="max-w-[640px]"
+      footer={
+        <FooterActions
+          step={step}
+          onBack={() => {
+            if (step === 2) setStep(1);
+            if (step === 3) setStep(2);
+          }}
+          onNext={() => {
+            if (step === 1) {
+              setStep(2);
+              startPreviewIfNeeded();
+            } else if (step === 2) {
+              setStep(3);
+            }
+          }}
+          onShare={handleShare}
+          onCancel={onClose}
+          canNext={step === 1 ? canGoNextFromStep1 : step === 2 ? canGoNextFromStep2 : false}
+          canShare={canShareFromStep3}
+          isSharing={share.isPending}
+          chatName={chatName}
+        />
+      }
     >
       <div className="flex flex-col gap-5">
         <StepIndicator current={step} />
@@ -199,28 +222,6 @@ export const ShareToTeamChatModal = ({
             }
           />
         ) : null}
-
-        <FooterActions
-          step={step}
-          onBack={() => {
-            if (step === 2) setStep(1);
-            if (step === 3) setStep(2);
-          }}
-          onNext={() => {
-            if (step === 1) {
-              setStep(2);
-              startPreviewIfNeeded();
-            } else if (step === 2) {
-              setStep(3);
-            }
-          }}
-          onShare={handleShare}
-          onCancel={onClose}
-          canNext={step === 1 ? canGoNextFromStep1 : step === 2 ? canGoNextFromStep2 : false}
-          canShare={canShareFromStep3}
-          isSharing={share.isPending}
-          chatName={chatName}
-        />
       </div>
     </OverlayModal>
   );
@@ -287,9 +288,8 @@ const FooterActions = ({
   isSharing,
   chatName
 }: FooterActionsProps): React.JSX.Element => (
-  // OverlayModal 바디가 자체 스크롤을 소유하므로 액션 바를 sticky 로 붙여 항상 도달 가능하게.
-  // 음수 마진으로 바디 좌우 padding 을 뚫어 화면 폭 전체에서 상단 구분선을 그린다.
-  <div className="sticky bottom-0 -mx-6 -mb-6 flex items-center justify-between gap-2 border-t border-line bg-surface px-6 py-3 max-sm:-mx-4 max-sm:-mb-4 max-sm:px-4">
+  // OverlayModal 의 footer 슬롯에 렌더되므로 sticky/음수마진 불필요 — 항상 바디 아래 shrink-0 로 붙는다.
+  <div className="flex items-center justify-between gap-2">
     <span className="min-w-0 truncate text-xs text-text-subtle max-sm:hidden">
       원본: <span className="font-medium text-text-base">{chatName}</span>
     </span>

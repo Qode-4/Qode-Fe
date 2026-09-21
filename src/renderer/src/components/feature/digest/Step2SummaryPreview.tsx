@@ -64,7 +64,10 @@ export const Step2SummaryPreview = ({
       </header>
 
       <article
-        className="min-h-[220px] rounded-md border border-line bg-surface p-4"
+        // 뷰포트 높이에 반응하도록 dvh 를 함께 걸어, 뷰포트가 낮을 땐 자연히 작아져 모달 전체
+        // 스크롤이 발생하지 않도록 한다. 큰 뷰포트에선 최대 360px 로 가독성 유지.
+        style={{ maxHeight: 'min(360px, 40dvh)' }}
+        className="min-h-[220px] overflow-y-auto rounded-md border border-line bg-surface p-4"
         aria-live="polite"
         aria-busy={isStreaming || undefined}
       >
@@ -83,19 +86,22 @@ export const Step2SummaryPreview = ({
             <span>참조 코드</span>
             <span className="font-normal text-text-subtle">{sources.length}개</span>
           </h3>
-          {/* 요약 본문(답변)이 뷰포트 밖으로 밀리지 않도록 참조 코드 리스트만 자체 스크롤을 갖는다.
-             모달 바디의 상위 스크롤과 별개 — 리스트가 짧을 땐 자연 높이로 딱 맞게 접힌다. */}
-          <ul className="flex max-h-[200px] flex-col gap-1 overflow-y-auto pr-1 text-xs text-text-subtle">
-            {sources.map((s, idx) => (
-              <li key={`${s.filePath}-${idx}`} className="truncate">
-                <code className="rounded bg-surface px-1 py-0.5">
-                  {s.filePath}
-                  {s.startLine != null ? `:${s.startLine}` : ''}
-                  {s.endLine != null && s.endLine !== s.startLine ? `-${s.endLine}` : ''}
-                </code>
-              </li>
-            ))}
-          </ul>
+          {/* 스크롤은 wrapper div 가 소유하고, ul 은 block 레이아웃으로 자연스럽게 흐른다.
+             flex flex-col + max-height 조합은 브라우저가 flex 자식을 shrink 시켜 아이템들이
+             겹쳐 보이는 이슈를 만든다 — 그래서 명시적으로 wrapper 로 분리한다. */}
+          <div style={{ maxHeight: 'min(140px, 22dvh)' }} className="overflow-y-auto pr-1">
+            <ul className="space-y-1 text-xs text-text-subtle">
+              {sources.map((s, idx) => (
+                <li key={`${s.filePath}-${idx}`} className="truncate">
+                  <code className="rounded bg-surface px-1 py-0.5">
+                    {s.filePath}
+                    {s.startLine != null ? `:${s.startLine}` : ''}
+                    {s.endLine != null && s.endLine !== s.startLine ? `-${s.endLine}` : ''}
+                  </code>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       ) : null}
 

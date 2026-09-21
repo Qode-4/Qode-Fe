@@ -156,34 +156,36 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
             <h4 className="mb-1 text-ui-10 font-semibold text-text-soft">
               참조 코드 {answerSources.length}개
             </h4>
-            <ul className="flex max-h-[180px] flex-col gap-0.5 overflow-y-auto pr-1 text-ui-10 text-text-soft">
-              {answerSources.map((s, idx) => {
-                const src = s as {
-                  filePath?: string;
-                  file_path?: string;
-                  startLine?: number | null;
-                  start_line?: number | null;
-                  endLine?: number | null;
-                  end_line?: number | null;
-                };
-                const path = src.filePath ?? src.file_path ?? '';
-                const start = src.startLine ?? src.start_line ?? null;
-                const end = src.endLine ?? src.end_line ?? null;
-                return (
-                  <li
-                    key={`${path}-${start ?? 0}-${idx}`}
-                    className="flex items-center justify-between gap-2"
-                  >
-                    <code className="min-w-0 flex-1 truncate rounded bg-surface px-1 py-0.5">
-                      {path}
-                    </code>
-                    <span className="shrink-0">
-                      ({start ?? '-'}-{end ?? '-'})
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+            <div style={{ maxHeight: 'min(180px, 26dvh)' }} className="overflow-y-auto pr-1">
+              <ul className="space-y-0.5 text-ui-10 text-text-soft">
+                {answerSources.map((s, idx) => {
+                  const src = s as {
+                    filePath?: string;
+                    file_path?: string;
+                    startLine?: number | null;
+                    start_line?: number | null;
+                    endLine?: number | null;
+                    end_line?: number | null;
+                  };
+                  const path = src.filePath ?? src.file_path ?? '';
+                  const start = src.startLine ?? src.start_line ?? null;
+                  const end = src.endLine ?? src.end_line ?? null;
+                  return (
+                    <li
+                      key={`${path}-${start ?? 0}-${idx}`}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <code className="min-w-0 flex-1 truncate rounded bg-surface px-1 py-0.5">
+                        {path}
+                      </code>
+                      <span className="shrink-0">
+                        ({start ?? '-'}-{end ?? '-'})
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           </section>
         ) : null}
       </article>
