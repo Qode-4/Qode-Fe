@@ -37,7 +37,7 @@ const components: Components = {
 
 export const MarkdownAnswer = memo(function MarkdownAnswer({ content }: Props): React.JSX.Element {
   return (
-    <div className="markdown-answer text-base leading-[1.6] text-text-base">
+    <div className="markdown-answer min-w-0 text-base leading-[1.6] text-text-base">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {content}
       </ReactMarkdown>
