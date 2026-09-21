@@ -156,7 +156,7 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
             <h4 className="mb-1 text-ui-10 font-semibold text-text-soft">
               참조 코드 {answerSources.length}개
             </h4>
-            <ul className="flex flex-col gap-0.5 text-ui-10 text-text-soft">
+            <ul className="flex max-h-[180px] flex-col gap-0.5 overflow-y-auto pr-1 text-ui-10 text-text-soft">
               {answerSources.map((s, idx) => {
                 const src = s as {
                   filePath?: string;

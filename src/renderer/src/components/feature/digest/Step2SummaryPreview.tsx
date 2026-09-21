@@ -79,8 +79,13 @@ export const Step2SummaryPreview = ({
 
       {sources.length > 0 ? (
         <section className="rounded-md border border-line bg-surface-muted p-3">
-          <h3 className="mb-2 text-xs font-semibold text-text-soft">참조 코드</h3>
-          <ul className="flex flex-col gap-1 text-xs text-text-subtle">
+          <h3 className="mb-2 flex items-center justify-between text-xs font-semibold text-text-soft">
+            <span>참조 코드</span>
+            <span className="font-normal text-text-subtle">{sources.length}개</span>
+          </h3>
+          {/* 요약 본문(답변)이 뷰포트 밖으로 밀리지 않도록 참조 코드 리스트만 자체 스크롤을 갖는다.
+             모달 바디의 상위 스크롤과 별개 — 리스트가 짧을 땐 자연 높이로 딱 맞게 접힌다. */}
+          <ul className="flex max-h-[200px] flex-col gap-1 overflow-y-auto pr-1 text-xs text-text-subtle">
             {sources.map((s, idx) => (
               <li key={`${s.filePath}-${idx}`} className="truncate">
                 <code className="rounded bg-surface px-1 py-0.5">
