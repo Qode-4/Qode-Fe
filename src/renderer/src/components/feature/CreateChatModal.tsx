@@ -48,19 +48,21 @@ export const CreateChatModal = ({
         }}
       >
         <label className="block" htmlFor="create-chat-name">
-          <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
+          <span className="mb-1 block text-xs font-medium text-fg-muted">이름</span>
           <input
             id="create-chat-name"
             className={[
-              'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-              nameError ? 'border-danger' : 'border-control-line focus:border-primary'
+              'h-10 w-full rounded-md border bg-surface px-3 text-base text-fg-default outline-none',
+              nameError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
             ].join(' ')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={placeholder}
             autoFocus
           />
-          {nameError ? <span className="mt-1 block text-xs text-danger">{nameError}</span> : null}
+          {nameError ? (
+            <span className="mt-1 block text-xs text-fg-danger">{nameError}</span>
+          ) : null}
         </label>
 
         <div className="mt-4 flex items-center justify-end gap-2">

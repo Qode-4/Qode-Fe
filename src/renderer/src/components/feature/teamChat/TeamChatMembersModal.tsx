@@ -80,13 +80,11 @@ export const TeamChatMembersModal = ({
             className="max-h-[320px] overflow-y-auto rounded-md border border-line bg-surface p-1"
           >
             {participants.isLoading ? (
-              <li className="px-3 py-6 text-center text-ui-12 text-text-soft">
+              <li className="px-3 py-6 text-center text-ui-12 text-fg-muted">
                 참여자를 불러오는 중...
               </li>
             ) : list.length === 0 ? (
-              <li className="px-3 py-6 text-center text-ui-12 text-text-soft">
-                참여자가 없습니다.
-              </li>
+              <li className="px-3 py-6 text-center text-ui-12 text-fg-muted">참여자가 없습니다.</li>
             ) : (
               list.map((participant) => {
                 const isSelf = viewerUserId != null && participant.userId === viewerUserId;
@@ -104,7 +102,7 @@ export const TeamChatMembersModal = ({
                       canKick ? (
                         <button
                           type="button"
-                          className="rounded-md px-2 py-1 text-ui-12 font-medium text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-md px-2 py-1 text-ui-12 font-medium text-fg-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
                           onClick={() => void handleKick(participant.userId, displayName)}
                           disabled={kick.isPending}
                           aria-label={`${displayName} 내보내기`}
@@ -126,7 +124,7 @@ export const TeamChatMembersModal = ({
             variant="ghost"
             size="sm"
             onClick={onLeave}
-            className="text-danger hover:bg-danger-bg"
+            className="text-fg-danger hover:bg-danger-soft"
           >
             채팅방 나가기
           </Button>

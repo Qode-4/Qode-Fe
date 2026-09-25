@@ -10,7 +10,7 @@ export const Link = ({ to, children, className, ...rest }: Props): React.JSX.Ele
     <a
       {...rest}
       className={[
-        'text-sm font-medium text-accent-strong underline underline-offset-2 transition-colors hover:text-primary-strong',
+        'text-sm font-medium text-fg-primary underline underline-offset-2 transition-colors hover:text-fg-primary',
         className ?? ''
       ].join(' ')}
       href={`#${to.startsWith('/') ? to : `/${to}`}`}

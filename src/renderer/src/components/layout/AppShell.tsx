@@ -163,8 +163,8 @@ const UserAvatar = ({
 
   const fallbackClassName =
     variant === 'brand'
-      ? 'bg-primary-soft font-semibold text-primary'
-      : 'border border-line bg-surface-muted font-medium text-text-soft';
+      ? 'bg-primary-soft font-semibold text-fg-primary'
+      : 'border border-line bg-surface-muted font-medium text-fg-muted';
 
   return (
     <div
@@ -1104,13 +1104,13 @@ export const AppShell = ({
   };
 
   return (
-    <div className="h-full w-full bg-app-bg">
+    <div className="h-full w-full bg-canvas">
       <div className="grid h-full grid-cols-[240px_minmax(0,1fr)] max-sm:grid-cols-1">
         {isMobile && mobileDrawerOpen ? (
           <button
             type="button"
             aria-label="사이드바 닫기"
-            className="fixed inset-0 z-30 bg-black/40 sm:hidden"
+            className="fixed inset-0 z-30 bg-scrim/40 sm:hidden"
             onClick={() => setMobileDrawerOpen(false)}
           />
         ) : null}
@@ -1138,7 +1138,7 @@ export const AppShell = ({
             type="button"
             aria-label="사이드바 닫기"
             onClick={() => setMobileDrawerOpen(false)}
-            className="absolute right-2 top-2 z-10 hidden h-11 w-11 items-center justify-center rounded-md text-text-subtle hover:bg-surface-muted active:bg-line max-sm:inline-flex"
+            className="absolute right-2 top-2 z-10 hidden h-11 w-11 items-center justify-center rounded-md text-fg-subtle hover:bg-surface-muted active:bg-line max-sm:inline-flex"
           >
             <svg
               aria-hidden="true"
@@ -1173,9 +1173,9 @@ export const AppShell = ({
                   onClick={requestProjectSync}
                   aria-busy={isSyncInProgress || postProjectSync.isPending}
                   className={[
-                    'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-3 text-ui-12 font-medium text-text-base transition-colors',
+                    'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-3 text-ui-12 font-medium text-fg-default transition-colors',
                     'hover:bg-surface-muted active:bg-line',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2',
                     'disabled:cursor-not-allowed disabled:opacity-60'
                   ].join(' ')}
                 >
@@ -1184,7 +1184,7 @@ export const AppShell = ({
                     {syncMenuLabel}
                   </span>
                   <span
-                    className="min-w-0 truncate text-ui-11 font-normal text-text-soft"
+                    className="min-w-0 truncate text-ui-11 font-normal text-fg-muted"
                     aria-live="polite"
                   >
                     {syncStatusInlineText}
@@ -1196,7 +1196,7 @@ export const AppShell = ({
               <div className="inline-flex w-full items-center justify-between gap-2">
                 <p
                   className={[
-                    'min-w-0 flex-1 font-medium leading-none text-text-subtle',
+                    'min-w-0 flex-1 font-medium leading-none text-fg-subtle',
                     drawerTypography.sectionTitle
                   ].join(' ')}
                 >
@@ -1206,7 +1206,7 @@ export const AppShell = ({
                   type="button"
                   aria-label={sectionsCollapsed ? '섹션 펼치기' : '섹션 접기'}
                   aria-expanded={!sectionsCollapsed}
-                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-text-soft transition-colors hover:bg-surface-muted hover:text-text-subtle active:bg-line"
+                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line"
                   onClick={() => setSectionsCollapsed((prev) => !prev)}
                 >
                   <span
@@ -1234,7 +1234,7 @@ export const AppShell = ({
                   {sectionsErrorMessage ? null : sectionsLoading ? (
                     <div
                       className={[
-                        'flex h-24 items-center justify-center text-center font-normal leading-[1.6] text-text-soft',
+                        'flex h-24 items-center justify-center text-center font-normal leading-[1.6] text-fg-muted',
                         drawerTypography.emptyState
                       ].join(' ')}
                     >
@@ -1248,14 +1248,14 @@ export const AppShell = ({
                             className={[
                               'inline-flex h-7 w-full items-center gap-1 rounded-[8px] pl-2 py-[2px] font-normal no-underline transition-colors',
                               drawerTypography.listItem,
-                              'text-text-base'
+                              'text-fg-default'
                             ].join(' ')}
                           >
                             <Icon
                               name="dot_round_fill"
                               size="sm"
                               decorative
-                              className="text-text-soft"
+                              className="text-fg-muted"
                             />
                             <span className="min-w-0 flex-1 truncate">{section.name}</span>
                             <button
@@ -1286,7 +1286,7 @@ export const AppShell = ({
                                 name="Setting_line_light"
                                 size="sm"
                                 decorative
-                                className="text-text-soft"
+                                className="text-fg-muted"
                               />
                             </button>
                           </div>
@@ -1296,7 +1296,7 @@ export const AppShell = ({
                               <div
                                 key={folder.id}
                                 className={[
-                                  'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal text-text-subtle transition-colors hover:bg-surface-muted',
+                                  'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal text-fg-subtle transition-colors hover:bg-surface-muted',
                                   drawerTypography.listItem
                                 ].join(' ')}
                               >
@@ -1304,7 +1304,7 @@ export const AppShell = ({
                                   name="Folder_light"
                                   size={20}
                                   decorative
-                                  className="text-fill-icon"
+                                  className="text-fg-default"
                                 />
                                 <span className="min-w-0 flex-1 truncate">{folder.name}</span>
                               </div>
@@ -1314,7 +1314,7 @@ export const AppShell = ({
                               type="button"
                               onClick={() => openFolderCreateModal(section.id)}
                               className={[
-                                'inline-flex h-7 items-center gap-1 pl-3 pr-2 py-[2px] font-normal text-text-soft transition-colors hover:text-text-subtle',
+                                'inline-flex h-7 items-center gap-1 pl-3 pr-2 py-[2px] font-normal text-fg-muted transition-colors hover:text-fg-subtle',
                                 drawerTypography.listItem
                               ].join(' ')}
                             >
@@ -1331,7 +1331,7 @@ export const AppShell = ({
                     type="button"
                     onClick={openSectionCreateModal}
                     className={[
-                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-text-soft transition-colors hover:text-text-subtle',
+                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-fg-muted transition-colors hover:text-fg-subtle',
                       drawerTypography.listItem
                     ].join(' ')}
                   >
@@ -1346,7 +1346,7 @@ export const AppShell = ({
               <div className="inline-flex w-full items-center justify-between gap-2">
                 <p
                   className={[
-                    'min-w-0 flex-1 font-medium leading-none text-text-subtle',
+                    'min-w-0 flex-1 font-medium leading-none text-fg-subtle',
                     drawerTypography.sectionTitle
                   ].join(' ')}
                 >
@@ -1356,7 +1356,7 @@ export const AppShell = ({
                   type="button"
                   aria-label="새 채팅 만들기"
                   disabled={!selectedProjectId}
-                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-text-soft transition-colors hover:bg-surface-muted hover:text-text-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={onCreatePersonalChat}
                 >
                   <span aria-hidden="true" className="text-[16px] leading-none">
@@ -1371,11 +1371,11 @@ export const AppShell = ({
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
-                  <p className="text-text-subtle">채팅 목록을 불러올 수 없습니다.</p>
+                  <p className="text-fg-subtle">채팅 목록을 불러올 수 없습니다.</p>
                   <button
                     type="button"
                     onClick={onRetryChats}
-                    className="font-medium text-accent-strong hover:underline"
+                    className="font-medium text-fg-primary hover:underline"
                   >
                     다시 시도
                   </button>
@@ -1383,7 +1383,7 @@ export const AppShell = ({
               ) : !chatsIsLoading && personalChats.length === 0 ? (
                 <p
                   className={[
-                    'mt-1 px-3 py-2 font-normal text-text-subtle',
+                    'mt-1 px-3 py-2 font-normal text-fg-subtle',
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
@@ -1443,7 +1443,7 @@ export const AppShell = ({
                           className={[
                             'w-full bg-transparent outline-none',
                             drawerTypography.listItem,
-                            'text-text-base placeholder:text-text-soft'
+                            'text-fg-default placeholder:text-fg-muted'
                           ].join(' ')}
                           aria-label={`${chat.name} 이름 바꾸기`}
                         />
@@ -1461,8 +1461,8 @@ export const AppShell = ({
                           'flex h-7 w-full min-w-0 items-center overflow-hidden rounded-[6px] px-2 py-[2px] text-left transition-colors',
                           drawerTypography.listItem,
                           isActive
-                            ? 'bg-primary-soft font-medium text-text-base'
-                            : 'font-normal text-text-base hover:bg-surface-muted active:bg-line'
+                            ? 'bg-primary-soft font-medium text-fg-default'
+                            : 'font-normal text-fg-default hover:bg-surface-muted active:bg-line'
                         ].join(' ')}
                         onClick={() => onSelectChat?.(chat.id)}
                       >
@@ -1481,8 +1481,8 @@ export const AppShell = ({
                           triggerClassName={[
                             'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
                             isActive
-                              ? 'text-text-base hover:bg-line'
-                              : 'text-text-soft hover:bg-line'
+                              ? 'text-fg-default hover:bg-line'
+                              : 'text-fg-muted hover:bg-line'
                           ].join(' ')}
                           actions={menuActions}
                         />
@@ -1497,7 +1497,7 @@ export const AppShell = ({
               <div className="inline-flex w-full items-center justify-between gap-2">
                 <p
                   className={[
-                    'min-w-0 flex-1 font-medium leading-none text-text-subtle',
+                    'min-w-0 flex-1 font-medium leading-none text-fg-subtle',
                     drawerTypography.sectionTitle
                   ].join(' ')}
                 >
@@ -1508,7 +1508,7 @@ export const AppShell = ({
                     type="button"
                     aria-label="새 팀 채팅 만들기"
                     disabled={!selectedProjectId}
-                    className="inline-flex items-center justify-center rounded-[4px] p-1 text-text-soft transition-colors hover:bg-surface-muted hover:text-text-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center justify-center rounded-[4px] p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={onCreateTeamChat}
                   >
                     <span aria-hidden="true" className="text-[16px] leading-none">
@@ -1525,11 +1525,11 @@ export const AppShell = ({
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
-                  <p className="text-text-subtle">채팅 목록을 불러올 수 없습니다.</p>
+                  <p className="text-fg-subtle">채팅 목록을 불러올 수 없습니다.</p>
                   <button
                     type="button"
                     onClick={onRetryChats}
-                    className="font-medium text-accent-strong hover:underline"
+                    className="font-medium text-fg-primary hover:underline"
                   >
                     다시 시도
                   </button>
@@ -1537,7 +1537,7 @@ export const AppShell = ({
               ) : !chatsIsLoading && teamChats.length === 0 ? (
                 <p
                   className={[
-                    'mt-1 px-3 py-2 font-normal text-text-subtle',
+                    'mt-1 px-3 py-2 font-normal text-fg-subtle',
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
@@ -1595,8 +1595,8 @@ export const AppShell = ({
                           'flex h-7 w-full min-w-0 items-center gap-1 overflow-hidden rounded-[6px] px-2 py-[2px] text-left transition-colors',
                           drawerTypography.listItem,
                           isActive
-                            ? 'bg-primary-soft font-medium text-text-base'
-                            : 'font-normal text-text-base hover:bg-surface-muted active:bg-line'
+                            ? 'bg-primary-soft font-medium text-fg-default'
+                            : 'font-normal text-fg-default hover:bg-surface-muted active:bg-line'
                         ].join(' ')}
                         onClick={() => onSelectChat?.(chat.id)}
                       >
@@ -1616,8 +1616,8 @@ export const AppShell = ({
                             triggerClassName={[
                               'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
                               isActive
-                                ? 'text-text-base hover:bg-line'
-                                : 'text-text-soft hover:bg-line'
+                                ? 'text-fg-default hover:bg-line'
+                                : 'text-fg-muted hover:bg-line'
                             ].join(' ')}
                             actions={teamMenuActions}
                           />
@@ -1635,7 +1635,7 @@ export const AppShell = ({
               aria-label="프로필"
             >
               <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" variant="brand" />
-              <p className="min-w-0 flex-1 truncate text-[14px] font-semibold text-text-base">
+              <p className="min-w-0 flex-1 truncate text-[14px] font-semibold text-fg-default">
                 {userName}
               </p>
               <button
@@ -1651,15 +1651,15 @@ export const AppShell = ({
           </div>
         </aside>
 
-        <main className="flex min-h-0 flex-col overflow-hidden bg-app-bg p-3 pl-0 max-sm:p-0">
-          <header className="sticky top-0 z-20 hidden items-center gap-1 bg-app-bg px-1 py-1 max-sm:flex">
+        <main className="flex min-h-0 flex-col overflow-hidden bg-canvas p-3 pl-0 max-sm:p-0">
+          <header className="sticky top-0 z-20 hidden items-center gap-1 bg-canvas px-1 py-1 max-sm:flex">
             <button
               type="button"
               aria-label="사이드바 열기"
               aria-expanded={mobileDrawerOpen}
               aria-controls="app-mobile-drawer"
               onClick={() => setMobileDrawerOpen(true)}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-base hover:bg-surface-muted active:bg-line"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-fg-default hover:bg-surface-muted active:bg-line"
             >
               <span aria-hidden className="flex flex-col gap-[3px]">
                 <span className="block h-[2px] w-5 rounded-full bg-current" />
@@ -1667,7 +1667,7 @@ export const AppShell = ({
                 <span className="block h-[2px] w-5 rounded-full bg-current" />
               </span>
             </button>
-            <p className="min-w-0 flex-1 truncate text-center text-ui-14 font-semibold text-text-base">
+            <p className="min-w-0 flex-1 truncate text-center text-ui-14 font-semibold text-fg-default">
               {(() => {
                 const active =
                   personalChats.find((c) => c.id === activeChatId) ??
@@ -1684,7 +1684,7 @@ export const AppShell = ({
                 onCreatePersonalChat?.();
               }}
               disabled={!selectedProjectId}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-base hover:bg-surface-muted active:bg-line disabled:opacity-40"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-fg-default hover:bg-surface-muted active:bg-line disabled:opacity-40"
             >
               <svg
                 aria-hidden="true"
@@ -1736,16 +1736,14 @@ export const AppShell = ({
                 <div className="min-w-0">
                   <p
                     className={[
-                      'truncate font-semibold text-text-base',
+                      'truncate font-semibold text-fg-default',
                       drawerTypography.settingsName
                     ].join(' ')}
                   >
                     {userName}
                   </p>
                   <p
-                    className={['truncate text-text-soft', drawerTypography.settingsEmail].join(
-                      ' '
-                    )}
+                    className={['truncate text-fg-muted', drawerTypography.settingsEmail].join(' ')}
                   >
                     {userEmail}
                   </p>
@@ -1764,12 +1762,12 @@ export const AppShell = ({
                     settingsMenuItemRefs.current[index] = el;
                   }}
                   className={[
-                    'flex h-6 w-full items-center gap-1 rounded-[8px] px-2 py-0.5 text-left font-normal text-text-subtle hover:bg-surface-muted',
+                    'flex h-6 w-full items-center gap-1 rounded-[8px] px-2 py-0.5 text-left font-normal text-fg-subtle hover:bg-surface-muted',
                     drawerTypography.settingsMenuItem
                   ].join(' ')}
                   onClick={() => handleSettingsAction(it.key)}
                 >
-                  <Icon name={it.iconName} size={16} decorative className="text-text-subtle" />
+                  <Icon name={it.iconName} size={16} decorative className="text-fg-subtle" />
                   <span>{it.label}</span>
                 </button>
               ))}
@@ -1807,8 +1805,8 @@ export const AppShell = ({
                   className={[
                     'block w-full rounded-md px-3 py-1.5 text-left text-xs',
                     it.key === 'delete'
-                      ? 'text-red-600 hover:bg-red-50'
-                      : 'text-text-base hover:bg-surface-muted',
+                      ? 'text-fg-danger hover:bg-danger-soft'
+                      : 'text-fg-default hover:bg-surface-muted',
                     it.key === 'delete' && deleteSection.isPending ? 'opacity-50' : ''
                   ].join(' ')}
                   disabled={it.key === 'delete' && deleteSection.isPending}
@@ -1852,14 +1850,14 @@ export const AppShell = ({
           }}
         >
           <label className="block" htmlFor="folder-create-input">
-            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
+            <span className="mb-1 block text-xs font-medium text-fg-muted">이름</span>
             <input
               id="folder-create-input"
               className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
+                'h-10 w-full rounded-md border bg-surface px-3 text-base text-fg-default outline-none',
                 folderCreateTouched && !folderCreateValue.trim()
                   ? 'border-danger'
-                  : 'border-control-line focus:border-primary'
+                  : 'border-line-strong focus:border-line-primary'
               ].join(' ')}
               value={folderCreateValue}
               onChange={(e) => setFolderCreateValue(e.target.value)}
@@ -1867,7 +1865,7 @@ export const AppShell = ({
               autoFocus
             />
             {folderCreateTouched && !folderCreateValue.trim() ? (
-              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
+              <span className="mt-1 block text-xs text-fg-danger">이름을 입력해주세요.</span>
             ) : null}
           </label>
 
@@ -1895,14 +1893,14 @@ export const AppShell = ({
           }}
         >
           <label className="block" htmlFor="section-create-input">
-            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
+            <span className="mb-1 block text-xs font-medium text-fg-muted">이름</span>
             <input
               id="section-create-input"
               className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
+                'h-10 w-full rounded-md border bg-surface px-3 text-base text-fg-default outline-none',
                 sectionCreateTouched && !sectionCreateValue.trim()
                   ? 'border-danger'
-                  : 'border-control-line focus:border-primary'
+                  : 'border-line-strong focus:border-line-primary'
               ].join(' ')}
               value={sectionCreateValue}
               onChange={(e) => setSectionCreateValue(e.target.value)}
@@ -1910,7 +1908,7 @@ export const AppShell = ({
               autoFocus
             />
             {sectionCreateTouched && !sectionCreateValue.trim() ? (
-              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
+              <span className="mt-1 block text-xs text-fg-danger">이름을 입력해주세요.</span>
             ) : null}
           </label>
 
@@ -1938,14 +1936,14 @@ export const AppShell = ({
           }}
         >
           <label className="block" htmlFor="section-rename-input">
-            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
+            <span className="mb-1 block text-xs font-medium text-fg-muted">이름</span>
             <input
               id="section-rename-input"
               className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
+                'h-10 w-full rounded-md border bg-surface px-3 text-base text-fg-default outline-none',
                 sectionRenameTouched && !sectionRenameValue.trim()
                   ? 'border-danger'
-                  : 'border-control-line focus:border-primary'
+                  : 'border-line-strong focus:border-line-primary'
               ].join(' ')}
               value={sectionRenameValue}
               onChange={(e) => setSectionRenameValue(e.target.value)}
@@ -1953,7 +1951,7 @@ export const AppShell = ({
               autoFocus
             />
             {sectionRenameTouched && !sectionRenameValue.trim() ? (
-              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
+              <span className="mt-1 block text-xs text-fg-danger">이름을 입력해주세요.</span>
             ) : null}
           </label>
 
@@ -1990,7 +1988,7 @@ export const AppShell = ({
                 <h2
                   id={profileSettingsTitleId}
                   className={[
-                    'font-semibold leading-[1.6] text-text-subtle',
+                    'font-semibold leading-[1.6] text-fg-subtle',
                     drawerTypography.profileTitle
                   ].join(' ')}
                 >
@@ -2006,13 +2004,13 @@ export const AppShell = ({
                       value={userName}
                       readOnly
                       className={[
-                        'h-6 w-full rounded-[8px] border border-control-line bg-surface px-2 font-medium text-text-subtle outline-none',
+                        'h-6 w-full rounded-[8px] border border-line-strong bg-surface px-2 font-medium text-fg-subtle outline-none',
                         drawerTypography.profileInput
                       ].join(' ')}
                     />
                     <p
                       className={[
-                        'mt-0.5 truncate font-medium text-text-soft',
+                        'mt-0.5 truncate font-medium text-fg-muted',
                         drawerTypography.profileEmail
                       ].join(' ')}
                     >
@@ -2025,7 +2023,7 @@ export const AppShell = ({
               <div className="border-t border-line-soft px-3 py-2">
                 <p
                   className={[
-                    'mb-1.5 font-medium text-text-soft',
+                    'mb-1.5 font-medium text-fg-muted',
                     drawerTypography.fontSizeLabel
                   ].join(' ')}
                   id={`${profileSettingsTitleId}-font-size-label`}
@@ -2053,8 +2051,8 @@ export const AppShell = ({
                           'h-6 flex-1 rounded-[4px] font-medium transition-colors',
                           drawerTypography.fontSizeOption,
                           isActive
-                            ? 'bg-primary-soft text-text-base'
-                            : 'bg-transparent text-text-soft hover:text-text-subtle'
+                            ? 'bg-primary-soft text-fg-default'
+                            : 'bg-transparent text-fg-muted hover:text-fg-subtle'
                         ].join(' ')}
                       >
                         {option.label}
@@ -2069,7 +2067,7 @@ export const AppShell = ({
                   <button
                     type="button"
                     className={[
-                      'h-6 flex-1 rounded-[6px] bg-surface font-medium text-text-soft hover:bg-surface-muted active:bg-line',
+                      'h-6 flex-1 rounded-[6px] bg-surface font-medium text-fg-muted hover:bg-surface-muted active:bg-line',
                       drawerTypography.profileButton
                     ].join(' ')}
                     onClick={handleProfileDialogCancel}
@@ -2080,7 +2078,7 @@ export const AppShell = ({
                     type="button"
                     disabled
                     className={[
-                      'h-6 flex-1 rounded-[6px] bg-zinc-800 font-medium text-white disabled:cursor-not-allowed disabled:opacity-60',
+                      'h-6 flex-1 rounded-[6px] bg-inverse font-medium text-fg-on-dark disabled:cursor-not-allowed disabled:opacity-60',
                       drawerTypography.profileButton
                     ].join(' ')}
                   >
@@ -2121,8 +2119,8 @@ export const AppShell = ({
                   className={[
                     'block w-full rounded-md px-3 py-1.5 text-left text-xs',
                     it.key === 'delete'
-                      ? 'text-red-600 hover:bg-red-50'
-                      : 'text-text-base hover:bg-surface-muted',
+                      ? 'text-fg-danger hover:bg-danger-soft'
+                      : 'text-fg-default hover:bg-surface-muted',
                     it.key === 'delete' && deleteProject.isPending ? 'opacity-50' : '',
                     it.key === 'sync' && !canRequestProjectSync ? 'opacity-50' : ''
                   ].join(' ')}
@@ -2167,14 +2165,14 @@ export const AppShell = ({
           }}
         >
           <label className="block" htmlFor="project-rename-input">
-            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
+            <span className="mb-1 block text-xs font-medium text-fg-muted">이름</span>
             <input
               id="project-rename-input"
               className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
+                'h-10 w-full rounded-md border bg-surface px-3 text-base text-fg-default outline-none',
                 renameTouched && !renameValue.trim()
                   ? 'border-danger'
-                  : 'border-control-line focus:border-primary'
+                  : 'border-line-strong focus:border-line-primary'
               ].join(' ')}
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
@@ -2182,7 +2180,7 @@ export const AppShell = ({
               autoFocus
             />
             {renameTouched && !renameValue.trim() ? (
-              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
+              <span className="mt-1 block text-xs text-fg-danger">이름을 입력해주세요.</span>
             ) : null}
           </label>
 
@@ -2211,11 +2209,11 @@ export const AppShell = ({
       >
         <>
           <div className="flex items-end justify-between gap-3">
-            <p className="text-sm text-text-soft">링크를 받은 사람은 누구나 참여할 수 있어요.</p>
+            <p className="text-sm text-fg-muted">링크를 받은 사람은 누구나 참여할 수 있어요.</p>
             <span
               className={[
                 'shrink-0 text-sm',
-                isTeamFull ? 'font-semibold text-danger' : 'text-text-subtle'
+                isTeamFull ? 'font-semibold text-fg-danger' : 'text-fg-subtle'
               ].join(' ')}
             >
               {memberCount} / {MAX_TEAM_MEMBERS}명
@@ -2223,13 +2221,13 @@ export const AppShell = ({
           </div>
 
           <label className="mt-3 block" htmlFor="project-invite-link">
-            <span className="mb-1 block text-xs font-medium text-text-soft">초대 링크</span>
+            <span className="mb-1 block text-xs font-medium text-fg-muted">초대 링크</span>
             {/* input 에 min-w-0 이 없으면 최소 너비가 버텨서 옆 버튼이 찌그러지고
                 "복사" 글자가 세로로 접힌다. */}
             <div className="flex items-center gap-2">
               <input
                 id="project-invite-link"
-                className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
+                className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-base text-fg-default outline-none"
                 value={inviteLink}
                 readOnly
                 onFocus={(e) => e.currentTarget.select()}
@@ -2270,7 +2268,7 @@ export const AppShell = ({
 
           {reissueConfirming ? (
             <div className="mt-4 rounded-lg border border-line bg-surface-muted p-3">
-              <p className="text-sm text-text-base">
+              <p className="text-sm text-fg-default">
                 이전 링크로는 더 이상 참여할 수 없게 됩니다. 새 링크를 만들까요?
               </p>
               <div className="mt-3 flex items-center justify-end gap-2">
@@ -2307,9 +2305,7 @@ export const AppShell = ({
                 >
                   새 링크 만들기
                 </Button>
-                <p className="mt-1 text-xs text-text-subtle">
-                  이전 링크는 즉시 사용할 수 없게 돼요.
-                </p>
+                <p className="mt-1 text-xs text-fg-subtle">이전 링크는 즉시 사용할 수 없게 돼요.</p>
               </div>
               <Button type="button" size="sm" onClick={closeProjectModal}>
                 닫기
@@ -2333,8 +2329,8 @@ export const AppShell = ({
           ) : null}
 
           {modalProjectMembers.isError ? (
-            <div className="mt-3 rounded-lg border border-danger-line bg-danger-bg p-3">
-              <p className="text-sm text-danger">멤버 목록을 불러올 수 없습니다.</p>
+            <div className="mt-3 rounded-lg border border-line-danger bg-danger-soft p-3">
+              <p className="text-sm text-fg-danger">멤버 목록을 불러올 수 없습니다.</p>
               <div className="mt-2">
                 <Button
                   type="button"
@@ -2349,14 +2345,14 @@ export const AppShell = ({
             </div>
           ) : (
             <div className="mt-3 overflow-hidden rounded-lg border border-line">
-              <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-xs font-semibold text-text-soft max-sm:hidden">
+              <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-xs font-semibold text-fg-muted max-sm:hidden">
                 <div>멤버</div>
                 <div className="text-center">역할</div>
                 <div className="text-right">액션</div>
               </div>
 
               {modalProjectMembers.isLoading ? (
-                <div className="px-3 py-3 text-sm text-text-subtle">멤버를 불러오는 중...</div>
+                <div className="px-3 py-3 text-sm text-fg-subtle">멤버를 불러오는 중...</div>
               ) : null}
 
               {modalProjectMembers.data?.data.map((member) => {
@@ -2374,11 +2370,11 @@ export const AppShell = ({
                     <div className="flex min-w-0 items-center gap-3">
                       <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size="sm" />
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-text-base">
+                        <div className="truncate text-sm font-semibold text-fg-default">
                           {member.name}
-                          {isSelf ? <span className="ml-1 text-text-subtle">(나)</span> : null}
+                          {isSelf ? <span className="ml-1 text-fg-subtle">(나)</span> : null}
                         </div>
-                        <div className="text-xs text-text-subtle">
+                        <div className="text-xs text-fg-subtle">
                           {member.joinedAt
                             ? `${formatJoinedAt(member.joinedAt)} 참여`
                             : '참여일 미상'}
@@ -2390,8 +2386,8 @@ export const AppShell = ({
                         className={[
                           'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
                           isOwner
-                            ? 'bg-primary-soft text-accent-strong'
-                            : 'bg-surface-muted text-text-subtle'
+                            ? 'bg-primary-soft text-fg-primary'
+                            : 'bg-surface-muted text-fg-subtle'
                         ].join(' ')}
                       >
                         {member.role}
@@ -2426,17 +2422,17 @@ export const AppShell = ({
       >
         <>
           <div className="mt-3">
-            <span className="mb-1 block text-xs font-medium text-text-soft">Git Repository</span>
+            <span className="mb-1 block text-xs font-medium text-fg-muted">Git Repository</span>
             <div className="flex items-center gap-2">
               {sourceGitUrl ? (
                 <input
-                  className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
+                  className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-base text-fg-default outline-none"
                   value={sourceGitUrl}
                   readOnly
                   onFocus={(e) => e.currentTarget.select()}
                 />
               ) : (
-                <div className="flex h-10 min-w-0 flex-1 items-center rounded-md border border-line bg-surface-muted px-3 text-sm text-text-subtle">
+                <div className="flex h-10 min-w-0 flex-1 items-center rounded-md border border-line bg-surface-muted px-3 text-sm text-fg-subtle">
                   연결된 레포지토리 정보가 없습니다.
                 </div>
               )}
@@ -2445,7 +2441,7 @@ export const AppShell = ({
                 disabled={!sourceGitUrl}
                 onClick={() => void copySourceGitUrl()}
                 aria-label="URL 복사"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-text-base transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-fg-default transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Icon name="Copy_light" size="sm" />
               </button>
@@ -2454,14 +2450,14 @@ export const AppShell = ({
                   href={sourceGitUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-line bg-surface px-3 text-xs font-semibold text-text-base transition-colors hover:bg-surface-muted"
+                  className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-line bg-surface px-3 text-xs font-semibold text-fg-default transition-colors hover:bg-surface-muted"
                 >
                   새 탭에서 열기
                 </a>
               ) : (
                 <span
                   aria-disabled="true"
-                  className="inline-flex h-10 shrink-0 cursor-not-allowed items-center justify-center whitespace-nowrap rounded-md border border-line bg-surface px-3 text-xs font-semibold text-text-base opacity-60"
+                  className="inline-flex h-10 shrink-0 cursor-not-allowed items-center justify-center whitespace-nowrap rounded-md border border-line bg-surface px-3 text-xs font-semibold text-fg-default opacity-60"
                 >
                   새 탭에서 열기
                 </span>

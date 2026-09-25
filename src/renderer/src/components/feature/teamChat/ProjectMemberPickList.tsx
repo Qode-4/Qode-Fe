@@ -54,7 +54,7 @@ export const ProjectMemberPickList = ({
           onChange={(event) => setQuery(event.target.value)}
           placeholder={searchPlaceholder}
           aria-label="멤버 이름으로 검색"
-          className="h-9 w-full rounded-md border border-control-line bg-surface px-3 text-ui-14 text-text-base outline-none focus:border-primary"
+          className="h-9 w-full rounded-md border border-line-strong bg-surface px-3 text-ui-14 text-fg-default outline-none focus:border-line-primary"
         />
       </label>
 
@@ -65,7 +65,7 @@ export const ProjectMemberPickList = ({
         className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-md border border-line bg-surface"
       >
         {visibleMembers.length === 0 ? (
-          <li className="px-3 py-6 text-center text-ui-12 text-text-soft">{emptyMessage}</li>
+          <li className="px-3 py-6 text-center text-ui-12 text-fg-muted">{emptyMessage}</li>
         ) : (
           visibleMembers.map((member) => {
             const isSelected = selectedSet.has(member.id);
@@ -96,12 +96,12 @@ export const ProjectMemberPickList = ({
                   ) : (
                     <span
                       aria-hidden
-                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-ui-12 font-semibold text-primary"
+                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-ui-12 font-semibold text-fg-primary"
                     >
                       {initialOf(member.name)}
                     </span>
                   )}
-                  <span className="min-w-0 flex-1 truncate text-ui-14 text-text-base">
+                  <span className="min-w-0 flex-1 truncate text-ui-14 text-fg-default">
                     {member.name}
                   </span>
                 </label>

@@ -7,9 +7,9 @@ type Props = {
 };
 
 const toneMap: Record<NonNullable<Props['tone']>, string> = {
-  info: 'border-line-soft bg-surface-muted text-text-base',
-  danger: 'border-danger-line bg-danger-bg text-danger',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  info: 'border-line-soft bg-surface-muted text-fg-default',
+  danger: 'border-line-danger bg-danger-soft text-fg-danger',
+  success: 'border-line-success bg-success-soft text-fg-success'
 };
 
 export const InlineAlert = ({ tone = 'info', title, children }: Props): React.JSX.Element => {

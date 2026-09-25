@@ -139,8 +139,8 @@ export const ChatItemMenu = ({
                   className={[
                     'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs max-sm:py-3 max-sm:text-sm',
                     action.danger
-                      ? 'text-red-600 hover:bg-red-50'
-                      : 'text-text-base hover:bg-surface-muted',
+                      ? 'text-fg-danger hover:bg-danger-soft'
+                      : 'text-fg-default hover:bg-surface-muted',
                     action.disabled ? 'opacity-50' : ''
                   ].join(' ')}
                   onClick={(e) => {

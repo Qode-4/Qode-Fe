@@ -213,7 +213,7 @@ const App = (): React.JSX.Element => {
 
   if (!token) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-500">
+      <div className="flex h-full items-center justify-center text-sm text-fg-muted">
         Redirecting...
       </div>
     );
@@ -223,11 +223,11 @@ const App = (): React.JSX.Element => {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <h1 className="text-5xl font-semibold tracking-tight text-text-base">
+          <h1 className="text-5xl font-semibold tracking-tight text-fg-default">
             어서오세요, {loginTransitionUserName}님!
           </h1>
-          <p className="mt-2 text-sm text-text-subtle">잠시만요, 준비하고 있어요...</p>
-          <div className="mx-auto mt-5 h-9 w-9 animate-spin rounded-full border-2 border-line border-t-primary" />
+          <p className="mt-2 text-sm text-fg-subtle">잠시만요, 준비하고 있어요...</p>
+          <div className="mx-auto mt-5 h-9 w-9 animate-spin rounded-full border-2 border-line border-t-line-primary" />
         </div>
       </div>
     );
@@ -248,7 +248,7 @@ const App = (): React.JSX.Element => {
   if (location.path === '/' || location.path === '') {
     navigate('/projects', { replace: true });
     return (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-500">
+      <div className="flex h-full items-center justify-center text-sm text-fg-muted">
         Redirecting...
       </div>
     );
@@ -307,8 +307,8 @@ const App = (): React.JSX.Element => {
       ) : null}
       {!matchPath(location.path, '/projects').matched && !projectMatch.matched ? (
         <div className="rounded-xl border border-line bg-surface p-6">
-          <h1 className="text-2xl font-semibold text-text-base">Not Found</h1>
-          <p className="mt-2 text-sm text-text-subtle">{location.path}</p>
+          <h1 className="text-2xl font-semibold text-fg-default">Not Found</h1>
+          <p className="mt-2 text-sm text-fg-subtle">{location.path}</p>
         </div>
       ) : null}
       <CreateProjectModal

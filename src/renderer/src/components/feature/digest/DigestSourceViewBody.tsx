@@ -46,20 +46,20 @@ export const DigestSourceViewBody = ({
       {sharerName || sharedAt ? <MetaLine sharerName={sharerName} sharedAt={sharedAt} /> : null}
 
       {note ? (
-        <div className="rounded-md border border-primary/40 bg-primary-soft px-3 py-2 text-ui-12 text-text-base">
-          <span className="mr-1 font-semibold text-primary">공유자 메모</span>
+        <div className="rounded-md border border-line-primary/40 bg-primary-soft px-3 py-2 text-ui-12 text-fg-default">
+          <span className="mr-1 font-semibold text-fg-primary">공유자 메모</span>
           {note}
         </div>
       ) : null}
 
       <div className="rounded-md border border-line bg-surface-muted p-4">
         {status === 'loading' ? (
-          <p className="py-8 text-center text-sm text-text-subtle">원본 대화를 불러오는 중…</p>
+          <p className="py-8 text-center text-sm text-fg-subtle">원본 대화를 불러오는 중…</p>
         ) : null}
 
         {status === 'error' ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <p className="text-sm text-danger">
+            <p className="text-sm text-fg-danger">
               {errorMessage ?? '원본 대화를 불러오지 못했습니다.'}
             </p>
             {onRetry ? (
@@ -71,7 +71,7 @@ export const DigestSourceViewBody = ({
         ) : null}
 
         {status === 'ready' && pairs.length === 0 ? (
-          <p className="py-8 text-center text-sm text-text-subtle">공유된 대화가 없습니다.</p>
+          <p className="py-8 text-center text-sm text-fg-subtle">공유된 대화가 없습니다.</p>
         ) : null}
 
         {status === 'ready' && pairs.length > 0 ? (
@@ -103,11 +103,11 @@ const MetaLine = ({
 }): React.JSX.Element => {
   const date = sharedAt ? formatDate(sharedAt) : '';
   return (
-    <p className="text-ui-12 text-text-soft">
-      {sharerName ? <span className="font-medium text-text-base">{sharerName}</span> : null}
+    <p className="text-ui-12 text-fg-muted">
+      {sharerName ? <span className="font-medium text-fg-default">{sharerName}</span> : null}
       {sharerName && date ? <span> · </span> : null}
       {date ? <span>{date}</span> : null}
-      <span className="ml-1 text-text-subtle">이(가) 공유한 대화</span>
+      <span className="ml-1 text-fg-subtle">이(가) 공유한 대화</span>
     </p>
   );
 };
@@ -133,8 +133,8 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-[12px] bg-primary-soft px-3 py-3 text-ui-14 font-medium leading-[1.6] text-text-base">
-          {questionContent || <span className="text-text-subtle">(질문 없음)</span>}
+        <div className="max-w-[85%] rounded-[12px] bg-primary-soft px-3 py-3 text-ui-14 font-medium leading-[1.6] text-fg-default">
+          {questionContent || <span className="text-fg-subtle">(질문 없음)</span>}
         </div>
       </div>
 
@@ -142,18 +142,18 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
         <div className="mb-2 flex items-center gap-2">
           <span
             aria-hidden="true"
-            className="inline-flex size-6 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
+            className="inline-flex size-6 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface"
           >
             <img src="/favicon.ico" alt="" aria-hidden="true" className="size-3.5 object-contain" />
           </span>
-          <span className="text-ui-12 font-semibold text-text-base">Qode AI</span>
+          <span className="text-ui-12 font-semibold text-fg-default">Qode AI</span>
         </div>
 
         {answerContent ? <MarkdownAnswer content={answerContent} /> : null}
 
         {answerSources.length > 0 ? (
           <section className="mt-2 rounded-[8px] border border-line bg-surface-muted p-2">
-            <h4 className="mb-1 text-ui-10 font-semibold text-text-soft">
+            <h4 className="mb-1 text-ui-10 font-semibold text-fg-muted">
               참조 코드 {answerSources.length}개
             </h4>
             <div
@@ -166,7 +166,7 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
               }}
               className="overflow-y-auto py-1 pr-1"
             >
-              <ul className="space-y-0.5 text-ui-10 text-text-soft">
+              <ul className="space-y-0.5 text-ui-10 text-fg-muted">
                 {answerSources.map((s, idx) => {
                   const src = s as {
                     filePath?: string;

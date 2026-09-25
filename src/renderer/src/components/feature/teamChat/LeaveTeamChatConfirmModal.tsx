@@ -28,7 +28,7 @@ export const LeaveTeamChatConfirmModal = ({
       title="채팅방 나가기"
       widthClassName="max-w-[420px]"
     >
-      <p className="text-ui-14 leading-[1.6] text-text-base">
+      <p className="text-ui-14 leading-[1.6] text-fg-default">
         <span className="font-semibold">‘{chatName}’</span> 채팅방에서 나가시겠어요? 이후에는 대화를
         읽거나 새 메시지를 보낼 수 없습니다.
       </p>

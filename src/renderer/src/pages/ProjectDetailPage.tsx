@@ -278,10 +278,10 @@ const MessageSources = ({
         aria-controls={listId}
         aria-expanded={expanded}
         onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full items-center justify-between px-3 py-1.5 text-ui-12 text-text-soft transition-colors hover:bg-surface-muted"
+        className="flex w-full items-center justify-between px-3 py-1.5 text-ui-12 text-fg-muted transition-colors hover:bg-surface-muted"
       >
         <span className="inline-flex items-center gap-2">
-          <span aria-hidden className="text-ui-12 leading-none text-text-soft">
+          <span aria-hidden className="text-ui-12 leading-none text-fg-muted">
             •
           </span>
           <span>참조한 소스 {sources.length}개</span>
@@ -297,7 +297,7 @@ const MessageSources = ({
           {sources.map((source) => (
             <div
               key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-              className="flex items-center justify-between gap-3 px-3 py-1 text-ui-12 text-text-soft"
+              className="flex items-center justify-between gap-3 px-3 py-1 text-ui-12 text-fg-muted"
             >
               <span className="min-w-0 flex-1 truncate">{source.filePath}</span>
               <span className="shrink-0">
@@ -313,7 +313,7 @@ const MessageSources = ({
 
 const Avatar = ({ name }: { name: string }): React.JSX.Element => {
   return (
-    <div className="inline-flex size-6 items-center justify-center rounded-full border border-line bg-surface-muted text-ui-12 font-medium text-text-soft">
+    <div className="inline-flex size-6 items-center justify-center rounded-full border border-line bg-surface-muted text-ui-12 font-medium text-fg-muted">
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -337,11 +337,11 @@ const MessageActionButton = ({
   const button = (
     <button
       type="button"
-      className="flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-text-soft transition-colors hover:bg-surface-muted hover:text-text-base disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-default disabled:cursor-not-allowed disabled:opacity-50"
       disabled={disabled}
       onClick={onClick}
     >
-      <Icon name={iconName} size="sm" decorative className="text-text-soft" />
+      <Icon name={iconName} size="sm" decorative className="text-fg-muted" />
       <span>{label}</span>
     </button>
   );
@@ -1039,7 +1039,7 @@ export const ProjectDetailPage = ({
             type="button"
             onClick={() => void project.refetch()}
             disabled={project.isFetching}
-            className="rounded-md border border-danger-line bg-surface px-3 py-1 text-ui-12 font-medium text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md border border-line-danger bg-surface px-3 py-1 text-ui-12 font-medium text-fg-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
           >
             {project.isFetching ? '다시 시도 중...' : '다시 시도'}
           </button>
@@ -1057,9 +1057,9 @@ export const ProjectDetailPage = ({
         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
           <div
             aria-hidden="true"
-            className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-primary"
+            className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-line-primary"
           />
-          <p className="text-ui-12 font-medium text-text-soft">프로젝트를 불러오는 중...</p>
+          <p className="text-ui-12 font-medium text-fg-muted">프로젝트를 불러오는 중...</p>
         </div>
       </section>
     );
@@ -1125,15 +1125,15 @@ export const ProjectDetailPage = ({
         <div
           role="status"
           aria-live="polite"
-          className="mx-4 mb-2 flex items-center gap-2 rounded-[10px] border border-line bg-surface-muted px-3 py-2 text-ui-12 text-text-subtle"
+          className="mx-4 mb-2 flex items-center gap-2 rounded-[10px] border border-line bg-surface-muted px-3 py-2 text-ui-12 text-fg-subtle"
         >
           <span
             aria-hidden="true"
-            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-text-soft border-t-transparent"
+            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-line-strong border-t-transparent"
           />
           <div className="min-w-0">
             <p className="font-medium">연결이 끊어졌습니다</p>
-            <p className="text-ui-10 text-text-soft">재연결 중...</p>
+            <p className="text-ui-10 text-fg-muted">재연결 중...</p>
           </div>
         </div>
       ) : null}
@@ -1161,14 +1161,14 @@ export const ProjectDetailPage = ({
                   onBlur={() => {
                     void commitHeaderRename(headerRenameDraft);
                   }}
-                  className="w-full rounded-md border border-control-line bg-surface px-2 py-1 text-ui-20 font-semibold text-text-base outline-none focus:border-primary"
+                  className="w-full rounded-md border border-line-strong bg-surface px-2 py-1 text-ui-20 font-semibold text-fg-default outline-none focus:border-line-primary"
                   aria-label={`${activeChat.name} 이름 바꾸기`}
                 />
               ) : (
                 <button
                   type="button"
                   onClick={beginHeaderRename}
-                  className="w-full truncate rounded-md px-2 py-1 text-left text-ui-20 font-semibold text-text-base transition-colors hover:bg-surface-muted"
+                  className="w-full truncate rounded-md px-2 py-1 text-left text-ui-20 font-semibold text-fg-default transition-colors hover:bg-surface-muted"
                   title="클릭하여 채팅 이름 바꾸기"
                   aria-label={`${activeChat.name} — 이름 바꾸기`}
                 >
@@ -1177,7 +1177,7 @@ export const ProjectDetailPage = ({
               )}
             </div>
             {shareSelection.selectionMode ? (
-              <span className="shrink-0 text-ui-12 font-medium text-text-soft">
+              <span className="shrink-0 text-ui-12 font-medium text-fg-muted">
                 {shareSelection.count}/{MAX_SHARE_PAIRS}개 선택됨
               </span>
             ) : selectableAssistantIds.size > 0 ? (
@@ -1238,21 +1238,21 @@ export const ProjectDetailPage = ({
         >
           {!activeChatId ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-              <p className="text-ui-12 font-medium text-text-soft">현재 프로젝트</p>
-              <h2 className="text-ui-20 font-semibold text-text-base">
+              <p className="text-ui-12 font-medium text-fg-muted">현재 프로젝트</p>
+              <h2 className="text-ui-20 font-semibold text-fg-default">
                 {project.data?.data.name ?? '프로젝트'}
               </h2>
-              <p className="text-ui-14 text-text-soft">메시지를 입력하면 새 대화가 시작돼요.</p>
+              <p className="text-ui-14 text-fg-muted">메시지를 입력하면 새 대화가 시작돼요.</p>
             </div>
           ) : (
             <div className="flex min-h-full w-full max-w-[48rem] flex-col gap-6">
               {messages.isLoading ? (
-                <p className="text-ui-12 font-medium text-text-soft">메시지를 불러오는 중...</p>
+                <p className="text-ui-12 font-medium text-fg-muted">메시지를 불러오는 중...</p>
               ) : null}
 
               {messages.isError ? (
                 <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
-                  <p className="text-ui-12 font-medium text-text-subtle">
+                  <p className="text-ui-12 font-medium text-fg-subtle">
                     이전 대화를 불러올 수 없습니다.
                   </p>
                   <button
@@ -1260,7 +1260,7 @@ export const ProjectDetailPage = ({
                     onClick={() => {
                       void messages.refetch();
                     }}
-                    className="text-ui-12 font-medium text-accent-strong hover:underline"
+                    className="text-ui-12 font-medium text-fg-primary hover:underline"
                   >
                     다시 시도
                   </button>
@@ -1332,13 +1332,13 @@ export const ProjectDetailPage = ({
                       <div key={messageId} className="flex items-end justify-end gap-2">
                         <div className="flex flex-col items-end gap-0.5 w-full">
                           {isLocalFailed ? (
-                            <p className="text-ui-10 font-medium text-danger">전송 실패</p>
+                            <p className="text-ui-10 font-medium text-fg-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-ui-16 font-medium leading-[1.6] text-text-base max-sm:max-w-[85%]">
+                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-ui-16 font-medium leading-[1.6] text-fg-default max-sm:max-w-[85%]">
                             {messageContent}
                           </div>
                           {timeLabel ? (
-                            <p className="text-ui-10 text-text-soft">{timeLabel}</p>
+                            <p className="text-ui-10 text-fg-muted">{timeLabel}</p>
                           ) : null}
                         </div>
                       </div>
@@ -1349,13 +1349,11 @@ export const ProjectDetailPage = ({
                     <div key={messageId} className="flex items-end gap-2">
                       <Avatar name={senderName} />
                       <div className="flex flex-col gap-0.5 w-full">
-                        <p className="text-ui-10 font-medium text-text-soft">{senderName}</p>
-                        <div className="w-fit max-w-[70%] rounded-xl border border-line bg-surface px-3 py-2.5 text-ui-16 leading-[1.6] text-text-base max-sm:max-w-[85%]">
+                        <p className="text-ui-10 font-medium text-fg-muted">{senderName}</p>
+                        <div className="w-fit max-w-[70%] rounded-xl border border-line bg-surface px-3 py-2.5 text-ui-16 leading-[1.6] text-fg-default max-sm:max-w-[85%]">
                           {messageContent}
                         </div>
-                        {timeLabel ? (
-                          <p className="text-ui-10 text-text-soft">{timeLabel}</p>
-                        ) : null}
+                        {timeLabel ? <p className="text-ui-10 text-fg-muted">{timeLabel}</p> : null}
                       </div>
                     </div>
                   );
@@ -1366,11 +1364,11 @@ export const ProjectDetailPage = ({
                   return (
                     <div key={messageId} className="flex items-end justify-end">
                       <div className="flex max-w-[70%] flex-col items-end max-sm:max-w-[85%]">
-                        <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-ui-16 font-medium leading-[1.6] text-text-base">
+                        <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-ui-16 font-medium leading-[1.6] text-fg-default">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (
-                          <p className="mt-1 text-ui-10 font-medium text-danger">전송 실패</p>
+                          <p className="mt-1 text-ui-10 font-medium text-fg-danger">전송 실패</p>
                         ) : null}
                       </div>
                     </div>
@@ -1406,7 +1404,7 @@ export const ProjectDetailPage = ({
                   <article
                     className={[
                       'flex-1 rounded-[12px] bg-surface p-3 transition-shadow',
-                      showCheckbox && isSelected ? 'ring-2 ring-primary' : '',
+                      showCheckbox && isSelected ? 'ring-2 ring-line-primary' : '',
                       showCheckbox ? 'cursor-pointer' : ''
                     ].join(' ')}
                     onClick={showCheckbox ? () => shareSelection.toggle(messageId) : undefined}
@@ -1414,7 +1412,7 @@ export const ProjectDetailPage = ({
                     <div className="mb-2 flex items-center gap-2">
                       <span
                         aria-hidden="true"
-                        className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
+                        className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface"
                       >
                         <img
                           src="/favicon.ico"
@@ -1423,7 +1421,7 @@ export const ProjectDetailPage = ({
                           className="size-4 object-contain"
                         />
                       </span>
-                      <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
+                      <span className="text-ui-14 font-semibold text-fg-default">Qode AI</span>
                     </div>
                     {hasVisibleBody ? <MarkdownAnswer content={cleanContent} /> : null}
 
@@ -1483,7 +1481,7 @@ export const ProjectDetailPage = ({
                   <div className="mb-2 flex items-center gap-2">
                     <span
                       aria-hidden="true"
-                      className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
+                      className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface"
                     >
                       <img
                         src="/favicon.ico"
@@ -1492,8 +1490,8 @@ export const ProjectDetailPage = ({
                         className="size-4 object-contain"
                       />
                     </span>
-                    <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
-                    <span className="text-ui-10 text-text-soft">
+                    <span className="text-ui-14 font-semibold text-fg-default">Qode AI</span>
+                    <span className="text-ui-10 text-fg-muted">
                       · {streamStatus || '스트리밍 중'}
                     </span>
                   </div>
@@ -1512,7 +1510,7 @@ export const ProjectDetailPage = ({
                   })()}
                   {streamError ? (
                     <div className="flex flex-col gap-2">
-                      <p className="text-ui-12 leading-[1.6] text-danger">
+                      <p className="text-ui-12 leading-[1.6] text-fg-danger">
                         {mapResponseError(streamError)}
                       </p>
                       <div>
@@ -1528,13 +1526,13 @@ export const ProjectDetailPage = ({
                       </div>
                     </div>
                   ) : streamContent ? null : (
-                    <p className="text-ui-12 leading-[1.6] text-text-soft">
+                    <p className="text-ui-12 leading-[1.6] text-fg-muted">
                       찾아보는 중이에요
                       <LoadingDots />
                     </p>
                   )}
                   {!streamError && streamContent === '' && streamSources.length > 0 ? (
-                    <p className="mt-2 text-ui-10 text-text-soft">
+                    <p className="mt-2 text-ui-10 text-fg-muted">
                       참조 소스 {streamSources.length}개 수집됨
                     </p>
                   ) : null}
@@ -1548,7 +1546,7 @@ export const ProjectDetailPage = ({
       {shareSelection.selectionMode && isPersonalChat ? (
         <footer className="shrink-0 border-t border-line bg-surface px-6 py-3 max-sm:px-3">
           <div className="mx-auto flex w-full max-w-[48rem] items-center justify-between gap-3">
-            <span className="text-ui-14 text-text-base">
+            <span className="text-ui-14 text-fg-default">
               <b>{shareSelection.count}</b>개 선택됨 · 최대 {MAX_SHARE_PAIRS}개
             </span>
             <div className="flex items-center gap-2">

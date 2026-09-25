@@ -16,15 +16,15 @@ type Props = {
 };
 
 const toneClassMap: Record<ToastTone, string> = {
-  danger: 'border-danger-line bg-danger-bg text-danger',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  info: 'border-line bg-surface text-text-base'
+  danger: 'border-line-danger bg-danger-soft text-fg-danger',
+  success: 'border-line-success bg-success-soft text-fg-success',
+  info: 'border-line bg-surface text-fg-default'
 };
 
 const closeButtonClassMap: Record<ToastTone, string> = {
-  danger: 'text-danger/70 hover:text-danger',
-  success: 'text-emerald-600/80 hover:text-emerald-700',
-  info: 'text-text-soft hover:text-text-subtle'
+  danger: 'text-fg-danger/70 hover:text-fg-danger',
+  success: 'text-fg-success/80 hover:text-fg-success',
+  info: 'text-fg-muted hover:text-fg-subtle'
 };
 
 export const Toast = ({ toast, onDismiss }: Props): React.JSX.Element => {

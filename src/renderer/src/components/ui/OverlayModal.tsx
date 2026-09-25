@@ -112,7 +112,7 @@ export const OverlayModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/25"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/25"
       onMouseDown={(e) => {
         if (e.currentTarget === e.target) onCloseRef.current();
       }}
@@ -124,7 +124,7 @@ export const OverlayModal = ({
         // 인라인 style 로 확정 지정해 Tailwind 아비트러리 값이 discover 실패하는 케이스를 방어.
         // 모바일은 h-full 로 풀스크린이므로 max-height 를 걸지 않는다.
         style={isMobile ? undefined : { maxHeight: '90dvh' }}
-        className={`flex w-full ${widthClassName} flex-col overflow-hidden rounded-[20px] border border-control-line bg-surface shadow-none max-sm:h-full max-sm:max-w-none max-sm:rounded-none`}
+        className={`flex w-full ${widthClassName} flex-col overflow-hidden rounded-[20px] border border-line-strong bg-surface shadow-none max-sm:h-full max-sm:max-w-none max-sm:rounded-none`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -132,12 +132,12 @@ export const OverlayModal = ({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-start justify-between gap-3 px-6 pt-6 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3">
-          <h2 id={titleId} className="text-xl font-semibold text-text-base">
+          <h2 id={titleId} className="text-xl font-semibold text-fg-default">
             {title}
           </h2>
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-xs text-text-subtle hover:bg-surface-muted max-sm:min-h-[44px] max-sm:min-w-[44px] max-sm:text-sm"
+            className="rounded-md px-2 py-1 text-xs text-fg-subtle hover:bg-surface-muted max-sm:min-h-[44px] max-sm:min-w-[44px] max-sm:text-sm"
             onClick={() => onCloseRef.current()}
             aria-label={`${title} 닫기`}
           >

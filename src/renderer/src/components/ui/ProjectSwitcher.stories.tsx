@@ -30,7 +30,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   render: (args): React.JSX.Element => (
-    <div className="w-[240px] bg-zinc-50 p-4">
+    <div className="w-[240px] bg-canvas p-4">
       <ProjectSwitcher {...args} />
     </div>
   )
@@ -42,7 +42,7 @@ export const EmptyProjects: Story = {
     selectedProjectId: undefined
   },
   render: (args): React.JSX.Element => (
-    <div className="w-[240px] bg-zinc-50 p-4">
+    <div className="w-[240px] bg-canvas p-4">
       <ProjectSwitcher {...args} />
     </div>
   )
@@ -56,7 +56,7 @@ export const FetchError: Story = {
     onRetry: () => undefined
   },
   render: (args): React.JSX.Element => (
-    <div className="w-[240px] bg-zinc-50 p-4">
+    <div className="w-[240px] bg-canvas p-4">
       <ProjectSwitcher {...args} />
     </div>
   )

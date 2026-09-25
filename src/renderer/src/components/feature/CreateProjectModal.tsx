@@ -168,8 +168,8 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
 
   const stepTone = (ready: boolean): string =>
     ready
-      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-      : 'border-line bg-surface-muted text-text-soft';
+      ? 'border-line-success bg-success-soft text-fg-success'
+      : 'border-line bg-surface-muted text-fg-muted';
 
   const closeAndReset = (): void => {
     setName('');
@@ -236,7 +236,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
         <div className="space-y-4">
           <section className="rounded-lg border border-line bg-surface p-3">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-text-base">1. 프로젝트 정보</p>
+              <p className="text-sm font-semibold text-fg-default">1. 프로젝트 정보</p>
               <span
                 className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(hasProjectInfo)}`}
               >
@@ -245,12 +245,12 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             </div>
 
             <label className="block" htmlFor="create-project-name">
-              <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
+              <span className="mb-1 block text-xs font-medium text-fg-muted">이름</span>
               <input
                 id="create-project-name"
                 className={[
-                  'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                  nameError ? 'border-danger' : 'border-control-line focus:border-primary'
+                  'h-10 w-full rounded-md border bg-surface px-3 text-base text-fg-default outline-none',
+                  nameError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
                 ].join(' ')}
                 value={name}
                 maxLength={PROJECT_NAME_MAX}
@@ -259,15 +259,15 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                 autoFocus
               />
               {nameError ? (
-                <span className="mt-1 block text-xs text-danger">{nameError}</span>
+                <span className="mt-1 block text-xs text-fg-danger">{nameError}</span>
               ) : null}
             </label>
 
             <label className="mt-3 block" htmlFor="create-project-description">
-              <span className="mb-1 block text-xs font-medium text-text-soft">설명 (선택)</span>
+              <span className="mb-1 block text-xs font-medium text-fg-muted">설명 (선택)</span>
               <input
                 id="create-project-description"
-                className="h-10 w-full rounded-md border border-control-line bg-surface px-3 text-base text-text-base outline-none focus:border-primary"
+                className="h-10 w-full rounded-md border border-line-strong bg-surface px-3 text-base text-fg-default outline-none focus:border-line-primary"
                 value={description}
                 maxLength={PROJECT_DESCRIPTION_MAX}
                 onChange={(e) => setDescription(e.target.value)}
@@ -279,8 +279,8 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           <section className="rounded-lg border border-line bg-surface-muted p-3">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-semibold text-text-base">2. GitHub 인증</p>
-                <p className="text-xs text-text-soft">승인 후 저장소 목록을 불러옵니다.</p>
+                <p className="text-sm font-semibold text-fg-default">2. GitHub 인증</p>
+                <p className="text-xs text-fg-muted">승인 후 저장소 목록을 불러옵니다.</p>
               </div>
               <span
                 className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(isAuthorized)}`}
@@ -315,14 +315,14 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
 
             {activeOauthFlow ? (
               <div className="mt-3 rounded-md border border-line bg-surface p-3">
-                <p className="text-xs text-text-soft">
+                <p className="text-xs text-fg-muted">
                   인증 코드:{' '}
-                  <span className="font-semibold text-text-base">
+                  <span className="font-semibold text-fg-default">
                     {activeOauthFlow.data.userCode}
                   </span>
                 </p>
-                <p className="mt-1 text-xs text-text-soft">상태: {oauthStatusLabel}</p>
-                <p className="mt-1 break-all text-xs text-text-soft">
+                <p className="mt-1 text-xs text-fg-muted">상태: {oauthStatusLabel}</p>
+                <p className="mt-1 break-all text-xs text-fg-muted">
                   {activeOauthFlow.data.verificationUri}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -340,7 +340,9 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                   </Button>
                 </div>
                 {!oauthOpenUrl ? (
-                  <p className="mt-2 text-xs text-danger">GitHub 인증 URL이 올바르지 않습니다.</p>
+                  <p className="mt-2 text-xs text-fg-danger">
+                    GitHub 인증 URL이 올바르지 않습니다.
+                  </p>
                 ) : null}
               </div>
             ) : null}
@@ -354,8 +356,8 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           >
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-text-base">3. 저장소 선택</p>
-                <p className="text-xs text-text-soft">연결할 GitHub 저장소를 1개 선택하세요.</p>
+                <p className="text-sm font-semibold text-fg-default">3. 저장소 선택</p>
+                <p className="text-xs text-fg-muted">연결할 GitHub 저장소를 1개 선택하세요.</p>
               </div>
               <span
                 className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(hasRepo)}`}
@@ -365,13 +367,13 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             </div>
 
             {isAuthorized && repos.isLoading ? (
-              <p className="text-xs text-text-soft">저장소 목록을 불러오는 중...</p>
+              <p className="text-xs text-fg-muted">저장소 목록을 불러오는 중...</p>
             ) : null}
             {isAuthorized && !repos.isLoading && repoItems.length === 0 ? (
-              <p className="text-xs text-danger">연결 가능한 저장소가 없습니다.</p>
+              <p className="text-xs text-fg-danger">연결 가능한 저장소가 없습니다.</p>
             ) : null}
             {!isAuthorized ? (
-              <p className="text-xs text-text-soft">
+              <p className="text-xs text-fg-muted">
                 GitHub 인증을 완료하면 저장소를 선택할 수 있습니다.
               </p>
             ) : null}
@@ -380,7 +382,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               {repoItems.map((repo) => (
                 <label
                   key={repo.fullName}
-                  className="mt-2 flex cursor-pointer items-center gap-2 rounded-md border border-line px-2 py-2 text-sm text-text-base first:mt-0"
+                  className="mt-2 flex cursor-pointer items-center gap-2 rounded-md border border-line px-2 py-2 text-sm text-fg-default first:mt-0"
                 >
                   <input
                     type="radio"
@@ -392,12 +394,12 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                     }}
                   />
                   <span>{repo.fullName}</span>
-                  <span className="ml-auto text-xs text-text-soft">{repo.defaultBranch}</span>
+                  <span className="ml-auto text-xs text-fg-muted">{repo.defaultBranch}</span>
                 </label>
               ))}
             </div>
 
-            {repoError ? <p className="mt-2 text-xs text-danger">{repoError}</p> : null}
+            {repoError ? <p className="mt-2 text-xs text-fg-danger">{repoError}</p> : null}
           </section>
         </div>
 

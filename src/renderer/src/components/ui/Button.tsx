@@ -8,10 +8,10 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantMap: Record<NonNullable<Props['variant']>, string> = {
   primary:
-    'border-primary bg-primary text-primary-foreground hover:brightness-95 active:brightness-90',
-  secondary: 'border-line bg-surface text-text-base hover:bg-surface-muted active:bg-line',
-  ghost: 'border-transparent bg-transparent text-text-subtle hover:bg-surface-muted active:bg-line',
-  danger: 'border-danger bg-danger text-white hover:brightness-95 active:brightness-90'
+    'border-line-primary bg-primary text-fg-on-primary hover:brightness-95 active:brightness-90',
+  secondary: 'border-line bg-surface text-fg-default hover:bg-surface-muted active:bg-line',
+  ghost: 'border-transparent bg-transparent text-fg-subtle hover:bg-surface-muted active:bg-line',
+  danger: 'border-danger bg-danger text-fg-on-dark hover:brightness-95 active:brightness-90'
 };
 
 const sizeMap: Record<NonNullable<Props['size']>, string> = {
@@ -33,7 +33,7 @@ export const Button = ({
       {...rest}
       className={[
         'inline-flex items-center justify-center gap-2 rounded-md border font-medium transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-60',
         sizeMap[size],
         variantMap[variant],
