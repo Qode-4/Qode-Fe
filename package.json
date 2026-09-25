@@ -13,6 +13,7 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "tokens:check": "tsx scripts/tokens-check.ts",
     "swagger:local": "swagger-typescript-api generate -p http://localhost:3000/docs/json -r -o ./src/renderer/src/api/generated --modular -d --extract-request-body --extract-response-body --extract-response-error --axios --clean-output",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
