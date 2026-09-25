@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { InputHTMLAttributes } from 'react';
+import { cn } from '../../lib/cn';
 
 type Props = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
@@ -62,7 +63,7 @@ export const TextField = ({
   const effectiveType = isPassword && visible ? 'text' : (type ?? 'text');
 
   return (
-    <div className={['flex flex-col gap-1.5', className ?? ''].join(' ')}>
+    <div className={cn('flex flex-col gap-1.5', className)}>
       <label htmlFor={inputId} className="text-caption font-semibold text-fg-subtle">
         {label}
       </label>
@@ -71,13 +72,13 @@ export const TextField = ({
           {...rest}
           id={inputId}
           type={effectiveType}
-          className={[
+          className={cn(
             'h-11 w-full rounded-card border px-3 text-label text-fg-default outline-none transition-colors',
             showToggle ? 'pr-11' : '',
             error
               ? 'border-line-danger bg-danger-soft focus:border-danger'
               : 'border-line-strong bg-surface focus:border-line-primary'
-          ].join(' ')}
+          )}
           aria-invalid={Boolean(error)}
           aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
         />

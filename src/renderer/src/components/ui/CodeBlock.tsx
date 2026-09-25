@@ -1,5 +1,6 @@
 import { Highlight, themes } from 'prism-react-renderer';
 import { useToast } from '../../hooks/useToast';
+import { cn } from '../../lib/cn';
 
 type Props = {
   language: string;
@@ -34,13 +35,13 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
       <Highlight code={code} language={language} theme={themes.oneDark}>
         {({ className, style, tokens, getLineProps, getTokenProps }) => (
           <pre
-            className={`${className} m-0 overflow-x-auto p-3 text-label leading-[1.55]`}
+            className={cn(className, 'm-0 overflow-x-auto p-3 text-label leading-[1.55]')}
             style={{ ...style, background: 'transparent' }}
           >
             {tokens.map((line, i) => {
               const lineProps = getLineProps({ line });
               return (
-                <div key={i} {...lineProps} className={`${lineProps.className ?? ''} flex`}>
+                <div key={i} {...lineProps} className={cn(lineProps.className, 'flex')}>
                   <span
                     aria-hidden
                     className="mr-3 inline-block w-6 shrink-0 select-none text-right text-fg-code-muted"

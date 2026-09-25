@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { Icon } from './Icon';
+import { cn } from '../../lib/cn';
 
 // 질문 최대 길이. 명세 E-1 비기능 요구사항, 서버 sendUserMessageBodySchema 와 같은 값이다.
 const MAX_LENGTH = 2000;
@@ -19,10 +20,10 @@ type Props = {
 
 const MAX_ROWS = 5;
 
-const sendButtonClass = [
+const sendButtonClass = cn(
   'inline-flex size-8 shrink-0 items-center justify-center rounded-control text-fg-on-primary transition-colors max-sm:size-11',
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-1'
-].join(' ');
+);
 
 export const ChatComposer = ({
   value,
@@ -58,7 +59,7 @@ export const ChatComposer = ({
   const sendButton = (
     <button
       type="button"
-      className={[sendButtonClass, sendButtonBg].join(' ')}
+      className={cn(sendButtonClass, sendButtonBg)}
       disabled={!canSend}
       onClick={onSend}
       aria-label="전송"
@@ -75,7 +76,7 @@ export const ChatComposer = ({
   );
 
   return (
-    <div className={['w-full max-w-[48rem]', className ?? ''].join(' ')}>
+    <div className={cn('w-full max-w-[48rem]', className)}>
       <div className="flex items-center gap-2 rounded-control bg-line-soft px-3 py-2 transition-colors focus-within:bg-primary-soft max-sm:rounded-panel max-sm:px-3 max-sm:py-2.5">
         <textarea
           ref={textareaRef}

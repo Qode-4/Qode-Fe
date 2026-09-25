@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react';
+import { cn } from '../../lib/cn';
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -31,14 +32,14 @@ export const Button = ({
   return (
     <button
       {...rest}
-      className={[
+      className={cn(
         'inline-flex items-center justify-center gap-2 rounded-control border font-medium transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-60',
         sizeMap[size],
         variantMap[variant],
-        className ?? ''
-      ].join(' ')}
+        className
+      )}
       disabled={disabled || isLoading}
       aria-busy={isLoading || undefined}
     >

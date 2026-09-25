@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { IconName } from '../icons/iconTypes';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { Icon } from './Icon';
+import { cn } from '../../lib/cn';
 
 export type ChatItemMenuAction = {
   key: string;
@@ -136,13 +137,13 @@ export const ChatItemMenu = ({
                   type="button"
                   role="menuitem"
                   disabled={action.disabled}
-                  className={[
+                  className={cn(
                     'flex w-full items-center gap-2 rounded-control px-3 py-1.5 text-left text-caption max-sm:py-3 max-sm:text-label',
                     action.danger
                       ? 'text-fg-danger hover:bg-danger-soft'
                       : 'text-fg-default hover:bg-surface-muted',
                     action.disabled ? 'opacity-50' : ''
-                  ].join(' ')}
+                  )}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();

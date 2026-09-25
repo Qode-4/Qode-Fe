@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { useIsMobile } from '../../hooks/useMediaQuery';
+import { cn } from '../../lib/cn';
 
 type Props = {
   open: boolean;
@@ -145,13 +146,13 @@ export const OverlayModal = ({
           </button>
         </div>
         <div
-          className={[
+          className={cn(
             // min-w-0 + overflow-x-hidden: flex 자식이 콘텐츠(넓은 code line 등) 폭에 맞춰
             // 팽창하거나 부모를 밀지 못하게 이중 방어. 내부 pre/table 은 자기 overflow-x-auto
             // 로 국지 스크롤을 소유. 특히 모바일(뷰포트 여유가 적음)에서 필수.
             'min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-6 max-sm:px-4',
             footer ? 'pb-4 max-sm:pb-3' : 'pb-6 max-sm:pb-4'
-          ].join(' ')}
+          )}
         >
           {children}
         </div>
