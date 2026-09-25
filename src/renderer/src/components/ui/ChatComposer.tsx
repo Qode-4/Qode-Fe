@@ -12,6 +12,8 @@ type Props = {
   canSend?: boolean;
   sendDisabledReason?: string;
   isSending?: boolean;
+  /** 입력창 위에 항상 보이는 진행 상태(예: 동기화 중). placeholder 는 글자를 치면 사라지므로 상태 안내에 쓰지 않는다. */
+  status?: string;
   className?: string;
   onChange: (value: string) => void;
   onSend: () => void;
@@ -32,6 +34,7 @@ export const ChatComposer = ({
   canSend,
   sendDisabledReason,
   isSending,
+  status,
   className,
   onChange,
   onSend
@@ -77,6 +80,18 @@ export const ChatComposer = ({
 
   return (
     <div className={cn('w-full max-w-[48rem]', className)}>
+      {status ? (
+        <p
+          role="status"
+          className="mb-1.5 flex items-center gap-1.5 px-1 text-caption text-fg-muted"
+        >
+          <span
+            aria-hidden="true"
+            className="size-3 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
+          />
+          {status}
+        </p>
+      ) : null}
       <div className="flex items-center gap-2 rounded-control bg-line-soft px-3 py-2 transition-colors focus-within:bg-primary-soft max-sm:rounded-panel max-sm:px-3 max-sm:py-2.5">
         <textarea
           ref={textareaRef}

@@ -1421,7 +1421,7 @@ export const ProjectDetailPage = ({
             value={draft}
             placeholder={
               isAnalyzing
-                ? `동기화 중... (${syncProgress}%)`
+                ? '동기화가 끝나면 질문할 수 있어요.'
                 : !activeChatId
                   ? '새 대화를 시작해보세요...'
                   : isTeamChatReadOnly
@@ -1440,6 +1440,7 @@ export const ProjectDetailPage = ({
                   : undefined
             }
             isSending={isSending}
+            status={isAnalyzing ? `코드를 동기화하는 중이에요 · ${syncProgress}%` : undefined}
             onChange={setDraft}
             onSend={() => {
               void sendMessage();
