@@ -2,11 +2,18 @@ import { useState } from 'react';
 import type { InputHTMLAttributes } from 'react';
 import { cn } from '../../lib/cn';
 
-type Props = InputHTMLAttributes<HTMLInputElement> & {
+type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
   label: string;
+  /** md: 인증 화면(44px) · sm: 모달·설정 안 입력(40px) */
+  size?: 'sm' | 'md';
   hint?: string;
   error?: string;
   showPasswordToggle?: boolean;
+};
+
+const sizeMap: Record<NonNullable<Props['size']>, { input: string; toggle: string }> = {
+  sm: { input: 'h-10 rounded-control', toggle: 'pr-10' },
+  md: { input: 'h-11 rounded-card', toggle: 'pr-11' }
 };
 
 const EyeIcon = (): React.JSX.Element => (
@@ -51,6 +58,7 @@ export const TextField = ({
   id,
   type,
   showPasswordToggle = false,
+  size = 'md',
   ...rest
 }: Props): React.JSX.Element => {
   const [visible, setVisible] = useState(false);
@@ -73,8 +81,9 @@ export const TextField = ({
           id={inputId}
           type={effectiveType}
           className={cn(
-            'h-11 w-full rounded-card border px-3 text-label text-fg-default outline-none transition-colors',
-            showToggle ? 'pr-11' : '',
+            'w-full border px-3 text-label text-fg-default outline-none transition-colors',
+            sizeMap[size].input,
+            showToggle && sizeMap[size].toggle,
             error
               ? 'border-line-danger bg-danger-soft focus:border-danger'
               : 'border-line-strong bg-surface focus:border-line-primary'
