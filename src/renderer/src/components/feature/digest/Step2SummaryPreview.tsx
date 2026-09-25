@@ -2,6 +2,7 @@ import type { SourceItem } from '../../../api/contracts/chats';
 import type { DigestPreviewStatus } from '../../../api/auth/useDigestAPI';
 import { Button } from '../../ui/Button';
 import { MarkdownAnswer } from '../../ui/MarkdownAnswer';
+import { SourceList } from '../../ui/SourceList';
 
 // Step2: SSE 로 실시간 스트리밍되는 요약 미리보기.
 // - streaming: 부분 content 를 계속 렌더 (커서 표시)
@@ -81,41 +82,7 @@ export const Step2SummaryPreview = ({
         )}
       </article>
 
-      {sources.length > 0 ? (
-        <section className="rounded-control border border-line bg-surface-muted p-3">
-          <h3 className="mb-2 flex items-center justify-between text-caption font-semibold text-fg-muted">
-            <span>참조 코드</span>
-            <span className="font-normal text-fg-subtle">{sources.length}개</span>
-          </h3>
-          {/* 스크롤은 wrapper div 가 소유하고, ul 은 block 레이아웃으로 자연스럽게 흐른다.
-             flex flex-col + max-height 조합은 브라우저가 flex 자식을 shrink 시켜 아이템들이
-             겹쳐 보이는 이슈를 만든다 — 그래서 명시적으로 wrapper 로 분리한다. */}
-          {/* mask 로 상하 가장자리를 페이드시켜 스크롤 잘림이 자연스럽게 흐려지도록.
-             partial item 이 딱딱하게 잘려 보이는 시각 이슈를 완화한다. */}
-          <div
-            style={{
-              maxHeight: 'min(140px, 22dvh)',
-              maskImage:
-                'linear-gradient(to bottom, transparent 0, black 10px, black calc(100% - 10px), transparent 100%)',
-              WebkitMaskImage:
-                'linear-gradient(to bottom, transparent 0, black 10px, black calc(100% - 10px), transparent 100%)'
-            }}
-            className="overflow-y-auto py-1 pr-1"
-          >
-            <ul className="space-y-1 text-caption text-fg-subtle">
-              {sources.map((s, idx) => (
-                <li key={`${s.filePath}-${idx}`} className="truncate">
-                  <code className="rounded-inline bg-surface px-1 py-0.5">
-                    {s.filePath}
-                    {s.startLine != null ? `:${s.startLine}` : ''}
-                    {s.endLine != null && s.endLine !== s.startLine ? `-${s.endLine}` : ''}
-                  </code>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      ) : null}
+      <SourceList sources={sources} maxHeight="min(140px, 22dvh)" />
 
       {showRetry && error ? (
         <div className="flex items-start justify-between gap-3 rounded-control border border-danger/40 bg-danger/5 p-3">

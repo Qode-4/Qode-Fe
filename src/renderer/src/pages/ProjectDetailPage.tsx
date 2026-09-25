@@ -46,6 +46,7 @@ import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { MarkdownAnswer } from '../components/ui/MarkdownAnswer';
+import { SourceList } from '../components/ui/SourceList';
 import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
@@ -257,57 +258,6 @@ const LoadingDots = (): React.JSX.Element => {
     <span aria-hidden className="inline-block w-[1.5em] text-left">
       {dots}
     </span>
-  );
-};
-
-const MessageSources = ({
-  messageId,
-  sources
-}: {
-  messageId: string;
-  sources: SourceItem[];
-}): React.JSX.Element => {
-  const [expanded, setExpanded] = useState(true);
-  const headerId = `sources-header-${messageId}`;
-  const listId = `sources-list-${messageId}`;
-  return (
-    <div className="mt-3 rounded-card border border-line bg-surface">
-      <button
-        type="button"
-        id={headerId}
-        aria-controls={listId}
-        aria-expanded={expanded}
-        onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full items-center justify-between px-3 py-1.5 text-caption text-fg-muted transition-colors hover:bg-surface-muted"
-      >
-        <span className="inline-flex items-center gap-2">
-          <span aria-hidden className="text-caption leading-none text-fg-muted">
-            •
-          </span>
-          <span>참조한 소스 {sources.length}개</span>
-        </span>
-      </button>
-      {expanded ? (
-        <div
-          id={listId}
-          role="region"
-          aria-labelledby={headerId}
-          className="border-t border-line-soft"
-        >
-          {sources.map((source) => (
-            <div
-              key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-              className="flex items-center justify-between gap-3 px-3 py-1 text-caption text-fg-muted"
-            >
-              <span className="min-w-0 flex-1 truncate">{source.filePath}</span>
-              <span className="shrink-0">
-                ({source.startLine ?? '-'}-{source.endLine ?? '-'})
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
   );
 };
 
@@ -1425,9 +1375,7 @@ export const ProjectDetailPage = ({
                     </div>
                     {hasVisibleBody ? <MarkdownAnswer content={cleanContent} /> : null}
 
-                    {hasSources ? (
-                      <MessageSources messageId={messageId} sources={mergedSources} />
-                    ) : null}
+                    {hasSources ? <SourceList sources={mergedSources} className="mt-3" /> : null}
 
                     {shareSelection.selectionMode ? null : (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -1503,7 +1451,7 @@ export const ProjectDetailPage = ({
                       <>
                         <MarkdownAnswer content={parsed.content} />
                         {merged.length > 0 ? (
-                          <MessageSources messageId="__stream__" sources={merged} />
+                          <SourceList sources={merged} className="mt-3" />
                         ) : null}
                       </>
                     );
