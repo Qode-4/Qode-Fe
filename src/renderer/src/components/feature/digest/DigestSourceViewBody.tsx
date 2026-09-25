@@ -138,7 +138,7 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
         </div>
       </div>
 
-      <article className="rounded-panel bg-surface p-3">
+      <article className="min-w-0 rounded-panel bg-surface p-3">
         <div className="mb-2 flex items-center gap-2">
           <span
             aria-hidden="true"

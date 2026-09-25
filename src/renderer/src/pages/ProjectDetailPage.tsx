@@ -1234,7 +1234,7 @@ export const ProjectDetailPage = ({
             followBottomRef.current =
               viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 80;
           }}
-          className="flex h-full justify-center overflow-y-auto px-6 pb-4 max-sm:px-3"
+          className="flex h-full justify-center overflow-y-auto overflow-x-hidden px-6 pb-4 max-sm:px-3"
         >
           {!activeChatId ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
@@ -1245,7 +1245,7 @@ export const ProjectDetailPage = ({
               <p className="text-label text-fg-muted">메시지를 입력하면 새 대화가 시작돼요.</p>
             </div>
           ) : (
-            <div className="flex min-h-full w-full max-w-[48rem] flex-col gap-6">
+            <div className="flex min-h-full w-full min-w-0 max-w-[48rem] flex-col gap-6">
               {messages.isLoading ? (
                 <p className="text-caption font-medium text-fg-muted">메시지를 불러오는 중...</p>
               ) : null}
@@ -1403,7 +1403,7 @@ export const ProjectDetailPage = ({
                 const articleNode = (
                   <article
                     className={[
-                      'flex-1 rounded-panel bg-surface p-3 transition-shadow',
+                      'min-w-0 flex-1 rounded-panel bg-surface p-3 transition-shadow',
                       showCheckbox && isSelected ? 'ring-2 ring-line-primary' : '',
                       showCheckbox ? 'cursor-pointer' : ''
                     ].join(' ')}
@@ -1477,7 +1477,7 @@ export const ProjectDetailPage = ({
               })}
 
               {showStream && activeChatId && isPersonalChat ? (
-                <article className="rounded-panel bg-surface p-3" aria-live="polite">
+                <article className="min-w-0 rounded-panel bg-surface p-3" aria-live="polite">
                   <div className="mb-2 flex items-center gap-2">
                     <span
                       aria-hidden="true"
