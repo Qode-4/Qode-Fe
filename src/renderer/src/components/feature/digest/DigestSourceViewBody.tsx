@@ -2,6 +2,7 @@ import type { DigestSourcePair, DigestSourceResponse } from '../../../api/contra
 import { Button } from '../../ui/Button';
 import { MarkdownAnswer } from '../../ui/MarkdownAnswer';
 import { SourceList } from '../../ui/SourceList';
+import { cleanAnswerSources, mergeSources } from '../../../lib/inlineSources';
 
 // DigestSourceView 모달의 본문. 컨테이너와 분리해 스토리에서 fake data 로 직접 렌더할 수 있게 함.
 
@@ -128,6 +129,8 @@ const readFirst = (obj: unknown, ...keys: string[]): unknown => {
 const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
   const questionContent = String(readFirst(pair, 'question', 'question_content') ?? '');
   const answerContent = String(readFirst(pair, 'answer', 'answer_content') ?? '');
+  // 메인 채팅과 같은 규칙으로 본문의 참조 표기를 SourceList 로 옮긴다.
+  const answer = cleanAnswerSources(answerContent);
   const rawSources = readFirst(pair, 'sources', 'answer_sources');
   const answerSources = Array.isArray(rawSources) ? rawSources : [];
 
@@ -150,24 +153,28 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
           <span className="text-caption font-semibold text-fg-default">Qode AI</span>
         </div>
 
-        {answerContent ? <MarkdownAnswer content={answerContent} /> : null}
+        {answer.content ? <MarkdownAnswer content={answer.content} /> : null}
 
         <SourceList
-          sources={answerSources.map((s) => {
-            const src = s as {
-              filePath?: string;
-              file_path?: string;
-              startLine?: number | null;
-              start_line?: number | null;
-              endLine?: number | null;
-              end_line?: number | null;
-            };
-            return {
-              filePath: src.filePath ?? src.file_path ?? '',
-              startLine: src.startLine ?? src.start_line ?? null,
-              endLine: src.endLine ?? src.end_line ?? null
-            };
-          })}
+          sources={mergeSources(
+            answerSources.map((s) => {
+              const src = s as {
+                filePath?: string;
+                file_path?: string;
+                startLine?: number | null;
+                start_line?: number | null;
+                endLine?: number | null;
+                end_line?: number | null;
+              };
+              return {
+                filePath: src.filePath ?? src.file_path ?? '',
+                startLine: src.startLine ?? src.start_line ?? null,
+                endLine: src.endLine ?? src.end_line ?? null,
+                snippet: ''
+              };
+            }),
+            answer.sources
+          )}
           maxHeight="min(180px, 26dvh)"
           className="mt-2"
         />

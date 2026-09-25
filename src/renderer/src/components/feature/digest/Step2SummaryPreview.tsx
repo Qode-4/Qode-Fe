@@ -3,6 +3,7 @@ import type { DigestPreviewStatus } from '../../../api/auth/useDigestAPI';
 import { Button } from '../../ui/Button';
 import { MarkdownAnswer } from '../../ui/MarkdownAnswer';
 import { SourceList } from '../../ui/SourceList';
+import { extractReferenceLines, mergeSources } from '../../../lib/inlineSources';
 
 // Step2: SSE 로 실시간 스트리밍되는 요약 미리보기.
 // - streaming: 부분 content 를 계속 렌더 (커서 표시)
@@ -50,6 +51,9 @@ export const Step2SummaryPreview = ({
   const showRetry = status === 'error';
   const showExhausted = status === 'canceled';
 
+  // 요약 본문의 참조 전용 줄('근거: x.ts:L1-29')은 SourceList 로 옮긴다. 문장 속 참조는 둔다.
+  const body = extractReferenceLines(content);
+
   return (
     <div className="flex flex-col gap-4">
       <header className="flex items-center justify-between">
@@ -74,7 +78,7 @@ export const Step2SummaryPreview = ({
         aria-busy={isStreaming || undefined}
       >
         {content ? (
-          <MarkdownAnswer content={content} />
+          <MarkdownAnswer content={body.content} />
         ) : (
           <p className="text-label text-fg-subtle">
             {isStreaming ? '요약을 생성하고 있어요…' : '요약을 준비 중입니다.'}
@@ -82,7 +86,7 @@ export const Step2SummaryPreview = ({
         )}
       </article>
 
-      <SourceList sources={sources} maxHeight="min(140px, 22dvh)" />
+      <SourceList sources={mergeSources(sources, body.sources)} maxHeight="min(140px, 22dvh)" />
 
       {showRetry && error ? (
         <div className="flex items-start justify-between gap-3 rounded-control border border-danger/40 bg-danger/5 p-3">
