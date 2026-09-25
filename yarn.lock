@@ -9308,6 +9308,7 @@ __metadata:
     "@vitejs/plugin-react": ^5.1.1
     autoprefixer: ^10.4.24
     axios: ^1.13.5
+    clsx: ^2.1.1
     electron: ^39.2.6
     electron-builder: ^26.0.12
     electron-vite: ^5.0.0
@@ -9330,6 +9331,7 @@ __metadata:
     socket.io-client: ^4.8.3
     storybook: ^8.6.14
     swagger-typescript-api: ^13.0.3
+    tailwind-merge: ^3.7.0
     tailwindcss: ^4.1.18
     tsx: ^4.23.13
     typescript: ^5.9.3
@@ -10773,6 +10775,13 @@ __metadata:
   version: 3.6.0
   resolution: "tailwind-merge@npm:3.6.0"
   checksum: 617e86a01d99f17e02706cc2219bd203d1910b95a05f41fe1e5548b58a7975043ce5b6ef86d4cdcf10fa3c8362b796b9822de2f62024c69d5479e96d6e5be63f
+  languageName: node
+  linkType: hard
+
+"tailwind-merge@npm:^3.7.0":
+  version: 3.7.0
+  resolution: "tailwind-merge@npm:3.7.0"
+  checksum: 9fde6a8881ea481c68fed030fa37f99e41f32b82610e9b4e3fd2de51f729f12efb4a7e7addae0b681dba328fa8a49c0448d7317594bf640f3611e08b5af1d275
   languageName: node
   linkType: hard
 
