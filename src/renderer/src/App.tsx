@@ -306,7 +306,7 @@ const App = (): React.JSX.Element => {
         />
       ) : null}
       {!matchPath(location.path, '/projects').matched && !projectMatch.matched ? (
-        <div className="rounded-xl border border-line bg-surface p-6">
+        <div className="rounded-panel border border-line bg-surface p-6">
           <h1 className="text-heading font-semibold text-fg-default">Not Found</h1>
           <p className="mt-2 text-label text-fg-subtle">{location.path}</p>
         </div>

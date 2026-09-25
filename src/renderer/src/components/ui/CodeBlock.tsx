@@ -19,13 +19,13 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
   };
 
   return (
-    <div className="my-2 overflow-hidden rounded-md border border-line-code bg-code">
+    <div className="my-2 overflow-hidden rounded-control border border-line-code bg-code">
       <div className="flex items-center justify-between border-b border-line-code bg-code px-3 py-1 text-micro">
         <span className="font-mono text-fg-code-muted">{language}</span>
         <button
           type="button"
           onClick={() => void handleCopy()}
-          className="rounded px-1.5 py-0.5 font-medium text-fg-code-muted transition-colors hover:bg-code-raised hover:text-fg-code"
+          className="rounded-inline px-1.5 py-0.5 font-medium text-fg-code-muted transition-colors hover:bg-code-raised hover:text-fg-code"
           aria-label="코드 복사"
         >
           복사

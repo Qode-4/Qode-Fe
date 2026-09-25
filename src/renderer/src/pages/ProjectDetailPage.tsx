@@ -271,7 +271,7 @@ const MessageSources = ({
   const headerId = `sources-header-${messageId}`;
   const listId = `sources-list-${messageId}`;
   return (
-    <div className="mt-3 rounded-[8px] border border-line bg-surface">
+    <div className="mt-3 rounded-card border border-line bg-surface">
       <button
         type="button"
         id={headerId}
@@ -337,7 +337,7 @@ const MessageActionButton = ({
   const button = (
     <button
       type="button"
-      className="flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-micro font-medium text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-default disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex items-center gap-[2px] rounded-inline px-1 py-[2px] text-micro font-medium text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-default disabled:cursor-not-allowed disabled:opacity-50"
       disabled={disabled}
       onClick={onClick}
     >
@@ -1039,7 +1039,7 @@ export const ProjectDetailPage = ({
             type="button"
             onClick={() => void project.refetch()}
             disabled={project.isFetching}
-            className="rounded-md border border-line-danger bg-surface px-3 py-1 text-caption font-medium text-fg-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-control border border-line-danger bg-surface px-3 py-1 text-caption font-medium text-fg-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
           >
             {project.isFetching ? '다시 시도 중...' : '다시 시도'}
           </button>
@@ -1125,7 +1125,7 @@ export const ProjectDetailPage = ({
         <div
           role="status"
           aria-live="polite"
-          className="mx-4 mb-2 flex items-center gap-2 rounded-[10px] border border-line bg-surface-muted px-3 py-2 text-caption text-fg-subtle"
+          className="mx-4 mb-2 flex items-center gap-2 rounded-panel border border-line bg-surface-muted px-3 py-2 text-caption text-fg-subtle"
         >
           <span
             aria-hidden="true"
@@ -1161,14 +1161,14 @@ export const ProjectDetailPage = ({
                   onBlur={() => {
                     void commitHeaderRename(headerRenameDraft);
                   }}
-                  className="w-full rounded-md border border-line-strong bg-surface px-2 py-1 text-title font-semibold text-fg-default outline-none focus:border-line-primary"
+                  className="w-full rounded-control border border-line-strong bg-surface px-2 py-1 text-title font-semibold text-fg-default outline-none focus:border-line-primary"
                   aria-label={`${activeChat.name} 이름 바꾸기`}
                 />
               ) : (
                 <button
                   type="button"
                   onClick={beginHeaderRename}
-                  className="w-full truncate rounded-md px-2 py-1 text-left text-title font-semibold text-fg-default transition-colors hover:bg-surface-muted"
+                  className="w-full truncate rounded-control px-2 py-1 text-left text-title font-semibold text-fg-default transition-colors hover:bg-surface-muted"
                   title="클릭하여 채팅 이름 바꾸기"
                   aria-label={`${activeChat.name} — 이름 바꾸기`}
                 >
@@ -1334,7 +1334,7 @@ export const ProjectDetailPage = ({
                           {isLocalFailed ? (
                             <p className="text-micro font-medium text-fg-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-body font-medium leading-[1.6] text-fg-default max-sm:max-w-[85%]">
+                          <div className="max-w-[70%] rounded-panel bg-primary-soft px-3 py-2.5 text-body font-medium leading-[1.6] text-fg-default max-sm:max-w-[85%]">
                             {messageContent}
                           </div>
                           {timeLabel ? (
@@ -1350,7 +1350,7 @@ export const ProjectDetailPage = ({
                       <Avatar name={senderName} />
                       <div className="flex flex-col gap-0.5 w-full">
                         <p className="text-micro font-medium text-fg-muted">{senderName}</p>
-                        <div className="w-fit max-w-[70%] rounded-xl border border-line bg-surface px-3 py-2.5 text-body leading-[1.6] text-fg-default max-sm:max-w-[85%]">
+                        <div className="w-fit max-w-[70%] rounded-panel border border-line bg-surface px-3 py-2.5 text-body leading-[1.6] text-fg-default max-sm:max-w-[85%]">
                           {messageContent}
                         </div>
                         {timeLabel ? <p className="text-micro text-fg-muted">{timeLabel}</p> : null}
@@ -1364,7 +1364,7 @@ export const ProjectDetailPage = ({
                   return (
                     <div key={messageId} className="flex items-end justify-end">
                       <div className="flex max-w-[70%] flex-col items-end max-sm:max-w-[85%]">
-                        <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-body font-medium leading-[1.6] text-fg-default">
+                        <div className="rounded-panel bg-primary-soft px-3 py-3 text-body font-medium leading-[1.6] text-fg-default">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (
@@ -1403,7 +1403,7 @@ export const ProjectDetailPage = ({
                 const articleNode = (
                   <article
                     className={[
-                      'flex-1 rounded-[12px] bg-surface p-3 transition-shadow',
+                      'flex-1 rounded-panel bg-surface p-3 transition-shadow',
                       showCheckbox && isSelected ? 'ring-2 ring-line-primary' : '',
                       showCheckbox ? 'cursor-pointer' : ''
                     ].join(' ')}
@@ -1477,7 +1477,7 @@ export const ProjectDetailPage = ({
               })}
 
               {showStream && activeChatId && isPersonalChat ? (
-                <article className="rounded-[12px] bg-surface p-3" aria-live="polite">
+                <article className="rounded-panel bg-surface p-3" aria-live="polite">
                   <div className="mb-2 flex items-center gap-2">
                     <span
                       aria-hidden="true"

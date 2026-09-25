@@ -95,7 +95,7 @@ export const RenameTeamChatModal = ({
           <input
             id="rename-team-chat-name"
             className={[
-              'h-10 w-full rounded-md border bg-surface px-3 text-label text-fg-default outline-none',
+              'h-10 w-full rounded-control border bg-surface px-3 text-label text-fg-default outline-none',
               displayedError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
             ].join(' ')}
             value={name}

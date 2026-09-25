@@ -62,7 +62,7 @@ export const Step3TargetRoom = ({
     <ul
       role="radiogroup"
       aria-label="공유할 팀채팅"
-      className="flex flex-col gap-1 rounded-md border border-line bg-surface-muted p-2"
+      className="flex flex-col gap-1 rounded-control border border-line bg-surface-muted p-2"
     >
       {chats.map((chat) => {
         const selected = chat.id === selectedChatId;
@@ -70,7 +70,7 @@ export const Step3TargetRoom = ({
           <li key={chat.id}>
             <label
               className={[
-                'flex cursor-pointer items-center gap-3 rounded-md border p-3 text-label',
+                'flex cursor-pointer items-center gap-3 rounded-control border p-3 text-label',
                 selected
                   ? 'border-line-primary bg-primary-soft/60 text-fg-default'
                   : 'border-transparent bg-surface text-fg-default hover:bg-surface'

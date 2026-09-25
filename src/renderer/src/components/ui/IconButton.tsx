@@ -10,9 +10,9 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'aria-la
 };
 
 const sizeClassMap: Record<NonNullable<Props['size']>, string> = {
-  lg: 'rounded-[8px] p-[2px]',
-  md: 'rounded-[4px] p-1',
-  sm: 'rounded-[4px]'
+  lg: 'rounded-card p-[2px]',
+  md: 'rounded-inline p-1',
+  sm: 'rounded-inline'
 };
 
 const iconSizeMap: Record<NonNullable<Props['size']>, 'md' | 'sm'> = {

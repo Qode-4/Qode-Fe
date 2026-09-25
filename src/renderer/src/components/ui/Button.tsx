@@ -32,7 +32,7 @@ export const Button = ({
     <button
       {...rest}
       className={[
-        'inline-flex items-center justify-center gap-2 rounded-md border font-medium transition-colors',
+        'inline-flex items-center justify-center gap-2 rounded-control border font-medium transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-60',
         sizeMap[size],

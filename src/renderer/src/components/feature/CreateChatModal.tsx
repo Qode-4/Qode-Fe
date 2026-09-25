@@ -52,7 +52,7 @@ export const CreateChatModal = ({
           <input
             id="create-chat-name"
             className={[
-              'h-10 w-full rounded-md border bg-surface px-3 text-body text-fg-default outline-none',
+              'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
               nameError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
             ].join(' ')}
             value={name}

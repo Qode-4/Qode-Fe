@@ -72,7 +72,7 @@ export const TextField = ({
           id={inputId}
           type={effectiveType}
           className={[
-            'h-11 w-full rounded-lg border px-3 text-label text-fg-default outline-none transition-colors',
+            'h-11 w-full rounded-card border px-3 text-label text-fg-default outline-none transition-colors',
             showToggle ? 'pr-11' : '',
             error
               ? 'border-line-danger bg-danger-soft focus:border-danger'
@@ -85,7 +85,7 @@ export const TextField = ({
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            className="absolute inset-y-0 right-1.5 my-auto flex h-8 w-8 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-line-primary"
+            className="absolute inset-y-0 right-1.5 my-auto flex h-8 w-8 items-center justify-center rounded-control text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-line-primary"
             aria-label={visible ? '비밀번호 숨기기' : '비밀번호 표시'}
             aria-pressed={visible}
           >

@@ -30,7 +30,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="w-[560px] rounded-2xl border border-line bg-surface p-6">
+      <div className="w-[560px] rounded-shell border border-line bg-surface p-6">
         <Story />
       </div>
     )

@@ -30,7 +30,7 @@ export const OwnerLeaveChoiceModal = ({
         <button
           type="button"
           onClick={onChooseTransfer}
-          className="flex flex-col items-start gap-1 rounded-[12px] border border-line bg-surface p-3 text-left transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2"
+          className="flex flex-col items-start gap-1 rounded-panel border border-line bg-surface p-3 text-left transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2"
         >
           <span className="text-label font-semibold text-fg-default">방장 양도하기</span>
           <span className="text-caption text-fg-muted">
@@ -41,7 +41,7 @@ export const OwnerLeaveChoiceModal = ({
         <button
           type="button"
           onClick={onChooseDelete}
-          className="flex flex-col items-start gap-1 rounded-[12px] border border-line-danger bg-surface p-3 text-left transition-colors hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
+          className="flex flex-col items-start gap-1 rounded-panel border border-line-danger bg-surface p-3 text-left transition-colors hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
         >
           <span className="text-label font-semibold text-fg-danger">채팅방 삭제</span>
           <span className="text-caption text-fg-muted">

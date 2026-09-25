@@ -140,7 +140,7 @@ export const TeamChatHeader = ({
         <ChatItemMenu
           triggerAriaLabel={`${chatName} 채팅 메뉴 열기`}
           ariaLabel={`${chatName} 채팅 작업 메뉴`}
-          triggerClassName="inline-flex h-8 w-8 items-center justify-center rounded-md text-fg-subtle transition-colors hover:bg-surface-muted"
+          triggerClassName="inline-flex h-8 w-8 items-center justify-center rounded-control text-fg-subtle transition-colors hover:bg-surface-muted"
           actions={actions}
         />
       </div>

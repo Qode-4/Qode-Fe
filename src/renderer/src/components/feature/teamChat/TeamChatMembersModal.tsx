@@ -77,7 +77,7 @@ export const TeamChatMembersModal = ({
         ) : (
           <ul
             aria-label="채팅방 참여자 목록"
-            className="max-h-[320px] overflow-y-auto rounded-md border border-line bg-surface p-1"
+            className="max-h-[320px] overflow-y-auto rounded-control border border-line bg-surface p-1"
           >
             {participants.isLoading ? (
               <li className="px-3 py-6 text-center text-caption text-fg-muted">
@@ -104,7 +104,7 @@ export const TeamChatMembersModal = ({
                       canKick ? (
                         <button
                           type="button"
-                          className="rounded-md px-2 py-1 text-caption font-medium text-fg-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-control px-2 py-1 text-caption font-medium text-fg-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
                           onClick={() => void handleKick(participant.userId, displayName)}
                           disabled={kick.isPending}
                           aria-label={`${displayName} 내보내기`}

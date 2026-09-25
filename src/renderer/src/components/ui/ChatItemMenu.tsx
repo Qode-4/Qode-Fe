@@ -125,8 +125,8 @@ export const ChatItemMenu = ({
               aria-label={ariaLabel}
               className={
                 isMobile
-                  ? 'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl border-t border-line bg-surface p-2 shadow-lg'
-                  : 'fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none'
+                  ? 'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-shell border-t border-line bg-surface p-2 shadow-overlay'
+                  : 'fixed z-50 w-[200px] rounded-card border border-line bg-surface p-1 shadow-none'
               }
               style={isMobile ? undefined : { top: pos.top, left: pos.left }}
             >
@@ -137,7 +137,7 @@ export const ChatItemMenu = ({
                   role="menuitem"
                   disabled={action.disabled}
                   className={[
-                    'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-caption max-sm:py-3 max-sm:text-label',
+                    'flex w-full items-center gap-2 rounded-control px-3 py-1.5 text-left text-caption max-sm:py-3 max-sm:text-label',
                     action.danger
                       ? 'text-fg-danger hover:bg-danger-soft'
                       : 'text-fg-default hover:bg-surface-muted',

@@ -46,13 +46,13 @@ export const DigestSourceViewBody = ({
       {sharerName || sharedAt ? <MetaLine sharerName={sharerName} sharedAt={sharedAt} /> : null}
 
       {note ? (
-        <div className="rounded-md border border-line-primary/40 bg-primary-soft px-3 py-2 text-caption text-fg-default">
+        <div className="rounded-control border border-line-primary/40 bg-primary-soft px-3 py-2 text-caption text-fg-default">
           <span className="mr-1 font-semibold text-fg-primary">공유자 메모</span>
           {note}
         </div>
       ) : null}
 
-      <div className="rounded-md border border-line bg-surface-muted p-4">
+      <div className="rounded-control border border-line bg-surface-muted p-4">
         {status === 'loading' ? (
           <p className="py-8 text-center text-label text-fg-subtle">원본 대화를 불러오는 중…</p>
         ) : null}
@@ -133,12 +133,12 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-[12px] bg-primary-soft px-3 py-3 text-label font-medium leading-[1.6] text-fg-default">
+        <div className="max-w-[85%] rounded-panel bg-primary-soft px-3 py-3 text-label font-medium leading-[1.6] text-fg-default">
           {questionContent || <span className="text-fg-subtle">(질문 없음)</span>}
         </div>
       </div>
 
-      <article className="rounded-[12px] bg-surface p-3">
+      <article className="rounded-panel bg-surface p-3">
         <div className="mb-2 flex items-center gap-2">
           <span
             aria-hidden="true"
@@ -152,7 +152,7 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
         {answerContent ? <MarkdownAnswer content={answerContent} /> : null}
 
         {answerSources.length > 0 ? (
-          <section className="mt-2 rounded-[8px] border border-line bg-surface-muted p-2">
+          <section className="mt-2 rounded-card border border-line bg-surface-muted p-2">
             <h4 className="mb-1 text-micro font-semibold text-fg-muted">
               참조 코드 {answerSources.length}개
             </h4>
@@ -184,7 +184,7 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
                       key={`${path}-${start ?? 0}-${idx}`}
                       className="flex items-center justify-between gap-2"
                     >
-                      <code className="min-w-0 flex-1 truncate rounded bg-surface px-1 py-0.5">
+                      <code className="min-w-0 flex-1 truncate rounded-inline bg-surface px-1 py-0.5">
                         {path}
                       </code>
                       <span className="shrink-0">

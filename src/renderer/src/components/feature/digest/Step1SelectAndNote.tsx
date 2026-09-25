@@ -37,7 +37,7 @@ export const Step1SelectAndNote = ({
       </header>
 
       <ul
-        className="flex flex-col gap-2 rounded-md border border-line bg-surface-muted p-2"
+        className="flex flex-col gap-2 rounded-control border border-line bg-surface-muted p-2"
         role="list"
       >
         {pairs.map((pair) => {
@@ -47,7 +47,7 @@ export const Step1SelectAndNote = ({
             <li key={pair.messageId}>
               <label
                 className={[
-                  'flex cursor-pointer items-start gap-3 rounded-md border p-3',
+                  'flex cursor-pointer items-start gap-3 rounded-control border p-3',
                   checked
                     ? 'border-line-primary bg-primary-soft/60'
                     : 'border-transparent bg-surface hover:bg-surface',
@@ -93,7 +93,7 @@ export const Step1SelectAndNote = ({
         </div>
         <textarea
           className={[
-            'block w-full resize-none rounded-md border bg-surface p-3 text-label text-fg-default outline-none',
+            'block w-full resize-none rounded-control border bg-surface p-3 text-label text-fg-default outline-none',
             'min-h-[88px] focus:border-line-primary',
             remaining < 0 ? 'border-danger' : 'border-line'
           ].join(' ')}

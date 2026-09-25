@@ -67,7 +67,7 @@ export const Step2SummaryPreview = ({
         // 뷰포트 높이에 반응하도록 dvh 를 함께 걸어, 뷰포트가 낮을 땐 자연히 작아져 모달 전체
         // 스크롤이 발생하지 않도록 한다. 큰 뷰포트에선 최대 360px 로 가독성 유지.
         style={{ maxHeight: 'min(360px, 40dvh)' }}
-        className="min-h-[220px] overflow-y-auto rounded-md border border-line bg-surface p-4"
+        className="min-h-[220px] overflow-y-auto rounded-control border border-line bg-surface p-4"
         aria-live="polite"
         aria-busy={isStreaming || undefined}
       >
@@ -81,7 +81,7 @@ export const Step2SummaryPreview = ({
       </article>
 
       {sources.length > 0 ? (
-        <section className="rounded-md border border-line bg-surface-muted p-3">
+        <section className="rounded-control border border-line bg-surface-muted p-3">
           <h3 className="mb-2 flex items-center justify-between text-caption font-semibold text-fg-muted">
             <span>참조 코드</span>
             <span className="font-normal text-fg-subtle">{sources.length}개</span>
@@ -104,7 +104,7 @@ export const Step2SummaryPreview = ({
             <ul className="space-y-1 text-caption text-fg-subtle">
               {sources.map((s, idx) => (
                 <li key={`${s.filePath}-${idx}`} className="truncate">
-                  <code className="rounded bg-surface px-1 py-0.5">
+                  <code className="rounded-inline bg-surface px-1 py-0.5">
                     {s.filePath}
                     {s.startLine != null ? `:${s.startLine}` : ''}
                     {s.endLine != null && s.endLine !== s.startLine ? `-${s.endLine}` : ''}
@@ -117,7 +117,7 @@ export const Step2SummaryPreview = ({
       ) : null}
 
       {showRetry && error ? (
-        <div className="flex items-start justify-between gap-3 rounded-md border border-danger/40 bg-danger/5 p-3">
+        <div className="flex items-start justify-between gap-3 rounded-control border border-danger/40 bg-danger/5 p-3">
           <p className="text-caption text-fg-danger">{error.message}</p>
           <Button type="button" size="sm" variant="secondary" onClick={onRetry}>
             재시도 ({retriesRemaining}회 남음)
@@ -126,7 +126,7 @@ export const Step2SummaryPreview = ({
       ) : null}
 
       {showExhausted ? (
-        <div className="rounded-md border border-danger/40 bg-danger/5 p-3 text-caption text-fg-danger">
+        <div className="rounded-control border border-danger/40 bg-danger/5 p-3 text-caption text-fg-danger">
           재시도 횟수가 모두 소진되었습니다. 잠시 후 다시 시도해주세요.
         </div>
       ) : null}

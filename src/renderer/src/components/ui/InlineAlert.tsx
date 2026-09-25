@@ -15,7 +15,7 @@ const toneMap: Record<NonNullable<Props['tone']>, string> = {
 export const InlineAlert = ({ tone = 'info', title, children }: Props): React.JSX.Element => {
   return (
     <div
-      className={['rounded-xl border px-3.5 py-3 text-label', toneMap[tone]].join(' ')}
+      className={['rounded-panel border px-3.5 py-3 text-label', toneMap[tone]].join(' ')}
       role="alert"
     >
       {title ? <div className="mb-0.5 font-semibold">{title}</div> : null}

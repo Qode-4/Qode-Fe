@@ -54,7 +54,7 @@ export const ProjectMemberPickList = ({
           onChange={(event) => setQuery(event.target.value)}
           placeholder={searchPlaceholder}
           aria-label="멤버 이름으로 검색"
-          className="h-9 w-full rounded-md border border-line-strong bg-surface px-3 text-label text-fg-default outline-none focus:border-line-primary"
+          className="h-9 w-full rounded-control border border-line-strong bg-surface px-3 text-label text-fg-default outline-none focus:border-line-primary"
         />
       </label>
 
@@ -62,7 +62,7 @@ export const ProjectMemberPickList = ({
         role="listbox"
         aria-label={ariaLabel}
         aria-multiselectable
-        className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-md border border-line bg-surface"
+        className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-control border border-line bg-surface"
       >
         {visibleMembers.length === 0 ? (
           <li className="px-3 py-6 text-center text-caption text-fg-muted">{emptyMessage}</li>

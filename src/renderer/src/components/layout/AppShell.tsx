@@ -103,7 +103,7 @@ const PROFILE_DIALOG_GAP = 17;
 
 // sm(640) 미만: 팝오버/메뉴는 바텀시트 (모달 풀스크린은 OverlayModal 자체에서 처리).
 const MOBILE_SHEET_CLASS =
-  'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl border-t border-line bg-surface p-2 shadow-lg';
+  'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-shell border-t border-line bg-surface p-2 shadow-overlay';
 
 const avatarSizeClassMap: Record<AvatarSize, string> = {
   sm: 'size-7 text-caption',
@@ -1121,7 +1121,7 @@ export const AppShell = ({
           className={[
             'flex min-h-0 flex-col bg-sidebar touch-pan-y',
             'max-sm:fixed max-sm:inset-y-0 max-sm:left-0 max-sm:z-40 max-sm:w-[280px] max-sm:max-w-[85vw]',
-            'max-sm:shadow-lg max-sm:transition-transform',
+            'max-sm:shadow-overlay max-sm:transition-transform',
             isMobile && !mobileDrawerOpen ? 'max-sm:-translate-x-full' : 'max-sm:translate-x-0'
           ].join(' ')}
           onPointerDown={handleDrawerPointerDown}
@@ -1138,7 +1138,7 @@ export const AppShell = ({
             type="button"
             aria-label="사이드바 닫기"
             onClick={() => setMobileDrawerOpen(false)}
-            className="absolute right-2 top-2 z-10 hidden h-11 w-11 items-center justify-center rounded-md text-fg-subtle hover:bg-surface-muted active:bg-line max-sm:inline-flex"
+            className="absolute right-2 top-2 z-10 hidden h-11 w-11 items-center justify-center rounded-control text-fg-subtle hover:bg-surface-muted active:bg-line max-sm:inline-flex"
           >
             <svg
               aria-hidden="true"
@@ -1173,7 +1173,7 @@ export const AppShell = ({
                   onClick={requestProjectSync}
                   aria-busy={isSyncInProgress || postProjectSync.isPending}
                   className={[
-                    'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-3 text-caption font-medium text-fg-default transition-colors',
+                    'flex h-9 w-full items-center justify-between gap-2 rounded-control border border-line bg-surface px-3 text-caption font-medium text-fg-default transition-colors',
                     'hover:bg-surface-muted active:bg-line',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2',
                     'disabled:cursor-not-allowed disabled:opacity-60'
@@ -1206,7 +1206,7 @@ export const AppShell = ({
                   type="button"
                   aria-label={sectionsCollapsed ? '섹션 펼치기' : '섹션 접기'}
                   aria-expanded={!sectionsCollapsed}
-                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line"
+                  className="inline-flex items-center justify-center rounded-inline p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line"
                   onClick={() => setSectionsCollapsed((prev) => !prev)}
                 >
                   <span
@@ -1246,7 +1246,7 @@ export const AppShell = ({
                         <div key={section.id} className="group relative">
                           <div
                             className={[
-                              'inline-flex h-7 w-full items-center gap-1 rounded-[8px] pl-2 py-[2px] font-normal no-underline transition-colors',
+                              'inline-flex h-7 w-full items-center gap-1 rounded-card pl-2 py-[2px] font-normal no-underline transition-colors',
                               drawerTypography.listItem,
                               'text-fg-default'
                             ].join(' ')}
@@ -1271,7 +1271,7 @@ export const AppShell = ({
                                 openSectionMenuId === section.id ? sectionMenuId : undefined
                               }
                               className={[
-                                'inline-flex shrink-0 items-center justify-center rounded-[4px] p-1 transition-opacity',
+                                'inline-flex shrink-0 items-center justify-center rounded-inline p-1 transition-opacity',
                                 openSectionMenuId === section.id
                                   ? 'bg-line opacity-100'
                                   : 'opacity-0 hover:bg-line group-hover:opacity-100 group-focus-within:opacity-100'
@@ -1296,7 +1296,7 @@ export const AppShell = ({
                               <div
                                 key={folder.id}
                                 className={[
-                                  'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal text-fg-subtle transition-colors hover:bg-surface-muted',
+                                  'inline-flex h-7 w-full items-center gap-1 rounded-card px-2 py-[2px] font-normal text-fg-subtle transition-colors hover:bg-surface-muted',
                                   drawerTypography.listItem
                                 ].join(' ')}
                               >
@@ -1356,7 +1356,7 @@ export const AppShell = ({
                   type="button"
                   aria-label="새 채팅 만들기"
                   disabled={!selectedProjectId}
-                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-inline p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={onCreatePersonalChat}
                 >
                   <span aria-hidden="true" className="text-title leading-none">
@@ -1418,7 +1418,7 @@ export const AppShell = ({
                       <div
                         key={chat.id}
                         className={[
-                          'flex h-7 w-full items-center rounded-[8px] px-2 py-[2px]',
+                          'flex h-7 w-full items-center rounded-card px-2 py-[2px]',
                           isActive ? 'bg-primary-soft' : 'bg-surface-muted'
                         ].join(' ')}
                       >
@@ -1458,7 +1458,7 @@ export const AppShell = ({
                         aria-current={isActive ? 'true' : undefined}
                         title={chat.name}
                         className={[
-                          'flex h-7 w-full min-w-0 items-center overflow-hidden rounded-[6px] px-2 py-[2px] text-left transition-colors',
+                          'flex h-7 w-full min-w-0 items-center overflow-hidden rounded-control px-2 py-[2px] text-left transition-colors',
                           drawerTypography.listItem,
                           isActive
                             ? 'bg-primary-soft font-medium text-fg-default'
@@ -1479,7 +1479,7 @@ export const AppShell = ({
                           triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
                           ariaLabel={`${chat.name} 채팅 작업 메뉴`}
                           triggerClassName={[
-                            'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
+                            'inline-flex h-6 w-6 items-center justify-center rounded-inline transition-colors',
                             isActive
                               ? 'text-fg-default hover:bg-line'
                               : 'text-fg-muted hover:bg-line'
@@ -1508,7 +1508,7 @@ export const AppShell = ({
                     type="button"
                     aria-label="새 팀 채팅 만들기"
                     disabled={!selectedProjectId}
-                    className="inline-flex items-center justify-center rounded-[4px] p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center justify-center rounded-inline p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={onCreateTeamChat}
                   >
                     <span aria-hidden="true" className="text-title leading-none">
@@ -1592,7 +1592,7 @@ export const AppShell = ({
                         aria-current={isActive ? 'true' : undefined}
                         title={chat.name}
                         className={[
-                          'flex h-7 w-full min-w-0 items-center gap-1 overflow-hidden rounded-[6px] px-2 py-[2px] text-left transition-colors',
+                          'flex h-7 w-full min-w-0 items-center gap-1 overflow-hidden rounded-control px-2 py-[2px] text-left transition-colors',
                           drawerTypography.listItem,
                           isActive
                             ? 'bg-primary-soft font-medium text-fg-default'
@@ -1614,7 +1614,7 @@ export const AppShell = ({
                             triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
                             ariaLabel={`${chat.name} 채팅 작업 메뉴`}
                             triggerClassName={[
-                              'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
+                              'inline-flex h-6 w-6 items-center justify-center rounded-inline transition-colors',
                               isActive
                                 ? 'text-fg-default hover:bg-line'
                                 : 'text-fg-muted hover:bg-line'
@@ -1659,7 +1659,7 @@ export const AppShell = ({
               aria-expanded={mobileDrawerOpen}
               aria-controls="app-mobile-drawer"
               onClick={() => setMobileDrawerOpen(true)}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-fg-default hover:bg-surface-muted active:bg-line"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-fg-default hover:bg-surface-muted active:bg-line"
             >
               <span aria-hidden className="flex flex-col gap-[3px]">
                 <span className="block h-[2px] w-5 rounded-full bg-current" />
@@ -1684,7 +1684,7 @@ export const AppShell = ({
                 onCreatePersonalChat?.();
               }}
               disabled={!selectedProjectId}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-fg-default hover:bg-surface-muted active:bg-line disabled:opacity-40"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-fg-default hover:bg-surface-muted active:bg-line disabled:opacity-40"
             >
               <svg
                 aria-hidden="true"
@@ -1707,7 +1707,7 @@ export const AppShell = ({
               </InlineAlert>
             </div>
           ) : null}
-          <div className="min-h-0 flex-1 overflow-hidden rounded-[16px] border border-line bg-surface max-sm:rounded-none max-sm:border-0">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-shell border border-line bg-surface max-sm:rounded-none max-sm:border-0">
             {children}
           </div>
         </main>
@@ -1720,7 +1720,7 @@ export const AppShell = ({
               className={
                 isMobile
                   ? MOBILE_SHEET_CLASS
-                  : 'fixed z-50 w-[196px] rounded-[12px] border border-line bg-surface p-1 shadow-none'
+                  : 'fixed z-50 w-[196px] rounded-panel border border-line bg-surface p-1 shadow-none'
               }
               style={
                 isMobile
@@ -1762,7 +1762,7 @@ export const AppShell = ({
                     settingsMenuItemRefs.current[index] = el;
                   }}
                   className={[
-                    'flex h-6 w-full items-center gap-1 rounded-[8px] px-2 py-0.5 text-left font-normal text-fg-subtle hover:bg-surface-muted',
+                    'flex h-6 w-full items-center gap-1 rounded-card px-2 py-0.5 text-left font-normal text-fg-subtle hover:bg-surface-muted',
                     drawerTypography.settingsMenuItem
                   ].join(' ')}
                   onClick={() => handleSettingsAction(it.key)}
@@ -1784,7 +1784,7 @@ export const AppShell = ({
               className={
                 isMobile
                   ? MOBILE_SHEET_CLASS
-                  : 'fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none'
+                  : 'fixed z-50 w-[200px] rounded-card border border-line bg-surface p-1 shadow-none'
               }
               style={
                 isMobile ? undefined : { top: sectionMenuPos?.top, left: sectionMenuPos?.left }
@@ -1803,7 +1803,7 @@ export const AppShell = ({
                     sectionMenuItemRefs.current[index] = el;
                   }}
                   className={[
-                    'block w-full rounded-md px-3 py-1.5 text-left text-caption',
+                    'block w-full rounded-control px-3 py-1.5 text-left text-caption',
                     it.key === 'delete'
                       ? 'text-fg-danger hover:bg-danger-soft'
                       : 'text-fg-default hover:bg-surface-muted',
@@ -1854,7 +1854,7 @@ export const AppShell = ({
             <input
               id="folder-create-input"
               className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-body text-fg-default outline-none',
+                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
                 folderCreateTouched && !folderCreateValue.trim()
                   ? 'border-danger'
                   : 'border-line-strong focus:border-line-primary'
@@ -1897,7 +1897,7 @@ export const AppShell = ({
             <input
               id="section-create-input"
               className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-body text-fg-default outline-none',
+                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
                 sectionCreateTouched && !sectionCreateValue.trim()
                   ? 'border-danger'
                   : 'border-line-strong focus:border-line-primary'
@@ -1940,7 +1940,7 @@ export const AppShell = ({
             <input
               id="section-rename-input"
               className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-body text-fg-default outline-none',
+                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
                 sectionRenameTouched && !sectionRenameValue.trim()
                   ? 'border-danger'
                   : 'border-line-strong focus:border-line-primary'
@@ -1972,8 +1972,8 @@ export const AppShell = ({
               data-profile-settings-dialog
               className={
                 isMobile
-                  ? 'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl border-t border-line bg-surface shadow-lg'
-                  : 'fixed z-50 w-[240px] rounded-[12px] border border-line bg-surface shadow-none'
+                  ? 'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-shell border-t border-line bg-surface shadow-overlay'
+                  : 'fixed z-50 w-[240px] rounded-panel border border-line bg-surface shadow-none'
               }
               style={
                 isMobile
@@ -2004,7 +2004,7 @@ export const AppShell = ({
                       value={userName}
                       readOnly
                       className={[
-                        'h-6 w-full rounded-[8px] border border-line-strong bg-surface px-2 font-medium text-fg-subtle outline-none',
+                        'h-6 w-full rounded-card border border-line-strong bg-surface px-2 font-medium text-fg-subtle outline-none',
                         drawerTypography.profileInput
                       ].join(' ')}
                     />
@@ -2033,7 +2033,7 @@ export const AppShell = ({
                 <div
                   role="radiogroup"
                   aria-labelledby={`${profileSettingsTitleId}-font-size-label`}
-                  className="flex items-center gap-0.5 rounded-md bg-line-soft p-0.5"
+                  className="flex items-center gap-0.5 rounded-control bg-line-soft p-0.5"
                 >
                   {[
                     { key: 'default' as const, label: '기본' },
@@ -2048,7 +2048,7 @@ export const AppShell = ({
                         aria-checked={isActive}
                         onClick={() => handleFontSizeChange(option.key)}
                         className={[
-                          'h-6 flex-1 rounded-[4px] font-medium transition-colors',
+                          'h-6 flex-1 rounded-inline font-medium transition-colors',
                           drawerTypography.fontSizeOption,
                           isActive
                             ? 'bg-primary-soft text-fg-default'
@@ -2067,7 +2067,7 @@ export const AppShell = ({
                   <button
                     type="button"
                     className={[
-                      'h-6 flex-1 rounded-[6px] bg-surface font-medium text-fg-muted hover:bg-surface-muted active:bg-line',
+                      'h-6 flex-1 rounded-control bg-surface font-medium text-fg-muted hover:bg-surface-muted active:bg-line',
                       drawerTypography.profileButton
                     ].join(' ')}
                     onClick={handleProfileDialogCancel}
@@ -2078,7 +2078,7 @@ export const AppShell = ({
                     type="button"
                     disabled
                     className={[
-                      'h-6 flex-1 rounded-[6px] bg-inverse font-medium text-fg-on-dark disabled:cursor-not-allowed disabled:opacity-60',
+                      'h-6 flex-1 rounded-control bg-inverse font-medium text-fg-on-dark disabled:cursor-not-allowed disabled:opacity-60',
                       drawerTypography.profileButton
                     ].join(' ')}
                   >
@@ -2100,7 +2100,7 @@ export const AppShell = ({
               className={
                 isMobile
                   ? MOBILE_SHEET_CLASS
-                  : 'fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none'
+                  : 'fixed z-50 w-[200px] rounded-card border border-line bg-surface p-1 shadow-none'
               }
               style={isMobile ? undefined : { top: menuPos?.top, left: menuPos?.left }}
               role="menu"
@@ -2117,7 +2117,7 @@ export const AppShell = ({
                     menuItemRefs.current[index] = el;
                   }}
                   className={[
-                    'block w-full rounded-md px-3 py-1.5 text-left text-caption',
+                    'block w-full rounded-control px-3 py-1.5 text-left text-caption',
                     it.key === 'delete'
                       ? 'text-fg-danger hover:bg-danger-soft'
                       : 'text-fg-default hover:bg-surface-muted',
@@ -2169,7 +2169,7 @@ export const AppShell = ({
             <input
               id="project-rename-input"
               className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-body text-fg-default outline-none',
+                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
                 renameTouched && !renameValue.trim()
                   ? 'border-danger'
                   : 'border-line-strong focus:border-line-primary'
@@ -2227,7 +2227,7 @@ export const AppShell = ({
             <div className="flex items-center gap-2">
               <input
                 id="project-invite-link"
-                className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-body text-fg-default outline-none"
+                className="h-10 min-w-0 flex-1 rounded-control border border-line bg-surface-muted px-3 text-body text-fg-default outline-none"
                 value={inviteLink}
                 readOnly
                 onFocus={(e) => e.currentTarget.select()}
@@ -2267,7 +2267,7 @@ export const AppShell = ({
           ) : null}
 
           {reissueConfirming ? (
-            <div className="mt-4 rounded-lg border border-line bg-surface-muted p-3">
+            <div className="mt-4 rounded-card border border-line bg-surface-muted p-3">
               <p className="text-label text-fg-default">
                 이전 링크로는 더 이상 참여할 수 없게 됩니다. 새 링크를 만들까요?
               </p>
@@ -2331,7 +2331,7 @@ export const AppShell = ({
           ) : null}
 
           {modalProjectMembers.isError ? (
-            <div className="mt-3 rounded-lg border border-line-danger bg-danger-soft p-3">
+            <div className="mt-3 rounded-card border border-line-danger bg-danger-soft p-3">
               <p className="text-label text-fg-danger">멤버 목록을 불러올 수 없습니다.</p>
               <div className="mt-2">
                 <Button
@@ -2346,7 +2346,7 @@ export const AppShell = ({
               </div>
             </div>
           ) : (
-            <div className="mt-3 overflow-hidden rounded-lg border border-line">
+            <div className="mt-3 overflow-hidden rounded-card border border-line">
               <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-caption font-semibold text-fg-muted max-sm:hidden">
                 <div>멤버</div>
                 <div className="text-center">역할</div>
@@ -2430,13 +2430,13 @@ export const AppShell = ({
             <div className="flex items-center gap-2">
               {sourceGitUrl ? (
                 <input
-                  className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-body text-fg-default outline-none"
+                  className="h-10 min-w-0 flex-1 rounded-control border border-line bg-surface-muted px-3 text-body text-fg-default outline-none"
                   value={sourceGitUrl}
                   readOnly
                   onFocus={(e) => e.currentTarget.select()}
                 />
               ) : (
-                <div className="flex h-10 min-w-0 flex-1 items-center rounded-md border border-line bg-surface-muted px-3 text-label text-fg-subtle">
+                <div className="flex h-10 min-w-0 flex-1 items-center rounded-control border border-line bg-surface-muted px-3 text-label text-fg-subtle">
                   연결된 레포지토리 정보가 없습니다.
                 </div>
               )}
@@ -2445,7 +2445,7 @@ export const AppShell = ({
                 disabled={!sourceGitUrl}
                 onClick={() => void copySourceGitUrl()}
                 aria-label="URL 복사"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-fg-default transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control border border-line bg-surface text-fg-default transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Icon name="Copy_light" size="sm" />
               </button>
@@ -2454,14 +2454,14 @@ export const AppShell = ({
                   href={sourceGitUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-line bg-surface px-3 text-caption font-semibold text-fg-default transition-colors hover:bg-surface-muted"
+                  className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-control border border-line bg-surface px-3 text-caption font-semibold text-fg-default transition-colors hover:bg-surface-muted"
                 >
                   새 탭에서 열기
                 </a>
               ) : (
                 <span
                   aria-disabled="true"
-                  className="inline-flex h-10 shrink-0 cursor-not-allowed items-center justify-center whitespace-nowrap rounded-md border border-line bg-surface px-3 text-caption font-semibold text-fg-default opacity-60"
+                  className="inline-flex h-10 shrink-0 cursor-not-allowed items-center justify-center whitespace-nowrap rounded-control border border-line bg-surface px-3 text-caption font-semibold text-fg-default opacity-60"
                 >
                   새 탭에서 열기
                 </span>

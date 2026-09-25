@@ -63,7 +63,7 @@ export const ProjectSwitcher = ({
       <button
         type="button"
         className={[
-          'flex h-9 w-full min-w-0 items-center gap-2 rounded-md border border-line bg-surface px-2 text-left transition-colors',
+          'flex h-9 w-full min-w-0 items-center gap-2 rounded-control border border-line bg-surface px-2 text-left transition-colors',
           'hover:bg-surface-muted active:bg-surface-muted'
         ].join(' ')}
         aria-label="프로젝트 선택"
@@ -73,7 +73,7 @@ export const ProjectSwitcher = ({
       >
         <span
           aria-hidden="true"
-          className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line bg-surface text-caption font-semibold text-fg-subtle"
+          className="inline-flex size-5 shrink-0 items-center justify-center rounded-control border border-line bg-surface text-caption font-semibold text-fg-subtle"
         >
           {getInitialCharacter(selectedProjectLabel)}
         </span>
@@ -92,7 +92,7 @@ export const ProjectSwitcher = ({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-full min-w-[220px] overflow-hidden rounded-md border border-line bg-surface py-1 shadow-none max-sm:min-w-0">
+        <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-full min-w-[220px] overflow-hidden rounded-control border border-line bg-surface py-1 shadow-none max-sm:min-w-0">
           <div
             role="listbox"
             aria-label="내 프로젝트 목록"
@@ -105,7 +105,7 @@ export const ProjectSwitcher = ({
                 </p>
                 <button
                   type="button"
-                  className="w-full rounded-[10px] border border-line px-3 py-2 text-body font-medium text-fg-default transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-panel border border-line px-3 py-2 text-body font-medium text-fg-default transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isFetching || !onRetry}
                   onClick={() => onRetry?.()}
                 >
@@ -123,13 +123,13 @@ export const ProjectSwitcher = ({
                   <div
                     key={project.id}
                     className={[
-                      'group flex items-center gap-1 rounded-[6px] transition-colors',
+                      'group flex items-center gap-1 rounded-control transition-colors',
                       isSelected ? 'bg-surface-muted' : 'hover:bg-surface-muted'
                     ].join(' ')}
                   >
                     <button
                       type="button"
-                      className="flex min-w-0 flex-1 items-center gap-2 rounded-[6px] bg-transparent px-2 py-1.5 text-left text-body font-medium text-fg-default transition-colors"
+                      className="flex min-w-0 flex-1 items-center gap-2 rounded-control bg-transparent px-2 py-1.5 text-left text-body font-medium text-fg-default transition-colors"
                       onClick={() => {
                         setOpen(false);
                         navigate(`/projects/${project.id}`);
@@ -137,7 +137,7 @@ export const ProjectSwitcher = ({
                     >
                       <span
                         aria-hidden="true"
-                        className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line bg-surface text-caption font-semibold text-fg-subtle"
+                        className="inline-flex size-5 shrink-0 items-center justify-center rounded-control border border-line bg-surface text-caption font-semibold text-fg-subtle"
                       >
                         {projectInitial}
                       </span>
@@ -150,7 +150,7 @@ export const ProjectSwitcher = ({
 
             <button
               type="button"
-              className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-4 py-2.5 text-left text-body font-medium text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle"
+              className="mt-1 flex w-full items-center gap-2 rounded-panel px-4 py-2.5 text-left text-body font-medium text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle"
               onClick={() => {
                 setOpen(false);
                 onOpenCreateProject?.();

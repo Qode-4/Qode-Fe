@@ -56,7 +56,7 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
         brand={INVITE_BRAND}
       >
         <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-xl border border-line bg-surface-muted px-4 py-3 text-label">
+          <div className="flex items-center justify-between rounded-panel border border-line bg-surface-muted px-4 py-3 text-label">
             <span className="text-fg-subtle">초대 코드</span>
             <span className="font-semibold text-fg-default">{inviteCode}</span>
           </div>
@@ -81,7 +81,7 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
     <AuthFrame title="프로젝트 초대" description={`코드: ${inviteCode}`} brand={INVITE_BRAND}>
       <div className="space-y-4">
         {info.isLoading ? (
-          <div className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-label text-fg-subtle">
+          <div className="rounded-panel border border-line bg-surface px-4 py-6 text-center text-label text-fg-subtle">
             초대 정보를 불러오는 중…
           </div>
         ) : null}
@@ -93,7 +93,7 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
         ) : null}
 
         {info.data ? (
-          <div className="space-y-3 rounded-xl border border-line bg-surface p-4">
+          <div className="space-y-3 rounded-panel border border-line bg-surface p-4">
             <div className="flex items-center gap-3">
               <span
                 aria-hidden="true"

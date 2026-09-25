@@ -124,7 +124,7 @@ export const OverlayModal = ({
         // 인라인 style 로 확정 지정해 Tailwind 아비트러리 값이 discover 실패하는 케이스를 방어.
         // 모바일은 h-full 로 풀스크린이므로 max-height 를 걸지 않는다.
         style={isMobile ? undefined : { maxHeight: '90dvh' }}
-        className={`flex w-full ${widthClassName} flex-col overflow-hidden rounded-[20px] border border-line-strong bg-surface shadow-none max-sm:h-full max-sm:max-w-none max-sm:rounded-none`}
+        className={`flex w-full ${widthClassName} flex-col overflow-hidden rounded-shell border border-line-strong bg-surface shadow-none max-sm:h-full max-sm:max-w-none max-sm:rounded-none`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -137,7 +137,7 @@ export const OverlayModal = ({
           </h2>
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-caption text-fg-subtle hover:bg-surface-muted max-sm:min-h-[44px] max-sm:min-w-[44px] max-sm:text-label"
+            className="rounded-control px-2 py-1 text-caption text-fg-subtle hover:bg-surface-muted max-sm:min-h-[44px] max-sm:min-w-[44px] max-sm:text-label"
             onClick={() => onCloseRef.current()}
             aria-label={`${title} 닫기`}
           >

@@ -234,7 +234,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
         }}
       >
         <div className="space-y-4">
-          <section className="rounded-lg border border-line bg-surface p-3">
+          <section className="rounded-card border border-line bg-surface p-3">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-label font-semibold text-fg-default">1. 프로젝트 정보</p>
               <span
@@ -249,7 +249,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               <input
                 id="create-project-name"
                 className={[
-                  'h-10 w-full rounded-md border bg-surface px-3 text-body text-fg-default outline-none',
+                  'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
                   nameError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
                 ].join(' ')}
                 value={name}
@@ -267,7 +267,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               <span className="mb-1 block text-caption font-medium text-fg-muted">설명 (선택)</span>
               <input
                 id="create-project-description"
-                className="h-10 w-full rounded-md border border-line-strong bg-surface px-3 text-body text-fg-default outline-none focus:border-line-primary"
+                className="h-10 w-full rounded-control border border-line-strong bg-surface px-3 text-body text-fg-default outline-none focus:border-line-primary"
                 value={description}
                 maxLength={PROJECT_DESCRIPTION_MAX}
                 onChange={(e) => setDescription(e.target.value)}
@@ -276,7 +276,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             </label>
           </section>
 
-          <section className="rounded-lg border border-line bg-surface-muted p-3">
+          <section className="rounded-card border border-line bg-surface-muted p-3">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
                 <p className="text-label font-semibold text-fg-default">2. GitHub 인증</p>
@@ -314,7 +314,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             </div>
 
             {activeOauthFlow ? (
-              <div className="mt-3 rounded-md border border-line bg-surface p-3">
+              <div className="mt-3 rounded-control border border-line bg-surface p-3">
                 <p className="text-caption text-fg-muted">
                   인증 코드:{' '}
                   <span className="font-semibold text-fg-default">
@@ -350,7 +350,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
 
           <section
             className={[
-              'rounded-lg border border-line bg-surface p-3 transition-opacity',
+              'rounded-card border border-line bg-surface p-3 transition-opacity',
               isAuthorized ? 'opacity-100' : 'pointer-events-none opacity-60'
             ].join(' ')}
           >
@@ -382,7 +382,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               {repoItems.map((repo) => (
                 <label
                   key={repo.fullName}
-                  className="mt-2 flex cursor-pointer items-center gap-2 rounded-md border border-line px-2 py-2 text-label text-fg-default first:mt-0"
+                  className="mt-2 flex cursor-pointer items-center gap-2 rounded-control border border-line px-2 py-2 text-label text-fg-default first:mt-0"
                 >
                   <input
                     type="radio"

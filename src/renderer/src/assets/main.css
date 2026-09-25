@@ -99,6 +99,18 @@
   --text-heading--line-height: 1.3;
   --text-display: calc(var(--font-size-base) * 2);
   --text-display--line-height: 1.2;
+
+  /* Radius — 역할 이름. (docs/foundations.md §6) rounded-full / rounded-none 은 Tailwind 정적 유틸리티 */
+  --radius-*: initial;
+  --radius-inline: 4px;
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-panel: 12px;
+  --radius-shell: 16px;
+
+  /* Elevation — 떠서 다른 콘텐츠를 가리는 요소 전용 하나만. 새 그림자는 문서에 먼저 등록한다. */
+  --shadow-*: initial;
+  --shadow-overlay: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 @layer base {

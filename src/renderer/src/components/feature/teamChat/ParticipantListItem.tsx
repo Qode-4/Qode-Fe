@@ -55,7 +55,7 @@ export const ParticipantListItem = ({
   return (
     <li
       className={[
-        'flex items-center gap-3 rounded-md px-2 py-2',
+        'flex items-center gap-3 rounded-control px-2 py-2',
         emphasized ? 'bg-surface-muted' : ''
       ].join(' ')}
     >
@@ -64,7 +64,7 @@ export const ParticipantListItem = ({
         <p className="truncate text-label font-medium text-fg-default">{name ?? '이름 없음'}</p>
       </div>
       {role === 'OWNER' ? (
-        <span className="shrink-0 rounded-md bg-primary-soft px-2 py-0.5 text-micro font-semibold text-fg-primary">
+        <span className="shrink-0 rounded-control bg-primary-soft px-2 py-0.5 text-micro font-semibold text-fg-primary">
           방장
         </span>
       ) : null}

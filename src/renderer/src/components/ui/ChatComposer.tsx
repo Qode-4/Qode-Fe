@@ -20,7 +20,7 @@ type Props = {
 const MAX_ROWS = 5;
 
 const sendButtonClass = [
-  'inline-flex size-8 shrink-0 items-center justify-center rounded-[6px] text-fg-on-primary transition-colors max-sm:size-11',
+  'inline-flex size-8 shrink-0 items-center justify-center rounded-control text-fg-on-primary transition-colors max-sm:size-11',
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-1'
 ].join(' ');
 
@@ -76,7 +76,7 @@ export const ChatComposer = ({
 
   return (
     <div className={['w-full max-w-[48rem]', className ?? ''].join(' ')}>
-      <div className="flex items-center gap-2 rounded-[6px] bg-line-soft px-3 py-2 transition-colors focus-within:bg-primary-soft max-sm:rounded-[10px] max-sm:px-3 max-sm:py-2.5">
+      <div className="flex items-center gap-2 rounded-control bg-line-soft px-3 py-2 transition-colors focus-within:bg-primary-soft max-sm:rounded-panel max-sm:px-3 max-sm:py-2.5">
         <textarea
           ref={textareaRef}
           rows={1}

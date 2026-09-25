@@ -106,7 +106,7 @@ export const TransferOwnershipModal = ({
           <ul
             role="radiogroup"
             aria-label="새 방장 후보"
-            className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-md border border-line bg-surface p-1"
+            className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-control border border-line bg-surface p-1"
           >
             {participants.isLoading ? (
               <li className="px-3 py-6 text-center text-caption text-fg-muted">
