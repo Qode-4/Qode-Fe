@@ -43,6 +43,8 @@
 
 - Raw는 `--color-<hue>-<step>`, semantic은 `--color-<역할>`. Tailwind v4가 semantic 이름으로 유틸리티(`bg-primary`, `text-fg-default`)를 만든다.
 - 컴포넌트 코드에 raw 이름(`text-orange-500`, `bg-gray-50`)이 보이면 규칙 위반이다.
+- Tailwind 기본 팔레트·폰트 크기·radius·그림자는 `@theme`에서 `--color-*: initial` 등으로 지운다. `bg-zinc-800` 같은 직접 사용은 스타일이 아예 생성되지 않는다.
+- 지워진 클래스는 에러 없이 조용히 무시되므로, `tokens:check`가 소스에서 raw 팔레트·기본 크기 클래스를 찾아 실패시킨다(§4).
 
 ---
 
@@ -134,27 +136,28 @@
 
 ### 선 `line-*`
 
-| 새 이름        | raw       | 기존 이름         | 용도                        |
-| -------------- | --------- | ----------------- | --------------------------- |
-| `line`         | gray-200  | `line`            | 기본 구분선·카드 경계(장식) |
-| `line-soft`    | gray-100  | `line-soft`       | 더 옅은 구분                |
-| `line-strong`  | gray-600  | `control-line`    | 입력·컨트롤 경계(3:1 필요)  |
-| `line-danger`  | red-200   | `danger-line`     | 오류 경계                   |
-| `line-success` | green-200 | `emerald-200·300` | 성공 경계                   |
-| `line-code`    | gray-850  | `zinc-800`        | 코드 블록 경계              |
+| 새 이름        | raw        | 기존 이름                        | 용도                        |
+| -------------- | ---------- | -------------------------------- | --------------------------- |
+| `line`         | gray-200   | `line`                           | 기본 구분선·카드 경계(장식) |
+| `line-soft`    | gray-100   | `line-soft`                      | 더 옅은 구분                |
+| `line-strong`  | gray-600   | `control-line`                   | 입력·컨트롤 경계(3:1 필요)  |
+| `line-primary` | orange-600 | `border-primary`, `ring-primary` | 선택 테두리·포커스 링       |
+| `line-danger`  | red-200    | `danger-line`                    | 오류 경계                   |
+| `line-success` | green-200  | `emerald-200·300`                | 성공 경계                   |
+| `line-code`    | gray-850   | `zinc-800`                       | 코드 블록 경계              |
 
 ### 한 토큰이 여러 면에 쓰이던 경우
 
 `danger`·`primary`는 면·글자·선에 두루 쓰였다. 유틸리티 접두어로 기계적으로 나눈다.
 
-| 기존                             | 사용 | 새 이름           | 비고                                                 |
-| -------------------------------- | ---- | ----------------- | ---------------------------------------------------- |
-| `text-danger`                    | 33   | `text-fg-danger`  |                                                      |
-| `bg-danger`                      | 11   | `bg-danger`       | 면용 `danger`(red-700) 유지. 위험 버튼 등            |
-| `border-danger`, `ring-danger`   | 20   | `border-danger`   | 강한 오류 경계는 `danger`, 옅은 경계는 `line-danger` |
-| `text-primary`, `text-accent`    | 22   | `text-fg-primary` | 색이 진해짐                                          |
-| `bg-primary`                     | 28   | `bg-primary`      | 유지                                                 |
-| `border-primary`, `ring-primary` | 25   | `border-primary`  | 2.89:1, §9 확인 항목                                 |
+| 기존                             | 사용 | 새 이름                                    | 비고                                                 |
+| -------------------------------- | ---- | ------------------------------------------ | ---------------------------------------------------- |
+| `text-danger`                    | 33   | `text-fg-danger`                           |                                                      |
+| `bg-danger`                      | 11   | `bg-danger`                                | 면용 `danger`(red-700) 유지. 위험 버튼 등            |
+| `border-danger`, `ring-danger`   | 20   | `border-danger`                            | 강한 오류 경계는 `danger`, 옅은 경계는 `line-danger` |
+| `text-primary`, `text-accent`    | 22   | `text-fg-primary`                          | 색이 진해짐                                          |
+| `bg-primary`                     | 28   | `bg-primary`                               | 유지                                                 |
+| `border-primary`, `ring-primary` | 25   | `border-line-primary`, `ring-line-primary` | `#ff6900`(2.89:1) → `#e05e00`(3.64:1)                |
 
 ---
 
@@ -164,20 +167,20 @@
 
 ### 의도한 조합 (tokens:check 허용 목록 초안)
 
-| 전경                      | 배경                                      | 대비      | 기준 | 판정              |
-| ------------------------- | ----------------------------------------- | --------- | ---- | ----------------- |
-| fg-default                | canvas / surface / sidebar / primary-soft | 17.3~19.3 | 4.5  | ✅                |
-| fg-subtle                 | canvas / surface / primary-soft           | 6.8~7.6   | 4.5  | ✅                |
-| fg-muted                  | canvas / surface / primary-soft           | 5.3~5.9   | 4.5  | ✅                |
-| fg-primary                | canvas / surface / primary-soft           | 4.9~5.4   | 4.5  | ✅                |
-| fg-on-primary             | primary                                   | 6.68      | 4.5  | ✅                |
-| fg-danger                 | surface / danger-soft                     | 5.2~5.6   | 4.5  | ✅                |
-| fg-success                | surface / canvas / success-soft           | 5.0~5.4   | 4.5  | ✅                |
-| fg-code                   | code-raised                               | 13.6      | 4.5  | ✅                |
-| fg-code-muted             | code / code-raised                        | 5.7~6.8   | 4.5  | ✅                |
-| line-strong               | surface                                   | 5.93      | 3    | ✅                |
-| primary(포커스 링·아이콘) | surface                                   | 2.89      | 3    | ⚠️ 확인 필요 (§9) |
-| line                      | surface                                   | 1.36      | —    | 장식용, 판정 제외 |
+| 전경                                | 배경                                      | 대비      | 기준 | 판정              |
+| ----------------------------------- | ----------------------------------------- | --------- | ---- | ----------------- |
+| fg-default                          | canvas / surface / sidebar / primary-soft | 17.3~19.3 | 4.5  | ✅                |
+| fg-subtle                           | canvas / surface / primary-soft           | 6.8~7.6   | 4.5  | ✅                |
+| fg-muted                            | canvas / surface / primary-soft           | 5.3~5.9   | 4.5  | ✅                |
+| fg-primary                          | canvas / surface / primary-soft           | 4.9~5.4   | 4.5  | ✅                |
+| fg-on-primary                       | primary                                   | 6.68      | 4.5  | ✅                |
+| fg-danger                           | surface / danger-soft                     | 5.2~5.6   | 4.5  | ✅                |
+| fg-success                          | surface / canvas / success-soft           | 5.0~5.4   | 4.5  | ✅                |
+| fg-code                             | code-raised                               | 13.6      | 4.5  | ✅                |
+| fg-code-muted                       | code / code-raised                        | 5.7~6.8   | 4.5  | ✅                |
+| line-strong                         | surface                                   | 5.93      | 3    | ✅                |
+| line-primary(선택 테두리·포커스 링) | surface / canvas                          | 3.38~3.64 | 3    | ✅                |
+| line                                | surface                                   | 1.36      | —    | 장식용, 판정 제외 |
 
 ### tokens:check 동작
 
@@ -185,6 +188,7 @@
 2. 모든 `fg-*` × 배경 조합의 대비를 계산해 `docs/tokens/contrast-matrix.md`를 생성한다.
 3. 위 허용 목록의 조합이 기준 미달이면 종료 코드 1로 실패한다.
 4. 허용 목록에 없는 조합은 매트릭스에만 기록하고 실패시키지 않는다.
+5. `src/renderer/src`에서 토큰이 아닌 클래스(`*-zinc-*`, `text-xs`, `rounded-md`, `text-[11px]` 등)를 찾으면 실패한다.
 
 ---
 
@@ -208,20 +212,20 @@
 
 ### 기존 → 새 이름
 
-| 기존                      | 기존 크기(13 기준) | 사용   | 새 이름                                               | 변화                |
-| ------------------------- | ------------------ | ------ | ----------------------------------------------------- | ------------------- |
-| `ui-10`, `[10px]`         | 8.1px / 10px       | 24 + 1 | micro                                                 | 8.1 → 10 ▲          |
-| `ui-11`, `[11px]`         | 8.9px / 11px       | 7 + 5  | micro / caption                                       | 8.9 → 10 ▲, 11 유지 |
-| `xs`, `ui-12`             | 9.75px             | 99     | caption                                               | 9.75 → 11 ▲         |
-| `ui-13`                   | 10.6px             | 1      | caption                                               | ▲                   |
-| `sm`, `ui-14`, `[14px]`   | 11.4px / 14px      | 61     | label                                                 | 11.4 → 12 ▲         |
-| `ui-15`                   | 12.2px             | 1      | label                                                 | ≈                   |
-| `base`, `ui-16`, `[13px]` | 13px               | 약 20  | body                                                  | 없음                |
-| `lg`, `[16px]`            | 14.6px / 16px      | 1 + 3  | title                                                 | ▲ 소폭              |
-| `xl`, `ui-20`, `[18px]`   | 16.25px / 18px     | 5 + 3  | title                                                 | 없음 / ▼ 소폭       |
-| `2xl`, `ui-22`, `ui-24`\* | 19.5px             | 3      | heading                                               | 없음                |
-| `ui-32`, `3xl`            | 26px               | 2      | display                                               | 없음                |
-| `ui-44`, `5xl`            | 35.75px / 39px     | 2      | display (+ 필요 시 `text-display` 위 1단계 추가 검토) | ▼                   |
+| 기존                      | 기존 크기(13 기준) | 사용   | 새 이름         | 변화                |
+| ------------------------- | ------------------ | ------ | --------------- | ------------------- |
+| `ui-10`, `[10px]`         | 8.1px / 10px       | 24 + 1 | micro           | 8.1 → 10 ▲          |
+| `ui-11`, `[11px]`         | 8.9px / 11px       | 7 + 5  | micro / caption | 8.9 → 10 ▲, 11 유지 |
+| `xs`, `ui-12`             | 9.75px             | 99     | caption         | 9.75 → 11 ▲         |
+| `ui-13`                   | 10.6px             | 1      | caption         | ▲                   |
+| `sm`, `ui-14`, `[14px]`   | 11.4px / 14px      | 61     | label           | 11.4 → 12 ▲         |
+| `ui-15`                   | 12.2px             | 1      | label           | ≈                   |
+| `base`, `ui-16`, `[13px]` | 13px               | 약 20  | body            | 없음                |
+| `lg`, `[16px]`            | 14.6px / 16px      | 1 + 3  | title           | ▲ 소폭              |
+| `xl`, `ui-20`, `[18px]`   | 16.25px / 18px     | 5 + 3  | title           | 없음 / ▼ 소폭       |
+| `2xl`, `ui-22`, `ui-24`\* | 19.5px             | 3      | heading         | 없음                |
+| `ui-32`, `3xl`            | 26px               | 2      | display         | 없음                |
+| `ui-44`, `5xl`            | 35.75px / 39px     | 2      | display         | ▼ 26px              |
 
 \* `text-ui-24`(AuthFrame.tsx:74)는 테마에 정의되지 않아 지금 스타일이 적용되지 않는 상태다. 이번에 heading으로 바로잡는다.
 
@@ -282,7 +286,8 @@
 | 코드 블록 줄번호가 밝아짐 (zinc-500 → gray-400)               | 1곳      | 3.67:1 → 6.75:1          |
 | 아이콘 색 `#222222` → `#0e0e0f`                               | 3곳      | fill-icon 흡수           |
 | 인증 화면 부제 크기 적용됨                                    | 1곳      | `ui-24` 미정의 버그 수정 |
-| 대형 제목(`ui-44`, `5xl`) 축소                                | 2곳      | display 단계 통합        |
+| 대형 제목(`ui-44`, `5xl`) 26px로 축소                         | 2곳      | display 단계 통합        |
+| 오렌지 테두리·포커스 링이 살짝 진해짐 (`#ff6900` → `#e05e00`) | 25곳     | 비텍스트 3:1             |
 
 ---
 
@@ -298,8 +303,8 @@
 6. `DESIGN.md` 토큰 섹션을 새 이름으로 갱신.
 7. 검증 — lint, typecheck, build, Storybook 육안 확인(§8 항목 중심).
 
-### 구현 전에 확인할 것
+### 확정된 추가 결정 (2026-09-25)
 
-- [ ] **오렌지 테두리·포커스 링 대비** — `border-primary`·`ring-primary` 25곳. `#ff6900`은 흰 배경 위 2.89:1로 비텍스트 3:1 기준에 조금 못 미친다. ① 선택 테두리·포커스 링만 `primary-strong`(3.64:1)으로, ② 알려진 예외로 기록, 중 선택.
-- [ ] **Tailwind 기본값 차단** — `@theme`에서 `--color-*: initial` 등으로 기본 팔레트·크기·radius를 지우면 `bg-zinc-800` 같은 직접 사용이 아예 동작하지 않는다(대신 조용히 무시되므로 tokens:check에 raw 클래스 검사를 추가). 도입 여부.
-- [ ] **`ui-44`/`5xl` 두 곳** — display로 줄일지, display 위에 한 단계를 둘지.
+- 오렌지 테두리·포커스 링은 `line-primary`(`#e05e00`)로 분리한다. 면은 `#ff6900` 유지.
+- Tailwind 기본값을 차단하고 tokens:check에 raw 클래스 검사를 넣는다.
+- 대형 제목 2곳은 display(26px)로 통합한다. 7단계 유지.
