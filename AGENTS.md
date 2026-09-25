@@ -9,13 +9,14 @@ yarn dev                  # Electron 개발 모드 (main + preload + renderer HM
 yarn web:dev              # 렌더러만 브라우저에서 (src/renderer/vite.config.ts)
 yarn lint                 # ESLint
 yarn typecheck            # tsc: node(main/preload) + web(renderer) 두 프로젝트 모두
+yarn test                 # vitest
 yarn build                # typecheck + electron-vite build
 yarn web:build            # 웹 정적 빌드 → src/renderer/dist
 yarn storybook            # 컴포넌트 샌드박스 (포트 6006)
 yarn swagger:local        # OpenAPI → src/renderer/src/api/generated 재생성
 ```
 
-테스트 러너는 없다. 검증 수단은 `lint` + `typecheck` + Storybook.
+테스트는 `yarn test`(vitest, `*.test.ts(x)`). 검증 수단은 `lint` + `typecheck` + `test` + `build` + Storybook.
 
 `yarn swagger:local`은 package.json에서 EC2 주소를 가리킨다. 로컬 백엔드(`../Qode-Server`)
 스펙으로 생성하려면 스크립트의 `-p` URL을 `http://localhost:3000/docs/json`으로 바꿔서 실행한다.
