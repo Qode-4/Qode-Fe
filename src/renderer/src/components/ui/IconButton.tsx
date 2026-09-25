@@ -21,6 +21,14 @@ const sizeMap: Record<NonNullable<Props['size']>, string> = {
   md: 'size-9 rounded-control'
 };
 
+/**
+ * IconButton — 글자 없이 아이콘만 있는 버튼.
+ * ✅ Use: 설정·닫기·더보기처럼 아이콘만으로 뜻이 통하는 동작.
+ *         aria-label 필수(타입으로 강제).
+ * ❌ Don't: 뜻이 모호하면 글자 있는 <Button>. 페이지 이동에 쓰지 않는다.
+ * variant: ghost 기본(목록·카드 안) · outline 헤더처럼 단독으로 놓일 때
+ * size: md 36px 기본 · sm 24px 목록 줄 안의 ⋯·+
+ */
 export const IconButton = ({
   variant = 'ghost',
   size = 'md',

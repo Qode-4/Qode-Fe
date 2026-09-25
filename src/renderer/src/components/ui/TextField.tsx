@@ -50,6 +50,14 @@ const EyeOffIcon = (): React.JSX.Element => (
   </svg>
 );
 
+/**
+ * TextField — 라벨·도움말·오류가 붙는 한 줄 입력.
+ * ✅ Use: 폼 입력(이메일·비밀번호·이름). 오류는 error prop 으로
+ *         입력 바로 아래에(원인+다음 행동).
+ * ❌ Don't: 여러 줄은 textarea, 채팅 입력은 <ChatComposer>.
+ *          label 을 placeholder 로 대신하지 않는다.
+ * size: md 인증 화면(44px) · sm 모달·설정 안(40px)
+ */
 export const TextField = ({
   label,
   hint,

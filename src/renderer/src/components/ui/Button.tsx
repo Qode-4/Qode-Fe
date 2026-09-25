@@ -20,6 +20,14 @@ const sizeMap: Record<NonNullable<Props['size']>, string> = {
   md: 'h-11 px-4 text-label'
 };
 
+/**
+ * Button — 사용자가 실행하는 액션.
+ * ✅ Use: 제출·저장·실행·삭제 등 결과가 있는 동작.
+ * ❌ Don't: 페이지 이동은 <Link>, 아이콘만이면 <IconButton>.
+ * variant: primary 화면당 하나(주 액션) · secondary 보조·취소
+ *          · ghost 목록 안 가벼운 액션 · danger 되돌릴 수 없는 삭제
+ * size: md 기본(폼·모달 하단) · sm 카드·알림 안 보조 버튼
+ */
 export const Button = ({
   variant = 'primary',
   size = 'md',

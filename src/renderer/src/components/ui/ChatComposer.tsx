@@ -27,6 +27,14 @@ const sendButtonClass = cn(
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-1'
 );
 
+/**
+ * ChatComposer — 채팅 메시지 입력과 전송.
+ * ✅ Use: AI 채팅·팀 채팅 하단 입력. 진행 상태(동기화 등)는 status 로
+ *         입력창 위에 — placeholder 에 상태를 넣지 않는다.
+ *         전송 불가 이유는 sendDisabledReason 으로.
+ * ❌ Don't: 폼 입력은 <TextField>. 테두리·outline 추가 금지
+ *          (focus 는 배경 전환으로만 — 이 컴포넌트만의 예외).
+ */
 export const ChatComposer = ({
   value,
   placeholder = '무엇이든 물어보세요!',

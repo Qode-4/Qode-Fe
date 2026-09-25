@@ -6,6 +6,12 @@ type Props = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'onClick'> &
   to: string;
 };
 
+/**
+ * Link — 앱 안 화면 이동(해시 라우터).
+ * ✅ Use: 문장 안이나 폼 아래의 이동 링크(회원가입·로그인 전환 등).
+ * ❌ Don't: 실행·저장 같은 동작은 <Button>. 외부 URL은 <a target="_blank">.
+ *          버튼처럼 보이게 만들지 않는다(항상 밑줄 글자, hover 는 밑줄로만).
+ */
 export const Link = ({ to, children, className, ...rest }: Props): React.JSX.Element => {
   return (
     <a
