@@ -1,5 +1,6 @@
 import { ICON_REGISTRY } from '../icons/iconRegistry';
 import type { IconName } from '../icons/iconTypes';
+import { cn } from '../../lib/cn';
 
 type IconSize = 'sm' | 'md' | 'lg' | number;
 
@@ -38,11 +39,11 @@ export const Icon = ({
 
   return (
     <span
-      className={[
+      className={cn(
         'inline-flex shrink-0 items-center justify-center text-fg-default',
         typeof size === 'number' ? '' : sizeClassMap[size],
-        className ?? ''
-      ].join(' ')}
+        className
+      )}
       style={typeof size === 'number' ? { width: size, height: size } : undefined}
     >
       <Glyph

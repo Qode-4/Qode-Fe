@@ -13,6 +13,7 @@ import { join, relative, dirname } from 'node:path';
 const ROOT = join(__dirname, '..');
 const CSS_PATH = join(ROOT, 'src/renderer/src/assets/main.css');
 const SRC_DIR = join(ROOT, 'src/renderer/src');
+const CN_PATH = join(ROOT, 'src/renderer/src/lib/cn.ts');
 const MATRIX_PATH = join(ROOT, 'docs/tokens/contrast-matrix.md');
 
 const TEXT = 4.5;
@@ -207,6 +208,8 @@ const walk = (dir: string, out: string[] = []): string[] => {
 
 for (const file of walk(SRC_DIR)) {
   const rel = relative(SRC_DIR, file);
+  // cn.ts 는 토큰 이름 목록(설정)이지 className 이 아니다 — §4 동기화 검사가 따로 본다
+  if (rel === 'lib/cn.ts') continue;
   readFileSync(file, 'utf8')
     .split('\n')
     .forEach((line, i) => {
@@ -219,6 +222,27 @@ for (const file of walk(SRC_DIR)) {
         }
       }
     });
+}
+
+// ── 4. cn() 토큰 등록 동기화 ────────────────────────────────────────────
+// tailwind-merge 는 모르는 크기·radius 토큰을 색으로 오인해 지운다. main.css 와 cn.ts 목록이 같아야 한다.
+const cnSrc = readFileSync(CN_PATH, 'utf8');
+const themeKeys = (prefix: string): string[] =>
+  [...vars.keys()]
+    .filter((k) => k.startsWith(`${prefix}-`) && !k.includes('--'))
+    .map((k) => k.slice(prefix.length + 1));
+for (const [cssPrefix, cnKey] of [
+  ['text', 'text'],
+  ['radius', 'radius'],
+  ['shadow', 'shadow']
+] as const) {
+  const m = cnSrc.match(new RegExp(`${cnKey}: \\[([^\\]]*)\\]`));
+  const registered = m ? [...m[1].matchAll(/'([\w-]+)'/g)].map((x) => x[1]) : [];
+  const defined = themeKeys(cssPrefix);
+  const missing = defined.filter((t) => !registered.includes(t));
+  const stale = registered.filter((t) => !defined.includes(t));
+  if (missing.length) failures.push(`cn.ts ${cnKey} 에 미등록 토큰: ${missing.join(', ')}`);
+  if (stale.length) failures.push(`cn.ts ${cnKey} 에 없는 토큰: ${stale.join(', ')}`);
 }
 
 // ── 결과 ───────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import type { ProjectsListData } from '../../api/generated/data-contracts';
 import type { IconName } from '../icons/iconTypes';
 import { IconButton } from './IconButton';
 import { ProjectSwitcher } from './ProjectSwitcher';
+import { cn } from '../../lib/cn';
 
 type Props = {
   className?: string;
@@ -34,7 +35,7 @@ export const DrawerHeader = ({
   onSettingsClick
 }: Props): React.JSX.Element => {
   return (
-    <header className={['flex w-full flex-col gap-2 px-3 pt-4 pb-3', className ?? ''].join(' ')}>
+    <header className={cn('flex w-full flex-col gap-2 px-3 pt-4 pb-3', className)}>
       <div className="flex items-center gap-1.5 px-1 py-1">
         {logo ?? (
           <>

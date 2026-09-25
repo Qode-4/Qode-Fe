@@ -1,5 +1,6 @@
 import type { AnchorHTMLAttributes } from 'react';
 import { navigate } from '../../lib/hashRouter';
+import { cn } from '../../lib/cn';
 
 type Props = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'onClick'> & {
   to: string;
@@ -9,10 +10,10 @@ export const Link = ({ to, children, className, ...rest }: Props): React.JSX.Ele
   return (
     <a
       {...rest}
-      className={[
+      className={cn(
         'text-label font-medium text-fg-primary underline underline-offset-2 transition-colors hover:text-fg-primary',
-        className ?? ''
-      ].join(' ')}
+        className
+      )}
       href={`#${to.startsWith('/') ? to : `/${to}`}`}
       onClick={(e) => {
         e.preventDefault();

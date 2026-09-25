@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../lib/hashRouter';
+import { cn } from '../../lib/cn';
 
 type ProjectItem = {
   id: string;
@@ -59,13 +60,13 @@ export const ProjectSwitcher = ({
   }, [open]);
 
   return (
-    <div ref={containerRef} className={['relative min-w-0', className ?? ''].join(' ')}>
+    <div ref={containerRef} className={cn('relative min-w-0', className)}>
       <button
         type="button"
-        className={[
+        className={cn(
           'flex h-9 w-full min-w-0 items-center gap-2 rounded-control border border-line bg-surface px-2 text-left transition-colors',
           'hover:bg-surface-muted active:bg-surface-muted'
-        ].join(' ')}
+        )}
         aria-label="프로젝트 선택"
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -82,10 +83,10 @@ export const ProjectSwitcher = ({
         </span>
         <span
           aria-hidden="true"
-          className={[
+          className={cn(
             'shrink-0 text-caption leading-none text-fg-muted transition-transform',
             open ? 'rotate-180 text-fg-subtle' : ''
-          ].join(' ')}
+          )}
         >
           ▾
         </span>
@@ -122,10 +123,10 @@ export const ProjectSwitcher = ({
                 return (
                   <div
                     key={project.id}
-                    className={[
+                    className={cn(
                       'group flex items-center gap-1 rounded-control transition-colors',
                       isSelected ? 'bg-surface-muted' : 'hover:bg-surface-muted'
-                    ].join(' ')}
+                    )}
                   >
                     <button
                       type="button"

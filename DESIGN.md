@@ -254,13 +254,15 @@
 - 라인 번호: `w-6 text-right text-fg-code-muted mr-3`.
 - 폰트 크기는 본문(text-body = 13px) 보다 살짝 작은 text-label (12px) 로 두어 코드 가독성과 카드 밀도 균형을 잡는다. 이보다 작으면 (text-caption) 코드가 판독이 어려워진다.
 
-### MessageSources (참조 소스 카드)
+### SourceList (참조 소스 목록, `ui/SourceList.tsx`)
 
-- 카드: `mt-3 rounded-card border border-line bg-surface`.
-- 헤더: `flex w-full items-center justify-between px-3 py-1.5 text-caption text-fg-muted hover:bg-surface-muted`. 좌측 `•` 불릿 마커 + `참조한 소스 N개`. 셰브런은 사용하지 않는다.
-- 본문 리스트: 상단 `border-t border-line-soft`. 각 항목 `flex items-center justify-between gap-3 px-3 py-1 text-caption text-fg-muted`.
-- 항목 좌측: `min-w-0 flex-1 truncate` 파일 경로.
-- 항목 우측: `shrink-0` `(start-end)` 형식. 실제 응답값만 표시하고 목데이터를 넣지 않는다.
+- 답변·요약이 참조한 코드 위치를 보여주는 **유일한** 컴포넌트. 메인 채팅, 원본 대화 모달, 팀 공유 카드, 공유 미리보기 4곳이 함께 쓴다. 새 화면에서 목록을 따로 만들지 않는다.
+- 카드: `rounded-card border border-line bg-surface`. 상자 안에 칩을 넣지 않는다.
+- 헤더(접기/펼치기 버튼, 기본 펼침): `참조 코드 · 파일 N개`. 셰브런은 사용하지 않는다.
+- **같은 파일은 한 줄로 묶는다.** 파일 순서는 서버가 준 순서(관련도) 그대로.
+- 한 줄: 파일명(`font-medium text-fg-default`, 최대 60%) → 폴더(`text-fg-muted`, 먼저 잘림) → 오른쪽 줄 범위(`tabular-nums`, `12–40 · 85–133`). 범위가 3개를 넘으면 `+N`, 전체는 `title` 툴팁.
+- 범위는 오름차순 정렬, 완전히 같은 범위만 합친다. 겹치는 범위는 AI 가 인용한 그대로 둔다. 실제 응답값만 표시하고 목데이터를 넣지 않는다.
+- 세로 공간이 제한된 모달에서만 `maxHeight` 로 높이를 제한한다(스크롤바만, fade 마스크 없음).
 
 ### 메시지 액션 (답변 하단)
 
@@ -372,7 +374,7 @@
 - [ ] `내 채팅` · `팀 채팅` 헤더는 `+` 버튼만 있고 접기 화살표·`+ 추가` 링크가 없다.
 - [ ] 사이드바 하단 프로필 행은 아바타·이름·`⋮` 만 노출한다. Border-t 가 좌우 여백을 두고 시작한다.
 - [ ] 완료 답변·스트리밍 답변 모두 오렌지 테두리 원 + favicon 아바타 + `Qode AI` 라벨을 쓴다.
-- [ ] 참조 소스 카드는 `•` 불릿 + `text-caption text-fg-muted` + 좌(경로) / 우(줄 번호) 양쪽 정렬.
+- [ ] 참조 소스는 `SourceList` 로만 표시한다(같은 파일 묶음, 파일명 강조 + 흐린 폴더 + 오른쪽 줄 범위).
 - [ ] 답변 하단 액션은 `복사`·`팀 공유`·`팀 채팅 생성` 3개 순서 유지, capability 에 맞춘 비활성 + 툴팁.
 - [ ] 인증 화면 버튼·입력창은 `rounded-control` (6px), 알약 없음.
 - [ ] ChatComposer 컨테이너 배경은 기본 `bg-line-soft`, focus-within 시 `bg-primary-soft`. 테두리·outline 이중 표시 없음. 전송 버튼은 textarea 옆.

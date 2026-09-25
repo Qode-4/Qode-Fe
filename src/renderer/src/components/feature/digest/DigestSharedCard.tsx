@@ -3,6 +3,8 @@ import { Button } from '../../ui/Button';
 import { ChatItemMenu, type ChatItemMenuAction } from '../../ui/ChatItemMenu';
 import { Icon } from '../../ui/Icon';
 import { MarkdownAnswer } from '../../ui/MarkdownAnswer';
+import { SourceList } from '../../ui/SourceList';
+import { extractReferenceLines, mergeSources } from '../../../lib/inlineSources';
 
 // 팀채팅에 도착한 개인채팅 답변 요약 공유 카드.
 // 일반 팀채팅 메시지(회색/유저 말풍선)와 시각적으로 구분해 카드 형태로 렌더한다.
@@ -58,6 +60,9 @@ export const DigestSharedCard = ({
       ]
     : [];
 
+  // 요약 본문의 '근거 코드' 목록은 SourceList 와 중복이라 걷어낸다. 문장 속 참조는 둔다.
+  const body = extractReferenceLines(content);
+
   return (
     <div className="group flex items-start gap-2">
       <div className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface-muted text-caption font-medium text-fg-muted">
@@ -84,30 +89,9 @@ export const DigestSharedCard = ({
         </div>
 
         <article className="rounded-panel border border-line bg-surface p-3">
-          <MarkdownAnswer content={content} />
+          <MarkdownAnswer content={body.content} />
 
-          {sources.length > 0 ? (
-            <section className="mt-3 rounded-card border border-line bg-surface-muted p-2">
-              <h3 className="mb-1 text-micro font-semibold text-fg-muted">
-                참조 코드 {sources.length}개
-              </h3>
-              <ul className="flex flex-col gap-0.5">
-                {sources.map((s, idx) => (
-                  <li
-                    key={`${s.filePath}-${s.startLine ?? 0}-${idx}`}
-                    className="flex items-center justify-between gap-2 text-micro text-fg-muted"
-                  >
-                    <span className="min-w-0 flex-1 truncate">
-                      <code className="rounded-inline bg-surface px-1 py-0.5">{s.filePath}</code>
-                    </span>
-                    <span className="shrink-0">
-                      ({s.startLine ?? '-'}-{s.endLine ?? '-'})
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+          <SourceList sources={mergeSources(sources, body.sources)} className="mt-3" />
 
           <div className="mt-3 flex items-center gap-2">
             <Button

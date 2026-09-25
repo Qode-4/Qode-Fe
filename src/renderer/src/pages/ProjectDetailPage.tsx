@@ -46,6 +46,8 @@ import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { MarkdownAnswer } from '../components/ui/MarkdownAnswer';
+import { SourceList } from '../components/ui/SourceList';
+import { cleanAnswerSources, mergeSources } from '../lib/inlineSources';
 import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
@@ -113,110 +115,6 @@ const extractSources = (message: unknown): SourceItem[] => {
   return target.originalMessage?.sources ?? [];
 };
 
-// AI 가 본문에 남긴 참조 메타데이터를 뽑아 SourceItem 으로 변환하고 원문에서는 제거한다.
-// 서버가 sources 배열을 안 채워주는 흐름에서도 카드가 뜨도록 한 프론트엔드 폴백이며,
-// 답변 본문에 같은 정보가 여러 번 반복되는 것을 방지한다.
-//
-// 지원 패턴 (모두 뽑아서 소스 카드로 옮기고 본문에서는 제거):
-//   1) 괄호 인라인:       "(참고: `src/x.ts` 1-17)" · "(참조: src/x.ts 1-17)"
-//                         "(apis/services/x.ts L101-116)" (참고 프리픽스 없어도)
-//                         "(components/y.tsx L62-93 주석 참고)"
-//   2) 파일 + 괄호 범위:  "components/youtube-player.tsx (L62-93)" · "utils/x.ts (L1-33, L28-58)"
-//   3) 파일 + 공백 범위:  "apis/services/x.ts L101-116"
-//   4) 메타 bullet 쌍:    "- **파일 경로**: `src/x.ts`\n- **라인 범위**: 1-17"
-//   5) 소스 리스트 헤더 + 없음 bullet: "관련 파일: \n- 없음"
-
-const PATH_TOKEN = '[a-zA-Z0-9_./-]+\\.[a-zA-Z0-9]{1,6}';
-
-// 1) 괄호 인라인. "참고:" 프리픽스는 선택. 숫자 뒤 잔여 텍스트 허용.
-const INLINE_SOURCE_REGEX = new RegExp(
-  `\\s*\\(\\s*(?:참[고조]\\s*:\\s*)?\`?(${PATH_TOKEN})\`?[\\s,]+L?(\\d+)\\s*[-–~]\\s*(\\d+)[^)]*\\)`,
-  'g'
-);
-
-// 2) 파일 + 괄호 범위. "components/y.tsx (L62-93)" 형태.
-//    괄호 안에 여러 range 가 있어도 첫 range 만 대표로 뽑는다.
-const PATH_PAREN_RANGE_REGEX = new RegExp(
-  `\\s*\`?(${PATH_TOKEN})\`?\\s*\\(L?(\\d+)\\s*[-–~]\\s*(\\d+)[^)]*\\)`,
-  'g'
-);
-
-// 3) 파일 + 공백 후 L range. "apis/services/x.ts L101-116"
-const PATH_LINE_INLINE_REGEX = new RegExp(
-  `\\s*\`?(${PATH_TOKEN})\`?\\s+L(\\d+)\\s*[-–~]\\s*(\\d+)`,
-  'g'
-);
-
-// 4) 메타 bullet 쌍
-const META_FILE_LINE_PAIR_REGEX =
-  /^[\t ]*[-*•][\t ]*\**\s*(?:파일\s*(?:경로|이름|위치)|파일)\s*\**\s*:\s*`?([^\s`\n]+)`?[^\n]*\n[\t ]*[-*•][\t ]*\**\s*(?:라인\s*(?:범위|번호)?|줄\s*번호|위치|Line(?:s)?)\s*\**\s*:\s*`?(\d+)\s*[-–~]\s*(\d+)`?[^\n]*(?:\n|$)/gim;
-
-// 5-a) 소스 리스트 섹션 헤더: "관련 파일:", "참고 파일 및 라인:", "관련 파일 및 라인:" 등
-const SOURCE_LIST_HEADER_REGEX =
-  /^[ \t]*(?:관련|참고|참조|Reference|References)[ \t]*(?:파일|코드|자료|위치|Source(?:s)?)(?:[ \t]*(?:및|,|and)[ \t]*(?:라인|줄|Line(?:s)?))?[ \t]*:[ \t]*\n?/gim;
-
-// 5-b) "없음" 계열 bullet — 헤더가 지워진 뒤 남는 안내를 정리
-const NO_SOURCE_BULLET_REGEX =
-  /^[\t ]*[-*•][\t ]*(?:없음|해당\s*없음|N\/?A|(?:직접적인?\s*)?언급\s*없음|(?:전체\s*)?제공\s*(?:코드|내용)에서[^\n]*(?:없음|N\/?A))[^\n]*\n?/gim;
-
-const extractInlineSources = (content: string): { content: string; sources: SourceItem[] } => {
-  const sources: SourceItem[] = [];
-  const push = (filePath: string, start: string, end: string): string => {
-    sources.push({
-      filePath: String(filePath),
-      startLine: Number(start),
-      endLine: Number(end),
-      snippet: ''
-    });
-    return '';
-  };
-
-  let next = content;
-
-  // 순서 중요: 구조적으로 큰 패턴 (메타 bullet 쌍, 괄호 파일, 괄호 인라인) 먼저.
-  next = next.replace(META_FILE_LINE_PAIR_REGEX, (_m, f: string, s: string, e: string) =>
-    push(f, s, e)
-  );
-  next = next.replace(INLINE_SOURCE_REGEX, (_m, f: string, s: string, e: string) => push(f, s, e));
-  next = next.replace(PATH_PAREN_RANGE_REGEX, (_m, f: string, s: string, e: string) =>
-    push(f, s, e)
-  );
-  next = next.replace(PATH_LINE_INLINE_REGEX, (_m, f: string, s: string, e: string) =>
-    push(f, s, e)
-  );
-
-  // 소스 리스트 섹션 헤더와 "없음" 계열 bullet 정리
-  next = next.replace(SOURCE_LIST_HEADER_REGEX, '');
-  next = next.replace(NO_SOURCE_BULLET_REGEX, '');
-
-  // 소스 references 만 있던 bullet 은 마커(-, *, •) 만 남는다. 고아 마커 라인은 정리한다.
-  next = next.replace(/^[\t ]*[-*•][\t ]*(?=\n|$)/gm, '');
-
-  // 연속된 공백 라인은 하나로, 라인 끝 공백도 정리
-  const cleaned = next
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-
-  // 파싱 후 본문이 너무 짧으면 원문을 유지해 빈 카드 방지
-  if (sources.length > 0 && cleaned.length < 10) {
-    return { content: content.trim(), sources };
-  }
-  return { content: cleaned, sources };
-};
-
-const mergeSources = (a: SourceItem[], b: SourceItem[]): SourceItem[] => {
-  const seen = new Set<string>();
-  const result: SourceItem[] = [];
-  for (const src of [...a, ...b]) {
-    const key = `${src.filePath}:${src.startLine ?? ''}-${src.endLine ?? ''}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(src);
-  }
-  return result;
-};
-
 const getMessageId = (message: unknown): string => {
   return (message as { id: string }).id;
 };
@@ -257,57 +155,6 @@ const LoadingDots = (): React.JSX.Element => {
     <span aria-hidden className="inline-block w-[1.5em] text-left">
       {dots}
     </span>
-  );
-};
-
-const MessageSources = ({
-  messageId,
-  sources
-}: {
-  messageId: string;
-  sources: SourceItem[];
-}): React.JSX.Element => {
-  const [expanded, setExpanded] = useState(true);
-  const headerId = `sources-header-${messageId}`;
-  const listId = `sources-list-${messageId}`;
-  return (
-    <div className="mt-3 rounded-card border border-line bg-surface">
-      <button
-        type="button"
-        id={headerId}
-        aria-controls={listId}
-        aria-expanded={expanded}
-        onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full items-center justify-between px-3 py-1.5 text-caption text-fg-muted transition-colors hover:bg-surface-muted"
-      >
-        <span className="inline-flex items-center gap-2">
-          <span aria-hidden className="text-caption leading-none text-fg-muted">
-            •
-          </span>
-          <span>참조한 소스 {sources.length}개</span>
-        </span>
-      </button>
-      {expanded ? (
-        <div
-          id={listId}
-          role="region"
-          aria-labelledby={headerId}
-          className="border-t border-line-soft"
-        >
-          {sources.map((source) => (
-            <div
-              key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-              className="flex items-center justify-between gap-3 px-3 py-1 text-caption text-fg-muted"
-            >
-              <span className="min-w-0 flex-1 truncate">{source.filePath}</span>
-              <span className="shrink-0">
-                ({source.startLine ?? '-'}-{source.endLine ?? '-'})
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
   );
 };
 
@@ -1377,7 +1224,7 @@ export const ProjectDetailPage = ({
 
                 const apiSources = extractSources(message);
                 const { content: cleanContent, sources: inlineSources } =
-                  extractInlineSources(messageContent);
+                  cleanAnswerSources(messageContent);
                 const parsedSources = mergeSources(apiSources, inlineSources);
                 // 가장 최근 assistant 메시지에만 스트림 소스를 덧붙여 서버 미저장 케이스 커버.
                 if (showStream && messageId === streamMessageId) return null;
@@ -1425,9 +1272,7 @@ export const ProjectDetailPage = ({
                     </div>
                     {hasVisibleBody ? <MarkdownAnswer content={cleanContent} /> : null}
 
-                    {hasSources ? (
-                      <MessageSources messageId={messageId} sources={mergedSources} />
-                    ) : null}
+                    {hasSources ? <SourceList sources={mergedSources} className="mt-3" /> : null}
 
                     {shareSelection.selectionMode ? null : (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -1497,13 +1342,13 @@ export const ProjectDetailPage = ({
                   </div>
                   {(() => {
                     if (!streamContent) return null;
-                    const parsed = extractInlineSources(streamContent);
+                    const parsed = cleanAnswerSources(streamContent);
                     const merged = mergeSources(streamSources, parsed.sources);
                     return (
                       <>
                         <MarkdownAnswer content={parsed.content} />
                         {merged.length > 0 ? (
-                          <MessageSources messageId="__stream__" sources={merged} />
+                          <SourceList sources={merged} className="mt-3" />
                         ) : null}
                       </>
                     );

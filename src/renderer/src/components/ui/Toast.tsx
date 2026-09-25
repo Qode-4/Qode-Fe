@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { cn } from '../../lib/cn';
 
 export type ToastTone = 'danger' | 'success' | 'info';
 
@@ -40,11 +41,11 @@ export const Toast = ({ toast, onDismiss }: Props): React.JSX.Element => {
     <div
       role={toast.tone === 'danger' ? 'alert' : 'status'}
       aria-live={toast.tone === 'danger' ? 'assertive' : 'polite'}
-      className={[
+      className={cn(
         'pointer-events-auto flex w-[320px] items-start gap-2 rounded-panel border px-3.5 py-3 text-label shadow-none transition-all duration-200',
         toneClassMap[toast.tone],
         visible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
-      ].join(' ')}
+      )}
     >
       <div className="min-w-0 flex-1">
         {toast.title ? <div className="mb-0.5 font-semibold leading-5">{toast.title}</div> : null}
@@ -53,10 +54,10 @@ export const Toast = ({ toast, onDismiss }: Props): React.JSX.Element => {
       <button
         type="button"
         aria-label="알림 닫기"
-        className={[
+        className={cn(
           'shrink-0 rounded-inline p-0.5 text-title leading-none transition-colors',
           closeButtonClassMap[toast.tone]
-        ].join(' ')}
+        )}
         onClick={() => onDismiss(toast.id)}
       >
         ×

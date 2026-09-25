@@ -1,6 +1,8 @@
 import type { DigestSourcePair, DigestSourceResponse } from '../../../api/contracts/digest';
 import { Button } from '../../ui/Button';
 import { MarkdownAnswer } from '../../ui/MarkdownAnswer';
+import { SourceList } from '../../ui/SourceList';
+import { cleanAnswerSources, mergeSources } from '../../../lib/inlineSources';
 
 // DigestSourceView 모달의 본문. 컨테이너와 분리해 스토리에서 fake data 로 직접 렌더할 수 있게 함.
 
@@ -127,6 +129,8 @@ const readFirst = (obj: unknown, ...keys: string[]): unknown => {
 const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
   const questionContent = String(readFirst(pair, 'question', 'question_content') ?? '');
   const answerContent = String(readFirst(pair, 'answer', 'answer_content') ?? '');
+  // 메인 채팅과 같은 규칙으로 본문의 참조 표기를 SourceList 로 옮긴다.
+  const answer = cleanAnswerSources(answerContent);
   const rawSources = readFirst(pair, 'sources', 'answer_sources');
   const answerSources = Array.isArray(rawSources) ? rawSources : [];
 
@@ -149,54 +153,31 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
           <span className="text-caption font-semibold text-fg-default">Qode AI</span>
         </div>
 
-        {answerContent ? <MarkdownAnswer content={answerContent} /> : null}
+        {answer.content ? <MarkdownAnswer content={answer.content} /> : null}
 
-        {answerSources.length > 0 ? (
-          <section className="mt-2 rounded-card border border-line bg-surface-muted p-2">
-            <h4 className="mb-1 text-micro font-semibold text-fg-muted">
-              참조 코드 {answerSources.length}개
-            </h4>
-            <div
-              style={{
-                maxHeight: 'min(180px, 26dvh)',
-                maskImage:
-                  'linear-gradient(to bottom, transparent 0, black 10px, black calc(100% - 10px), transparent 100%)',
-                WebkitMaskImage:
-                  'linear-gradient(to bottom, transparent 0, black 10px, black calc(100% - 10px), transparent 100%)'
-              }}
-              className="overflow-y-auto py-1 pr-1"
-            >
-              <ul className="space-y-0.5 text-micro text-fg-muted">
-                {answerSources.map((s, idx) => {
-                  const src = s as {
-                    filePath?: string;
-                    file_path?: string;
-                    startLine?: number | null;
-                    start_line?: number | null;
-                    endLine?: number | null;
-                    end_line?: number | null;
-                  };
-                  const path = src.filePath ?? src.file_path ?? '';
-                  const start = src.startLine ?? src.start_line ?? null;
-                  const end = src.endLine ?? src.end_line ?? null;
-                  return (
-                    <li
-                      key={`${path}-${start ?? 0}-${idx}`}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <code className="min-w-0 flex-1 truncate rounded-inline bg-surface px-1 py-0.5">
-                        {path}
-                      </code>
-                      <span className="shrink-0">
-                        ({start ?? '-'}-{end ?? '-'})
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </section>
-        ) : null}
+        <SourceList
+          sources={mergeSources(
+            answerSources.map((s) => {
+              const src = s as {
+                filePath?: string;
+                file_path?: string;
+                startLine?: number | null;
+                start_line?: number | null;
+                endLine?: number | null;
+                end_line?: number | null;
+              };
+              return {
+                filePath: src.filePath ?? src.file_path ?? '',
+                startLine: src.startLine ?? src.start_line ?? null,
+                endLine: src.endLine ?? src.end_line ?? null,
+                snippet: ''
+              };
+            }),
+            answer.sources
+          )}
+          maxHeight="min(180px, 26dvh)"
+          className="mt-2"
+        />
       </article>
     </div>
   );
