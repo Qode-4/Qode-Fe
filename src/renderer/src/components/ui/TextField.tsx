@@ -63,7 +63,7 @@ export const TextField = ({
 
   return (
     <div className={['flex flex-col gap-1.5', className ?? ''].join(' ')}>
-      <label htmlFor={inputId} className="text-ui-13 font-semibold text-text-subtle">
+      <label htmlFor={inputId} className="text-caption font-semibold text-fg-subtle">
         {label}
       </label>
       <div className="relative">
@@ -72,11 +72,11 @@ export const TextField = ({
           id={inputId}
           type={effectiveType}
           className={[
-            'h-11 w-full rounded-lg border px-3 text-ui-15 text-text-base outline-none transition-colors',
+            'h-11 w-full rounded-card border px-3 text-label text-fg-default outline-none transition-colors',
             showToggle ? 'pr-11' : '',
             error
-              ? 'border-danger-line bg-danger-bg focus:border-danger'
-              : 'border-control-line bg-surface focus:border-primary'
+              ? 'border-line-danger bg-danger-soft focus:border-danger'
+              : 'border-line-strong bg-surface focus:border-line-primary'
           ].join(' ')}
           aria-invalid={Boolean(error)}
           aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
@@ -85,7 +85,7 @@ export const TextField = ({
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            className="absolute inset-y-0 right-1.5 my-auto flex h-8 w-8 items-center justify-center rounded-md text-text-soft transition-colors hover:bg-surface-muted hover:text-text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="absolute inset-y-0 right-1.5 my-auto flex h-8 w-8 items-center justify-center rounded-control text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-line-primary"
             aria-label={visible ? '비밀번호 숨기기' : '비밀번호 표시'}
             aria-pressed={visible}
           >
@@ -94,12 +94,12 @@ export const TextField = ({
         ) : null}
       </div>
       {hint ? (
-        <span id={hintId} className="text-xs text-text-soft">
+        <span id={hintId} className="text-caption text-fg-muted">
           {hint}
         </span>
       ) : null}
       {error ? (
-        <span id={errorId} className="text-xs font-medium text-danger" role="alert">
+        <span id={errorId} className="text-caption font-medium text-fg-danger" role="alert">
           {error}
         </span>
       ) : null}

@@ -1,6 +1,6 @@
 # Quire Foundations — 파운데이션 결정 기록
 
-- 상태: **Draft** — Phase B 결정 반영, 구현 전 검토 단계. 검토가 끝나면 이 표대로 `main.css`를 재편하고 사용처를 일괄 치환한다.
+- 상태: **In sync** — Phase B 결정과 구현(`refactor/design-tokens`)이 이 문서와 일치한다. 토큰을 바꿀 때는 이 문서를 먼저 갱신하고 `yarn tokens:check`로 검증한다.
 - 갱신일: 2026-09-25.
 - 상위 문서: [`SYSTEM.md`](../SYSTEM.md). 실제 값의 기준은 구현 후 `src/renderer/src/assets/main.css`.
 - 표기: 사용 횟수는 2026-09-25 기준 `src/renderer/src`(generated·stories 제외) grep 결과.
@@ -32,16 +32,20 @@
 ## 1. 구조
 
 ```css
-@theme {
-  /* Tier 1 · Raw — 값. 컴포넌트에서 직접 쓰지 않는다. */
-  --color-orange-500: #ff6900;
+/* Tier 1 · Raw — 값. @theme 밖에 두어 유틸리티가 생성되지 않는다. */
+:root {
+  --palette-orange-500: #ff6900;
+}
 
-  /* Tier 2 · Semantic — 역할. 컴포넌트는 이 층만 쓴다. */
-  --color-primary: var(--color-orange-500);
+/* Tier 2 · Semantic — 역할. 컴포넌트는 이 층만 쓴다. */
+@theme {
+  --color-*: initial;
+  --color-primary: var(--palette-orange-500);
 }
 ```
 
-- Raw는 `--color-<hue>-<step>`, semantic은 `--color-<역할>`. Tailwind v4가 semantic 이름으로 유틸리티(`bg-primary`, `text-fg-default`)를 만든다.
+- Raw는 `:root`의 `--palette-<hue>-<step>`, semantic은 `@theme`의 `--color-<역할>`. Tailwind v4는 `@theme`에 있는 semantic 이름으로만 유틸리티(`bg-primary`, `text-fg-default`)를 만든다. raw는 유틸리티가 없어 컴포넌트에서 쓸 수 없다.
+- 아래 표의 `gray-50` 같은 raw 이름은 `--palette-gray-50`을 줄여 쓴 것이다.
 - 컴포넌트 코드에 raw 이름(`text-orange-500`, `bg-gray-50`)이 보이면 규칙 위반이다.
 - Tailwind 기본 팔레트·폰트 크기·radius·그림자는 `@theme`에서 `--color-*: initial` 등으로 지운다. `bg-zinc-800` 같은 직접 사용은 스타일이 아예 생성되지 않는다.
 - 지워진 클래스는 에러 없이 조용히 무시되므로, `tokens:check`가 소스에서 raw 팔레트·기본 크기 클래스를 찾아 실패시킨다(§4).
@@ -101,21 +105,22 @@
 
 ### 배경 (장소 이름)
 
-| 새 이름          | raw        | 기존 이름              | 사용 | 용도                            |
-| ---------------- | ---------- | ---------------------- | ---- | ------------------------------- |
-| `canvas`         | gray-50    | `app-bg`               | 3    | 앱 바탕                         |
-| `surface`        | gray-0     | `surface`              | 137  | 카드·패널·입력                  |
-| `surface-muted`  | gray-50    | `surface-muted`        | 58   | 표 헤더, 인라인 코드, 옅은 구획 |
-| `sidebar`        | gray-25    | `sidebar`              | 1    | 사이드바                        |
-| `primary`        | orange-500 | `primary`, `accent`    | —    | 주 액션 면                      |
-| `primary-strong` | orange-600 | `primary-strong`       | 3    | 주 액션 hover                   |
-| `primary-soft`   | orange-100 | `primary-soft`         | 21   | 선택·강조 면                    |
-| `danger`         | red-700    | `danger`               | 11   | 위험 액션 면, 강한 오류 경계    |
-| `danger-soft`    | red-50     | `danger-bg`, `red-50`  | 8+3  | 오류 면, 위험 메뉴 hover        |
-| `success-soft`   | green-50   | `emerald-50`           | 3    | 성공 면                         |
-| `code`           | gray-900   | `zinc-900`             | 2    | 코드 블록                       |
-| `code-raised`    | gray-850   | `zinc-800`             | 2    | 코드 블록 hover, 툴팁           |
-| `scrim`          | black/40   | `black/40`, `black/25` | 2    | 모달 뒤 덮개                    |
+| 새 이름          | raw        | 기존 이름              | 사용 | 용도                                            |
+| ---------------- | ---------- | ---------------------- | ---- | ----------------------------------------------- |
+| `canvas`         | gray-50    | `app-bg`               | 3    | 앱 바탕                                         |
+| `surface`        | gray-0     | `surface`              | 137  | 카드·패널·입력                                  |
+| `surface-muted`  | gray-50    | `surface-muted`        | 58   | 표 헤더, 인라인 코드, 옅은 구획                 |
+| `sidebar`        | gray-25    | `sidebar`              | 1    | 사이드바                                        |
+| `primary`        | orange-500 | `primary`, `accent`    | —    | 주 액션 면                                      |
+| `primary-strong` | orange-600 | `primary-strong`       | 3    | 주 액션 hover                                   |
+| `primary-soft`   | orange-100 | `primary-soft`         | 21   | 선택·강조 면                                    |
+| `danger`         | red-700    | `danger`               | 11   | 위험 액션 면, 강한 오류 경계                    |
+| `danger-soft`    | red-50     | `danger-bg`, `red-50`  | 8+3  | 오류 면, 위험 메뉴 hover                        |
+| `success-soft`   | green-50   | `emerald-50`           | 3    | 성공 면                                         |
+| `code`           | gray-900   | `zinc-900`             | 2    | 코드 블록                                       |
+| `code-raised`    | gray-850   | `zinc-800`             | 2    | 코드 블록 hover, 툴팁                           |
+| `inverse`        | gray-850   | `zinc-800`(AppShell)   | 1    | 어두운 버튼                                     |
+| `scrim`          | black      | `black/40`, `black/25` | 2    | 모달 뒤 덮개. `bg-scrim/40`처럼 불투명도로 조절 |
 
 ### 전경 `fg-*` (텍스트·아이콘)
 
@@ -212,20 +217,20 @@
 
 ### 기존 → 새 이름
 
-| 기존                      | 기존 크기(13 기준) | 사용   | 새 이름         | 변화                |
-| ------------------------- | ------------------ | ------ | --------------- | ------------------- |
-| `ui-10`, `[10px]`         | 8.1px / 10px       | 24 + 1 | micro           | 8.1 → 10 ▲          |
-| `ui-11`, `[11px]`         | 8.9px / 11px       | 7 + 5  | micro / caption | 8.9 → 10 ▲, 11 유지 |
-| `xs`, `ui-12`             | 9.75px             | 99     | caption         | 9.75 → 11 ▲         |
-| `ui-13`                   | 10.6px             | 1      | caption         | ▲                   |
-| `sm`, `ui-14`, `[14px]`   | 11.4px / 14px      | 61     | label           | 11.4 → 12 ▲         |
-| `ui-15`                   | 12.2px             | 1      | label           | ≈                   |
-| `base`, `ui-16`, `[13px]` | 13px               | 약 20  | body            | 없음                |
-| `lg`, `[16px]`            | 14.6px / 16px      | 1 + 3  | title           | ▲ 소폭              |
-| `xl`, `ui-20`, `[18px]`   | 16.25px / 18px     | 5 + 3  | title           | 없음 / ▼ 소폭       |
-| `2xl`, `ui-22`, `ui-24`\* | 19.5px             | 3      | heading         | 없음                |
-| `ui-32`, `3xl`            | 26px               | 2      | display         | 없음                |
-| `ui-44`, `5xl`            | 35.75px / 39px     | 2      | display         | ▼ 26px              |
+| 기존                                | 기존 크기(13 기준) | 사용   | 새 이름         | 변화                               |
+| ----------------------------------- | ------------------ | ------ | --------------- | ---------------------------------- |
+| `ui-10`, `[10px]`                   | 8.1px / 10px       | 24 + 1 | micro           | 8.1 → 10 ▲                         |
+| `ui-11`, `[11px]`                   | 8.9px / 11px       | 7 + 5  | micro / caption | 8.9 → 10 ▲, 11 유지                |
+| `xs`, `ui-12`                       | 9.75px             | 99     | caption         | 9.75 → 11 ▲                        |
+| `ui-13`                             | 10.6px             | 1      | caption         | ▲                                  |
+| `sm`, `ui-14`                       | 11.4px             | 60     | label           | 11.4 → 12 ▲                        |
+| `ui-15`                             | 12.2px             | 1      | label           | ≈                                  |
+| `base`, `ui-16`, `[13px]`, `[14px]` | 13px / 14px        | 약 20  | body            | 없음 / 14 → 13 ▼ (드로어 제목 1곳) |
+| `lg`, `[16px]`                      | 14.6px / 16px      | 1 + 3  | title           | ▲ 소폭                             |
+| `xl`, `ui-20`, `[18px]`             | 16.25px / 18px     | 5 + 3  | title           | 없음 / ▼ 소폭                      |
+| `2xl`, `ui-22`, `ui-24`\*           | 19.5px             | 3      | heading         | 없음                               |
+| `ui-32`, `3xl`                      | 26px               | 2      | display         | 없음                               |
+| `ui-44`, `5xl`                      | 35.75px / 39px     | 2      | display         | ▼ 26px                             |
 
 \* `text-ui-24`(AuthFrame.tsx:74)는 테마에 정의되지 않아 지금 스타일이 적용되지 않는 상태다. 이번에 heading으로 바로잡는다.
 
@@ -246,15 +251,18 @@
 
 값은 그대로 두고 이름만 붙인다. 역할과 맞지 않는 사용처(예: 코드 블록이 6px)는 Phase C 컴포넌트 정비에서 재판정한다.
 
-| 토큰              | 값     | 기존           | 사용 | 용도                    |
-| ----------------- | ------ | -------------- | ---- | ----------------------- |
-| `rounded-inline`  | 4px    | `rounded`      | 51   | 인라인 코드·배지·태그   |
-| `rounded-control` | 6px    | `rounded-md`   | 55   | 버튼·입력·메뉴 아이템   |
-| `rounded-card`    | 8px    | `rounded-lg`   | 10   | 카드·팝오버             |
-| `rounded-panel`   | 12px   | `rounded-xl`   | 8    | 모달·말풍선·큰 컨테이너 |
-| `rounded-full`    | 9999px | `rounded-full` | 31   | 아바타·원형 인디케이터  |
+| 토큰              | 값   | 기존                                              | 사용 | 용도                                            |
+| ----------------- | ---- | ------------------------------------------------- | ---- | ----------------------------------------------- |
+| `rounded-inline`  | 4px  | `rounded`, `rounded-[4px]`                        | 15   | 인라인 코드·배지·메시지 액션                    |
+| `rounded-control` | 6px  | `rounded-md`, `rounded-[6px]`                     | 65   | 버튼·입력·메뉴 아이템                           |
+| `rounded-card`    | 8px  | `rounded-lg`, `rounded-[8px]`                     | 19   | 카드·팝오버                                     |
+| `rounded-panel`   | 12px | `rounded-xl`, `rounded-[10px]`, `rounded-[12px]`  | 23   | 모달·말풍선·큰 컨테이너 (10px 흡수)             |
+| `rounded-shell`   | 16px | `rounded-2xl`, `rounded-[16px]`, `rounded-[20px]` | 9    | 메인 채팅 카드·인증 폼·바텀시트 (20px 흡수)     |
+| `rounded-full`    | —    | `rounded-full`                                    | 31   | 아바타·원형 인디케이터 (Tailwind 정적 유틸리티) |
 
-방향 변형도 같이 바뀐다: `rounded-t` → `rounded-t-inline`.
+방향 변형도 같이 바뀐다: `rounded-t` → `rounded-t-inline`, `rounded-t-2xl` → `rounded-t-shell`.
+
+> 처음 집계(2026-09-25 초안)는 임의값 `rounded-[..]` 44곳을 놓쳤다. 구현 중 발견해 `shell`(16px)을 6번째 단계로 추가했다.
 
 ---
 
@@ -277,34 +285,44 @@
 
 일괄 치환은 대부분 이름만 바뀌지만, 아래는 실제로 보이는 모습이 달라진다.
 
-| 변화                                                          | 범위     | 원인                     |
-| ------------------------------------------------------------- | -------- | ------------------------ |
-| 오렌지 글자가 진해짐 (`#ff6900` → `#b54700`)                  | 약 24곳  | B3 오렌지 글자 규칙      |
-| 작은 글자가 커짐 (8.1→10, 9.75→11, 11.4→12px)                 | 약 190곳 | B4 최소 10px             |
-| 위험 메뉴 빨강이 살짝 어두워짐 (Tailwind red-600 → `#c62828`) | 3곳      | danger 통합              |
-| 성공 표시 초록 미세 변화 (emerald → green 토큰)               | 5곳      | success 신설             |
-| 코드 블록 줄번호가 밝아짐 (zinc-500 → gray-400)               | 1곳      | 3.67:1 → 6.75:1          |
-| 아이콘 색 `#222222` → `#0e0e0f`                               | 3곳      | fill-icon 흡수           |
-| 인증 화면 부제 크기 적용됨                                    | 1곳      | `ui-24` 미정의 버그 수정 |
-| 대형 제목(`ui-44`, `5xl`) 26px로 축소                         | 2곳      | display 단계 통합        |
-| 오렌지 테두리·포커스 링이 살짝 진해짐 (`#ff6900` → `#e05e00`) | 25곳     | 비텍스트 3:1             |
+| 변화                                                                         | 범위         | 원인                             |
+| ---------------------------------------------------------------------------- | ------------ | -------------------------------- |
+| 오렌지 글자가 진해짐 (`#ff6900` → `#b54700`)                                 | 약 24곳      | B3 오렌지 글자 규칙              |
+| 작은 글자가 커짐 (8.1→10, 9.75→11, 11.4→12px)                                | 약 190곳     | B4 최소 10px                     |
+| 위험 메뉴 빨강이 살짝 어두워짐 (Tailwind red-600 → `#c62828`)                | 3곳          | danger 통합                      |
+| 성공 표시 초록 미세 변화 (emerald → green 토큰)                              | 5곳          | success 신설                     |
+| 코드 블록 줄번호가 밝아짐 (zinc-500 → gray-400)                              | 1곳          | 3.67:1 → 6.75:1                  |
+| 아이콘 색 `#222222` → `#0e0e0f`                                              | 3곳          | fill-icon 흡수                   |
+| 인증 화면 부제 크기 적용됨                                                   | 1곳          | `ui-24` 미정의 버그 수정         |
+| 대형 제목(`ui-44`, `5xl`) 26px로 축소                                        | 2곳          | display 단계 통합                |
+| 오렌지 테두리·포커스 링이 살짝 진해짐 (`#ff6900` → `#e05e00`)                | 25곳         | 비텍스트 3:1                     |
+| 입력창 focus 테두리가 살짝 진해짐 (`#ff6900` → `#e05e00`)                    | TextField 등 | 비텍스트 3:1                     |
+| 링크 hover 색 변화 없어짐 (`#e05e00` hover → `fg-primary` 유지, 밑줄은 상시) | Link 1곳     | hover 색 3.64:1로 글자 기준 미달 |
+| 10px radius 3곳 → 12px, 20px 1곳 → 16px                                      | 4곳          | radius 역할 흡수                 |
+| 드로어 제목 14px → 13px                                                      | 1곳          | `[14px]` → body                  |
+| 토큰 줄간격이 명시됨 (`leading-*` 없는 곳)                                   | 다수         | 크기+줄간격 묶음                 |
 
 ---
 
-## 9. 구현 계획
+## 9. 구현 기록
 
-브랜치 `refactor/design-tokens`(develop 기준). 커밋은 성격별로 나눈다.
+브랜치 `refactor/design-tokens`(develop 기준), 성격별 커밋.
 
-1. `main.css` 재편 — raw/semantic 정의, 타이포·radius·shadow 토큰.
-2. 색 유틸리티 일괄 치환 (스크립트).
-3. 타이포 일괄 치환 + 임의 px 개별 확인.
-4. radius·shadow 치환.
-5. `scripts/tokens-check.ts` + `yarn tokens:check` + `docs/tokens/contrast-matrix.md` 생성.
-6. `DESIGN.md` 토큰 섹션을 새 이름으로 갱신.
-7. 검증 — lint, typecheck, build, Storybook 육안 확인(§8 항목 중심).
+1. 색 — raw/semantic 재편, 색 유틸리티 407곳 치환.
+2. 타이포 — 역할 스케일 도입, 244곳 치환. `max-sm:text-[16px]`(ChatComposer, iOS 자동확대 방지)은 예외로 유지.
+3. Radius·그림자 — 135곳 치환.
+4. `yarn tokens:check` — `scripts/tokens-check.ts`, 매트릭스 `docs/tokens/contrast-matrix.md` 생성. 의도한 조합은 스크립트의 `REQUIRED`, 의도적 예외는 `ALLOW`에 이유와 함께 둔다.
+5. 문서 — `DESIGN.md` 토큰 표기 갱신, 이 문서 In sync.
 
 ### 확정된 추가 결정 (2026-09-25)
 
 - 오렌지 테두리·포커스 링은 `line-primary`(`#e05e00`)로 분리한다. 면은 `#ff6900` 유지.
 - Tailwind 기본값을 차단하고 tokens:check에 raw 클래스 검사를 넣는다.
 - 대형 제목 2곳은 display(26px)로 통합한다. 7단계 유지.
+- Radius에 `shell`(16px)을 추가한다. 10px → panel, 20px → shell로 흡수.
+- raw 팔레트는 `--palette-*`로 `@theme` 밖에 둔다.
+
+### 남은 일
+
+- [ ] Storybook·실제 화면에서 §8 변화 육안 확인.
+- [ ] `tokens:check`를 pre-commit 또는 CI에 넣을지 결정 (Phase G).

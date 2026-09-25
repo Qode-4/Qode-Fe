@@ -120,12 +120,12 @@ export const CreateTeamChatModal = ({
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <label className="block" htmlFor="create-team-chat-name">
-          <span className="mb-1 block text-ui-12 font-medium text-text-soft">채팅방 이름</span>
+          <span className="mb-1 block text-caption font-medium text-fg-muted">채팅방 이름</span>
           <input
             id="create-team-chat-name"
             className={[
-              'h-10 w-full rounded-md border bg-surface px-3 text-ui-14 text-text-base outline-none',
-              displayedNameError ? 'border-danger' : 'border-control-line focus:border-primary'
+              'h-10 w-full rounded-control border bg-surface px-3 text-label text-fg-default outline-none',
+              displayedNameError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
             ].join(' ')}
             value={name}
             onChange={(event) => {
@@ -138,14 +138,14 @@ export const CreateTeamChatModal = ({
             aria-invalid={Boolean(displayedNameError)}
           />
           {displayedNameError ? (
-            <span className="mt-1 block text-ui-12 text-danger">{displayedNameError}</span>
+            <span className="mt-1 block text-caption text-fg-danger">{displayedNameError}</span>
           ) : null}
         </label>
 
         <div>
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-ui-12 font-medium text-text-soft">참여자 초대</span>
-            <span className="text-ui-11 text-text-soft">
+            <span className="text-caption font-medium text-fg-muted">참여자 초대</span>
+            <span className="text-micro text-fg-muted">
               선택 {selectedIds.length} · 총 {totalCount}/{MAX_TOTAL} (본인 포함)
             </span>
           </div>
@@ -169,7 +169,7 @@ export const CreateTeamChatModal = ({
             />
           )}
           {selectedIds.length + 1 < MIN_TOTAL ? (
-            <p className="mt-1 text-ui-12 text-text-soft">
+            <p className="mt-1 text-caption text-fg-muted">
               팀채팅은 본인 포함 최소 {MIN_TOTAL}명이 필요합니다.
             </p>
           ) : null}

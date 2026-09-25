@@ -2,74 +2,115 @@
 
 @source "../**/*.{ts,tsx}";
 
+/* ─── Tier 1 · Raw palette ───────────────────────────────────────────────
+   값만 가진다. @theme 밖에 두어 유틸리티(bg-gray-50 등)가 생성되지 않게 한다.
+   컴포넌트는 raw 를 직접 쓰지 않고 아래 semantic 토큰만 쓴다. (docs/foundations.md §2) */
+:root {
+  --palette-gray-0: #ffffff;
+  --palette-gray-25: #fbfaf8;
+  --palette-gray-50: #faf6f1;
+  --palette-gray-100: #efefef;
+  --palette-gray-150: #e4e4e7;
+  --palette-gray-200: #dfddd8;
+  --palette-gray-400: #9f9fa9;
+  --palette-gray-600: #61646b;
+  --palette-gray-700: #52545a;
+  --palette-gray-850: #27272a;
+  --palette-gray-900: #18181b;
+  --palette-gray-950: #0e0e0f;
+
+  --palette-orange-100: #fff0e5;
+  --palette-orange-500: #ff6900;
+  --palette-orange-600: #e05e00;
+  --palette-orange-700: #b54700;
+
+  --palette-red-50: #fff3f3;
+  --palette-red-200: #f1b5b5;
+  --palette-red-700: #c62828;
+
+  --palette-green-50: #ecfdf5;
+  --palette-green-200: #a4f4cf;
+  --palette-green-700: #007a55;
+
+  --palette-black: #000000;
+  --palette-white: #ffffff;
+}
+
+/* ─── Tier 2 · Semantic ──────────────────────────────────────────────────
+   Tailwind 기본 팔레트는 지우고 역할 토큰만 유틸리티로 노출한다. (docs/foundations.md §3) */
 @theme {
-  /* Zinc neutral palette */
-  --color-zinc-50: #fafafa;
-  --color-zinc-100: #f4f4f5;
-  --color-zinc-200: #e4e4e7;
-  --color-zinc-400: #9f9fa9;
-  --color-zinc-500: #71717b;
-  --color-zinc-700: #3f3f47;
-  --color-zinc-800: #27272a;
+  --color-*: initial;
 
-  /* Slate palette */
-  --color-slate-200: #e2e8f0;
-  --color-slate-600: #45556c;
-  --color-slate-900: #0f172b;
+  /* 배경 — 장소 이름 */
+  --color-canvas: var(--palette-gray-50);
+  --color-surface: var(--palette-gray-0);
+  --color-surface-muted: var(--palette-gray-50);
+  --color-sidebar: var(--palette-gray-25);
+  --color-primary: var(--palette-orange-500);
+  --color-primary-strong: var(--palette-orange-600);
+  --color-primary-soft: var(--palette-orange-100);
+  --color-danger: var(--palette-red-700);
+  --color-danger-soft: var(--palette-red-50);
+  --color-success-soft: var(--palette-green-50);
+  --color-code: var(--palette-gray-900);
+  --color-code-raised: var(--palette-gray-850);
+  --color-inverse: var(--palette-gray-850);
+  --color-scrim: var(--palette-black);
 
-  /* Accent */
-  --color-green-400: #05df72;
-  --color-fill-icon: #222222;
+  /* 전경 — 텍스트·아이콘 */
+  --color-fg-default: var(--palette-gray-950);
+  --color-fg-subtle: var(--palette-gray-700);
+  --color-fg-muted: var(--palette-gray-600);
+  --color-fg-primary: var(--palette-orange-700);
+  --color-fg-on-primary: var(--palette-gray-950);
+  --color-fg-danger: var(--palette-red-700);
+  --color-fg-success: var(--palette-green-700);
+  --color-fg-code: var(--palette-gray-100);
+  --color-fg-code-muted: var(--palette-gray-400);
+  --color-fg-on-dark: var(--palette-white);
 
-  /* Semantic tokens */
-  --color-app-bg: #faf6f1;
-  --color-surface: #ffffff;
-  --color-sidebar: #fbfaf8;
-  --color-message: #efefef;
-  --color-surface-muted: #faf6f1;
-  --color-line: #dfddd8;
-  --color-line-soft: #efefef;
-  --color-control-line: #61646b;
+  /* 선 */
+  --color-line: var(--palette-gray-200);
+  --color-line-soft: var(--palette-gray-100);
+  --color-line-strong: var(--palette-gray-600);
+  --color-line-primary: var(--palette-orange-600);
+  --color-line-danger: var(--palette-red-200);
+  --color-line-success: var(--palette-green-200);
+  --color-line-code: var(--palette-gray-850);
 
-  --color-text-base: #0e0e0f;
-  --color-text-subtle: #52545a;
-  --color-text-soft: #61646b;
+  /* 스크롤바 */
+  --color-scrollbar-track: var(--palette-gray-150);
+  --color-scrollbar-thumb: var(--palette-gray-400);
 
-  --color-primary: #ff6900;
-  --color-primary-strong: #e05e00;
-  --color-primary-foreground: #0e0e0f;
-  --color-primary-soft: #fff0e5;
+  /* 타이포 — 역할 이름 7단계. 크기 + 줄간격을 함께 정한다. (docs/foundations.md §5)
+     작은 단계는 base 에서 px 을 빼고, 큰 단계는 배율을 곱한다. 모두 "크게 보기"를 따라간다. */
+  --text-*: initial;
+  --text-micro: calc(var(--font-size-base) - 3px);
+  --text-micro--line-height: 1.4;
+  --text-caption: calc(var(--font-size-base) - 2px);
+  --text-caption--line-height: 1.4;
+  --text-label: calc(var(--font-size-base) - 1px);
+  --text-label--line-height: 1.45;
+  --text-body: var(--font-size-base);
+  --text-body--line-height: 1.5;
+  --text-title: calc(var(--font-size-base) * 1.25);
+  --text-title--line-height: 1.4;
+  --text-heading: calc(var(--font-size-base) * 1.5);
+  --text-heading--line-height: 1.3;
+  --text-display: calc(var(--font-size-base) * 2);
+  --text-display--line-height: 1.2;
 
-  --color-accent: #ff6900;
-  --color-accent-strong: #b54700;
+  /* Radius — 역할 이름. (docs/foundations.md §6) rounded-full / rounded-none 은 Tailwind 정적 유틸리티 */
+  --radius-*: initial;
+  --radius-inline: 4px;
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-panel: 12px;
+  --radius-shell: 16px;
 
-  --color-danger: #c62828;
-  --color-danger-bg: #fff3f3;
-  --color-danger-line: #f1b5b5;
-
-  /* Typography tokens */
-  --text-xs: calc(var(--font-size-base) * 0.75);
-  --text-sm: calc(var(--font-size-base) * 0.875);
-  --text-base: calc(var(--font-size-base) * 1);
-  --text-lg: calc(var(--font-size-base) * 1.125);
-  --text-xl: calc(var(--font-size-base) * 1.25);
-  --text-2xl: calc(var(--font-size-base) * 1.5);
-  --text-3xl: calc(var(--font-size-base) * 1.875);
-  --text-4xl: calc(var(--font-size-base) * 2.25);
-  --text-5xl: calc(var(--font-size-base) * 3);
-
-  --text-ui-10: calc(var(--font-size-base) * 0.625);
-  --text-ui-11: calc(var(--font-size-base) * 0.6875);
-  --text-ui-12: calc(var(--font-size-base) * 0.75);
-  --text-ui-13: calc(var(--font-size-base) * 0.8125);
-  --text-ui-14: calc(var(--font-size-base) * 0.875);
-  --text-ui-15: calc(var(--font-size-base) * 0.9375);
-  --text-ui-16: calc(var(--font-size-base) * 1);
-  --text-ui-20: calc(var(--font-size-base) * 1.25);
-  --text-ui-22: calc(var(--font-size-base) * 1.375);
-  --text-ui-32: calc(var(--font-size-base) * 2);
-  --text-ui-42: calc(var(--font-size-base) * 2.625);
-  --text-ui-44: calc(var(--font-size-base) * 2.75);
+  /* Elevation — 떠서 다른 콘텐츠를 가리는 요소 전용 하나만. 새 그림자는 문서에 먼저 등록한다. */
+  --shadow-*: initial;
+  --shadow-overlay: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 @layer base {
@@ -101,8 +142,8 @@
     font-family:
       'Pretendard Variable', 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Segoe UI',
       sans-serif;
-    color: var(--color-text-base);
-    background-color: var(--color-app-bg);
+    color: var(--color-fg-default);
+    background-color: var(--color-canvas);
     background-image: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -132,7 +173,7 @@
   /* Global scrollbar: 6px thumb + 2px inset on both sides, transparent track, radius 8px */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-zinc-200) transparent;
+    scrollbar-color: var(--color-scrollbar-track) transparent;
   }
 
   *::-webkit-scrollbar {
@@ -147,7 +188,7 @@
   }
 
   *::-webkit-scrollbar-thumb {
-    background-color: var(--color-zinc-400);
+    background-color: var(--color-scrollbar-thumb);
     border: 2px solid transparent;
     background-clip: content-box;
     border-radius: 8px;
@@ -201,7 +242,7 @@
     font-style: italic;
   }
   .markdown-answer a {
-    color: var(--color-accent-strong);
+    color: var(--color-fg-primary);
     text-decoration: underline;
     text-underline-offset: 2px;
   }
@@ -223,7 +264,7 @@
     margin: 0.5em 0;
     padding: 0.4em 0.8em;
     border-left: 3px solid var(--color-line);
-    color: var(--color-text-subtle);
+    color: var(--color-fg-subtle);
   }
   .markdown-answer hr {
     margin: 0.8em 0;

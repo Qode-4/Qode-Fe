@@ -228,7 +228,7 @@ export const ShareToTeamChatModal = ({
 };
 
 const StepIndicator = ({ current }: { current: Step }): React.JSX.Element => (
-  <ol className="flex items-center gap-2 text-xs" aria-label="공유 단계">
+  <ol className="flex items-center gap-2 text-caption" aria-label="공유 단계">
     {[1, 2, 3].map((n) => {
       const stepNum = n as Step;
       const isActive = stepNum === current;
@@ -237,12 +237,12 @@ const StepIndicator = ({ current }: { current: Step }): React.JSX.Element => (
         <li key={n} className="flex items-center gap-2">
           <span
             className={[
-              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-caption font-semibold',
               isActive
-                ? 'border-primary bg-primary text-primary-foreground'
+                ? 'border-line-primary bg-primary text-fg-on-primary'
                 : isDone
-                  ? 'border-primary bg-primary-soft text-primary'
-                  : 'border-line bg-surface text-text-subtle'
+                  ? 'border-line-primary bg-primary-soft text-fg-primary'
+                  : 'border-line bg-surface text-fg-subtle'
             ].join(' ')}
             aria-current={isActive ? 'step' : undefined}
           >
@@ -250,15 +250,15 @@ const StepIndicator = ({ current }: { current: Step }): React.JSX.Element => (
           </span>
           <span
             className={[
-              'text-xs',
-              isActive ? 'text-text-base font-medium' : 'text-text-subtle',
+              'text-caption',
+              isActive ? 'text-fg-default font-medium' : 'text-fg-subtle',
               // 모바일에선 진행중 스텝 라벨만 보여 320px 에서 가로 초과를 방지.
               isActive ? '' : 'max-sm:hidden'
             ].join(' ')}
           >
             {stepLabels[stepNum]}
           </span>
-          {n < 3 ? <span className="text-text-subtle">›</span> : null}
+          {n < 3 ? <span className="text-fg-subtle">›</span> : null}
         </li>
       );
     })}
@@ -290,8 +290,8 @@ const FooterActions = ({
 }: FooterActionsProps): React.JSX.Element => (
   // OverlayModal 의 footer 슬롯에 렌더되므로 sticky/음수마진 불필요 — 항상 바디 아래 shrink-0 로 붙는다.
   <div className="flex items-center justify-between gap-2">
-    <span className="min-w-0 truncate text-xs text-text-subtle max-sm:hidden">
-      원본: <span className="font-medium text-text-base">{chatName}</span>
+    <span className="min-w-0 truncate text-caption text-fg-subtle max-sm:hidden">
+      원본: <span className="font-medium text-fg-default">{chatName}</span>
     </span>
     <div className="flex items-center gap-2 max-sm:w-full max-sm:justify-end">
       {step > 1 ? (

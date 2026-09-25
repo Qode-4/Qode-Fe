@@ -91,12 +91,12 @@ export const RenameTeamChatModal = ({
     >
       <form onSubmit={handleSubmit}>
         <label className="block" htmlFor="rename-team-chat-name">
-          <span className="mb-1 block text-ui-12 font-medium text-text-soft">채팅방 이름</span>
+          <span className="mb-1 block text-caption font-medium text-fg-muted">채팅방 이름</span>
           <input
             id="rename-team-chat-name"
             className={[
-              'h-10 w-full rounded-md border bg-surface px-3 text-ui-14 text-text-base outline-none',
-              displayedError ? 'border-danger' : 'border-control-line focus:border-primary'
+              'h-10 w-full rounded-control border bg-surface px-3 text-label text-fg-default outline-none',
+              displayedError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
             ].join(' ')}
             value={name}
             onChange={(event) => {
@@ -109,7 +109,7 @@ export const RenameTeamChatModal = ({
             aria-invalid={Boolean(displayedError)}
           />
           {displayedError ? (
-            <span className="mt-1 block text-ui-12 text-danger">{displayedError}</span>
+            <span className="mt-1 block text-caption text-fg-danger">{displayedError}</span>
           ) : null}
         </label>
 

@@ -10,9 +10,9 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'aria-la
 };
 
 const sizeClassMap: Record<NonNullable<Props['size']>, string> = {
-  lg: 'rounded-[8px] p-[2px]',
-  md: 'rounded-[4px] p-1',
-  sm: 'rounded-[4px]'
+  lg: 'rounded-card p-[2px]',
+  md: 'rounded-inline p-1',
+  sm: 'rounded-inline'
 };
 
 const iconSizeMap: Record<NonNullable<Props['size']>, 'md' | 'sm'> = {
@@ -35,9 +35,9 @@ export const IconButton = ({
       {...rest}
       type={type}
       className={[
-        'inline-flex items-center justify-center text-fill-icon transition-colors',
+        'inline-flex items-center justify-center text-fg-default transition-colors',
         'hover:bg-surface-muted active:bg-line',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-50',
         'max-sm:min-h-[44px] max-sm:min-w-[44px]',
         sizeClassMap[size],

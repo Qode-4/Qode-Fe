@@ -39,7 +39,7 @@ export const Icon = ({
   return (
     <span
       className={[
-        'inline-flex shrink-0 items-center justify-center text-fill-icon',
+        'inline-flex shrink-0 items-center justify-center text-fg-default',
         typeof size === 'number' ? '' : sizeClassMap[size],
         className ?? ''
       ].join(' ')}

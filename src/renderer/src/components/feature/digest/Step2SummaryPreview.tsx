@@ -28,11 +28,11 @@ const statusLabel: Record<DigestPreviewStatus, string> = {
 };
 
 const statusColor: Record<DigestPreviewStatus, string> = {
-  idle: 'text-text-subtle',
-  streaming: 'text-primary',
-  done: 'text-primary',
-  error: 'text-danger',
-  canceled: 'text-danger'
+  idle: 'text-fg-subtle',
+  streaming: 'text-fg-primary',
+  done: 'text-fg-primary',
+  error: 'text-fg-danger',
+  canceled: 'text-fg-danger'
 };
 
 export const Step2SummaryPreview = ({
@@ -52,7 +52,7 @@ export const Step2SummaryPreview = ({
   return (
     <div className="flex flex-col gap-4">
       <header className="flex items-center justify-between">
-        <span className={['text-xs font-medium', statusColor[status]].join(' ')}>
+        <span className={['text-caption font-medium', statusColor[status]].join(' ')}>
           {statusLabel[status]}
           {isStreaming ? <span className="ml-1 inline-block w-2 animate-pulse">▍</span> : null}
         </span>
@@ -68,24 +68,24 @@ export const Step2SummaryPreview = ({
         // 스크롤이 발생하지 않도록 한다. 큰 뷰포트에선 최대 360px 로 가독성 유지.
         // min-w-0: flex 부모 안에서 wide 코드블럭이 이 컨테이너를 밀지 못하게.
         style={{ maxHeight: 'min(360px, 40dvh)' }}
-        className="min-h-[220px] min-w-0 overflow-y-auto rounded-md border border-line bg-surface p-4"
+        className="min-h-[220px] min-w-0 overflow-y-auto rounded-control border border-line bg-surface p-4"
         aria-live="polite"
         aria-busy={isStreaming || undefined}
       >
         {content ? (
           <MarkdownAnswer content={content} />
         ) : (
-          <p className="text-sm text-text-subtle">
+          <p className="text-label text-fg-subtle">
             {isStreaming ? '요약을 생성하고 있어요…' : '요약을 준비 중입니다.'}
           </p>
         )}
       </article>
 
       {sources.length > 0 ? (
-        <section className="rounded-md border border-line bg-surface-muted p-3">
-          <h3 className="mb-2 flex items-center justify-between text-xs font-semibold text-text-soft">
+        <section className="rounded-control border border-line bg-surface-muted p-3">
+          <h3 className="mb-2 flex items-center justify-between text-caption font-semibold text-fg-muted">
             <span>참조 코드</span>
-            <span className="font-normal text-text-subtle">{sources.length}개</span>
+            <span className="font-normal text-fg-subtle">{sources.length}개</span>
           </h3>
           {/* 스크롤은 wrapper div 가 소유하고, ul 은 block 레이아웃으로 자연스럽게 흐른다.
              flex flex-col + max-height 조합은 브라우저가 flex 자식을 shrink 시켜 아이템들이
@@ -102,10 +102,10 @@ export const Step2SummaryPreview = ({
             }}
             className="overflow-y-auto py-1 pr-1"
           >
-            <ul className="space-y-1 text-xs text-text-subtle">
+            <ul className="space-y-1 text-caption text-fg-subtle">
               {sources.map((s, idx) => (
                 <li key={`${s.filePath}-${idx}`} className="truncate">
-                  <code className="rounded bg-surface px-1 py-0.5">
+                  <code className="rounded-inline bg-surface px-1 py-0.5">
                     {s.filePath}
                     {s.startLine != null ? `:${s.startLine}` : ''}
                     {s.endLine != null && s.endLine !== s.startLine ? `-${s.endLine}` : ''}
@@ -118,8 +118,8 @@ export const Step2SummaryPreview = ({
       ) : null}
 
       {showRetry && error ? (
-        <div className="flex items-start justify-between gap-3 rounded-md border border-danger/40 bg-danger/5 p-3">
-          <p className="text-xs text-danger">{error.message}</p>
+        <div className="flex items-start justify-between gap-3 rounded-control border border-danger/40 bg-danger/5 p-3">
+          <p className="text-caption text-fg-danger">{error.message}</p>
           <Button type="button" size="sm" variant="secondary" onClick={onRetry}>
             재시도 ({retriesRemaining}회 남음)
           </Button>
@@ -127,7 +127,7 @@ export const Step2SummaryPreview = ({
       ) : null}
 
       {showExhausted ? (
-        <div className="rounded-md border border-danger/40 bg-danger/5 p-3 text-xs text-danger">
+        <div className="rounded-control border border-danger/40 bg-danger/5 p-3 text-caption text-fg-danger">
           재시도 횟수가 모두 소진되었습니다. 잠시 후 다시 시도해주세요.
         </div>
       ) : null}

@@ -38,7 +38,7 @@ const Avatar = ({
   return (
     <span
       aria-hidden
-      className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-ui-12 font-semibold text-primary"
+      className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-caption font-semibold text-fg-primary"
     >
       {initialOf(name)}
     </span>
@@ -55,16 +55,16 @@ export const ParticipantListItem = ({
   return (
     <li
       className={[
-        'flex items-center gap-3 rounded-md px-2 py-2',
+        'flex items-center gap-3 rounded-control px-2 py-2',
         emphasized ? 'bg-surface-muted' : ''
       ].join(' ')}
     >
       <Avatar name={name} avatarUrl={avatarUrl} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-ui-14 font-medium text-text-base">{name ?? '이름 없음'}</p>
+        <p className="truncate text-label font-medium text-fg-default">{name ?? '이름 없음'}</p>
       </div>
       {role === 'OWNER' ? (
-        <span className="shrink-0 rounded-md bg-primary-soft px-2 py-0.5 text-ui-10 font-semibold text-primary">
+        <span className="shrink-0 rounded-control bg-primary-soft px-2 py-0.5 text-micro font-semibold text-fg-primary">
           방장
         </span>
       ) : null}

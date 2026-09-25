@@ -103,9 +103,11 @@ export const TeamChatHeader = ({
   return (
     <div className="flex items-center justify-between gap-3 bg-surface px-6 py-3 max-sm:justify-end max-sm:px-3 max-sm:py-2">
       <div className="flex min-w-0 items-baseline gap-2 max-sm:hidden">
-        <h1 className="truncate text-ui-20 font-semibold text-text-base">{chatName}</h1>
+        <h1 className="truncate text-title font-semibold text-fg-default">{chatName}</h1>
         {participants.length > 0 ? (
-          <span className="shrink-0 text-ui-12 text-text-soft">· {participants.length}명 참여</span>
+          <span className="shrink-0 text-caption text-fg-muted">
+            · {participants.length}명 참여
+          </span>
         ) : null}
       </div>
 
@@ -122,14 +124,14 @@ export const TeamChatHeader = ({
             ) : (
               <span
                 key={participant.userId}
-                className="inline-flex size-7 items-center justify-center rounded-full border-2 border-surface bg-primary-soft text-ui-10 font-semibold text-primary"
+                className="inline-flex size-7 items-center justify-center rounded-full border-2 border-surface bg-primary-soft text-micro font-semibold text-fg-primary"
               >
                 {initialOf(participant.userName)}
               </span>
             )
           )}
           {remaining > 0 ? (
-            <span className="inline-flex size-7 items-center justify-center rounded-full border-2 border-surface bg-surface-muted text-ui-10 font-medium text-text-soft">
+            <span className="inline-flex size-7 items-center justify-center rounded-full border-2 border-surface bg-surface-muted text-micro font-medium text-fg-muted">
               +{remaining}
             </span>
           ) : null}
@@ -138,7 +140,7 @@ export const TeamChatHeader = ({
         <ChatItemMenu
           triggerAriaLabel={`${chatName} 채팅 메뉴 열기`}
           ariaLabel={`${chatName} 채팅 작업 메뉴`}
-          triggerClassName="inline-flex h-8 w-8 items-center justify-center rounded-md text-text-subtle transition-colors hover:bg-surface-muted"
+          triggerClassName="inline-flex h-8 w-8 items-center justify-center rounded-control text-fg-subtle transition-colors hover:bg-surface-muted"
           actions={actions}
         />
       </div>
