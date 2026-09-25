@@ -47,35 +47,35 @@ export const SourceList = ({
         <span>파일 {groups.length}개</span>
       </button>
       {expanded ? (
-        <div
+        <ul
           id={listId}
           className="overflow-y-auto border-t border-line-soft py-1"
           style={maxHeight ? { maxHeight } : undefined}
         >
-          {/* 파일명 | 폴더 | 범위 3칸 표. 카드는 꽉 차도 표는 내용 폭만큼만 써서 범위가 파일명 가까이 붙는다.
-              공간이 모자라면 폴더 → 파일명 순으로 줄어든다. */}
-          <ul className="grid grid-cols-[minmax(4rem,max-content)_minmax(0,max-content)_max-content] justify-start gap-x-3 px-3">
-            {groups.map((g) => {
-              const visible = g.ranges.slice(0, MAX_VISIBLE_RANGES);
-              const hidden = g.ranges.length - visible.length;
-              const allRanges = g.ranges.map(formatRange).join(', ');
-              return (
-                <li
-                  key={g.filePath}
-                  title={allRanges ? `${g.filePath} (${allRanges})` : g.filePath}
-                  className="col-span-full grid grid-cols-subgrid items-baseline py-0.5 text-caption"
-                >
-                  <span className="truncate font-medium text-fg-default">{g.fileName}</span>
-                  <span className="truncate text-fg-muted">{g.dir}</span>
-                  <span className="text-right text-fg-muted tabular-nums">
+          {groups.map((g) => {
+            const visible = g.ranges.slice(0, MAX_VISIBLE_RANGES);
+            const hidden = g.ranges.length - visible.length;
+            const allRanges = g.ranges.map(formatRange).join(', ');
+            return (
+              <li
+                key={g.filePath}
+                title={allRanges ? `${g.filePath} (${allRanges})` : g.filePath}
+                className="flex items-baseline gap-2 px-3 py-0.5 text-caption"
+              >
+                <span className="max-w-[60%] shrink-0 truncate font-medium text-fg-default">
+                  {g.fileName}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-fg-muted">{g.dir}</span>
+                {visible.length > 0 ? (
+                  <span className="shrink-0 text-fg-muted tabular-nums">
                     {visible.map(formatRange).join(' · ')}
                     {hidden > 0 ? ` +${hidden}` : ''}
                   </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
       ) : null}
     </section>
   );
