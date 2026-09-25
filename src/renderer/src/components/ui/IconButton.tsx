@@ -4,26 +4,26 @@ import { Icon } from './Icon';
 import { cn } from '../../lib/cn';
 
 type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'aria-label'> & {
-  size?: 'lg' | 'md' | 'sm';
+  variant?: 'ghost' | 'outline';
+  size?: 'sm' | 'md';
   name: IconName;
   iconClassName?: string;
   'aria-label': string;
 };
 
-const sizeClassMap: Record<NonNullable<Props['size']>, string> = {
-  lg: 'rounded-card p-[2px]',
-  md: 'rounded-inline p-1',
-  sm: 'rounded-inline'
+const variantMap: Record<NonNullable<Props['variant']>, string> = {
+  ghost: 'border border-transparent bg-transparent',
+  outline: 'border border-line bg-surface'
 };
 
-const iconSizeMap: Record<NonNullable<Props['size']>, 'md' | 'sm'> = {
-  lg: 'md',
-  md: 'sm',
-  sm: 'sm'
+const sizeMap: Record<NonNullable<Props['size']>, string> = {
+  sm: 'size-6 rounded-inline',
+  md: 'size-9 rounded-control'
 };
 
 export const IconButton = ({
-  size = 'lg',
+  variant = 'ghost',
+  size = 'md',
   name,
   iconClassName,
   className,
@@ -36,22 +36,18 @@ export const IconButton = ({
       {...rest}
       type={type}
       className={cn(
-        'inline-flex items-center justify-center text-fg-default transition-colors',
+        'inline-flex shrink-0 items-center justify-center text-fg-default transition-colors',
         'hover:bg-surface-muted active:bg-line',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-50',
         'max-sm:min-h-[44px] max-sm:min-w-[44px]',
-        sizeClassMap[size],
+        variantMap[variant],
+        sizeMap[size],
         className
       )}
       disabled={disabled}
     >
-      <Icon
-        name={name}
-        size={iconSizeMap[size]}
-        decorative
-        className={cn('shrink-0', iconClassName)}
-      />
+      <Icon name={name} size="sm" decorative className={cn('shrink-0', iconClassName)} />
     </button>
   );
 };

@@ -60,7 +60,7 @@ export const DrawerHeader = ({
           onRetry={onRetryProjects}
         />
         <IconButton
-          className="size-9 shrink-0 rounded-control border border-line bg-surface"
+          variant="outline"
           size="md"
           name={settingsIconName}
           aria-label={settingsAriaLabel}
