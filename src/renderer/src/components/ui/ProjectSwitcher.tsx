@@ -73,17 +73,17 @@ export const ProjectSwitcher = ({
       >
         <span
           aria-hidden="true"
-          className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line bg-surface text-[11px] font-semibold text-fg-subtle"
+          className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line bg-surface text-caption font-semibold text-fg-subtle"
         >
           {getInitialCharacter(selectedProjectLabel)}
         </span>
-        <span className="min-w-0 flex-1 truncate text-ui-14 font-normal text-fg-default">
+        <span className="min-w-0 flex-1 truncate text-label font-normal text-fg-default">
           {selectedProjectLabel}
         </span>
         <span
           aria-hidden="true"
           className={[
-            'shrink-0 text-[11px] leading-none text-fg-muted transition-transform',
+            'shrink-0 text-caption leading-none text-fg-muted transition-transform',
             open ? 'rotate-180 text-fg-subtle' : ''
           ].join(' ')}
         >
@@ -100,12 +100,12 @@ export const ProjectSwitcher = ({
           >
             {isError ? (
               <div className="px-2 py-2" role="alert">
-                <p className="mb-2 px-2 text-[13px] text-fg-subtle">
+                <p className="mb-2 px-2 text-body text-fg-subtle">
                   프로젝트 목록을 불러올 수 없습니다.
                 </p>
                 <button
                   type="button"
-                  className="w-full rounded-[10px] border border-line px-3 py-2 text-[13px] font-medium text-fg-default transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-[10px] border border-line px-3 py-2 text-body font-medium text-fg-default transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isFetching || !onRetry}
                   onClick={() => onRetry?.()}
                 >
@@ -113,7 +113,7 @@ export const ProjectSwitcher = ({
                 </button>
               </div>
             ) : projects.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-fg-muted">프로젝트가 없습니다.</div>
+              <div className="px-4 py-3 text-label text-fg-muted">프로젝트가 없습니다.</div>
             ) : (
               projects.map((project) => {
                 const isSelected = project.id === selectedProjectId;
@@ -129,7 +129,7 @@ export const ProjectSwitcher = ({
                   >
                     <button
                       type="button"
-                      className="flex min-w-0 flex-1 items-center gap-2 rounded-[6px] bg-transparent px-2 py-1.5 text-left text-[13px] font-medium text-fg-default transition-colors"
+                      className="flex min-w-0 flex-1 items-center gap-2 rounded-[6px] bg-transparent px-2 py-1.5 text-left text-body font-medium text-fg-default transition-colors"
                       onClick={() => {
                         setOpen(false);
                         navigate(`/projects/${project.id}`);
@@ -137,7 +137,7 @@ export const ProjectSwitcher = ({
                     >
                       <span
                         aria-hidden="true"
-                        className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line bg-surface text-[11px] font-semibold text-fg-subtle"
+                        className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line bg-surface text-caption font-semibold text-fg-subtle"
                       >
                         {projectInitial}
                       </span>
@@ -150,13 +150,13 @@ export const ProjectSwitcher = ({
 
             <button
               type="button"
-              className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-4 py-2.5 text-left text-[13px] font-medium text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle"
+              className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-4 py-2.5 text-left text-body font-medium text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle"
               onClick={() => {
                 setOpen(false);
                 onOpenCreateProject?.();
               }}
             >
-              <span className="text-[18px] leading-none">+</span>
+              <span className="text-title leading-none">+</span>
               <span>새 프로젝트</span>
             </button>
           </div>

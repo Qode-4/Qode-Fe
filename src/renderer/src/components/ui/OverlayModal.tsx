@@ -132,12 +132,12 @@ export const OverlayModal = ({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-start justify-between gap-3 px-6 pt-6 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3">
-          <h2 id={titleId} className="text-xl font-semibold text-fg-default">
+          <h2 id={titleId} className="text-title font-semibold text-fg-default">
             {title}
           </h2>
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-xs text-fg-subtle hover:bg-surface-muted max-sm:min-h-[44px] max-sm:min-w-[44px] max-sm:text-sm"
+            className="rounded-md px-2 py-1 text-caption text-fg-subtle hover:bg-surface-muted max-sm:min-h-[44px] max-sm:min-w-[44px] max-sm:text-label"
             onClick={() => onCloseRef.current()}
             aria-label={`${title} 닫기`}
           >

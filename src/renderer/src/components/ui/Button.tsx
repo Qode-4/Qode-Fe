@@ -15,8 +15,8 @@ const variantMap: Record<NonNullable<Props['variant']>, string> = {
 };
 
 const sizeMap: Record<NonNullable<Props['size']>, string> = {
-  sm: 'h-9 px-3 text-xs',
-  md: 'h-11 px-4 text-sm'
+  sm: 'h-9 px-3 text-caption',
+  md: 'h-11 px-4 text-label'
 };
 
 export const Button = ({

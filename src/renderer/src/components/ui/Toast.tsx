@@ -41,7 +41,7 @@ export const Toast = ({ toast, onDismiss }: Props): React.JSX.Element => {
       role={toast.tone === 'danger' ? 'alert' : 'status'}
       aria-live={toast.tone === 'danger' ? 'assertive' : 'polite'}
       className={[
-        'pointer-events-auto flex w-[320px] items-start gap-2 rounded-xl border px-3.5 py-3 text-sm shadow-none transition-all duration-200',
+        'pointer-events-auto flex w-[320px] items-start gap-2 rounded-xl border px-3.5 py-3 text-label shadow-none transition-all duration-200',
         toneClassMap[toast.tone],
         visible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
       ].join(' ')}
@@ -54,7 +54,7 @@ export const Toast = ({ toast, onDismiss }: Props): React.JSX.Element => {
         type="button"
         aria-label="알림 닫기"
         className={[
-          'shrink-0 rounded p-0.5 text-lg leading-none transition-colors',
+          'shrink-0 rounded p-0.5 text-title leading-none transition-colors',
           closeButtonClassMap[toast.tone]
         ].join(' ')}
         onClick={() => onDismiss(toast.id)}

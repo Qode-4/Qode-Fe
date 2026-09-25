@@ -60,13 +60,13 @@ export const DigestSharedCard = ({
 
   return (
     <div className="group flex items-start gap-2">
-      <div className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface-muted text-ui-12 font-medium text-fg-muted">
+      <div className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface-muted text-caption font-medium text-fg-muted">
         {initial}
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-center gap-2 text-ui-10">
-          <span className="inline-flex items-center gap-1 rounded-full border border-line-primary/40 bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-fg-primary">
+        <div className="flex items-center gap-2 text-micro">
+          <span className="inline-flex items-center gap-1 rounded-full border border-line-primary/40 bg-primary-soft px-2 py-0.5 text-micro font-semibold text-fg-primary">
             <Icon name="shared" size="sm" decorative />팀 공유
           </span>
           <span className="font-medium text-fg-muted">{senderName}</span>
@@ -88,14 +88,14 @@ export const DigestSharedCard = ({
 
           {sources.length > 0 ? (
             <section className="mt-3 rounded-[8px] border border-line bg-surface-muted p-2">
-              <h3 className="mb-1 text-ui-10 font-semibold text-fg-muted">
+              <h3 className="mb-1 text-micro font-semibold text-fg-muted">
                 참조 코드 {sources.length}개
               </h3>
               <ul className="flex flex-col gap-0.5">
                 {sources.map((s, idx) => (
                   <li
                     key={`${s.filePath}-${s.startLine ?? 0}-${idx}`}
-                    className="flex items-center justify-between gap-2 text-ui-10 text-fg-muted"
+                    className="flex items-center justify-between gap-2 text-micro text-fg-muted"
                   >
                     <span className="min-w-0 flex-1 truncate">
                       <code className="rounded bg-surface px-1 py-0.5">{s.filePath}</code>

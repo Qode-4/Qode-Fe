@@ -81,7 +81,7 @@ export const ChatComposer = ({
           ref={textareaRef}
           rows={1}
           aria-label="메시지 입력"
-          className="block min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-ui-14 leading-[1.6] text-fg-default placeholder:text-fg-muted disabled:cursor-not-allowed max-sm:text-[16px]"
+          className="block min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-label leading-[1.6] text-fg-default placeholder:text-fg-muted disabled:cursor-not-allowed max-sm:text-[16px]"
           style={{ outline: 'none', boxShadow: 'none' }}
           placeholder={placeholder}
           value={value}
@@ -104,7 +104,7 @@ export const ChatComposer = ({
       </div>
 
       {value.length >= MAX_LENGTH ? (
-        <p className="mt-1 text-ui-12 text-fg-danger" role="status">
+        <p className="mt-1 text-caption text-fg-danger" role="status">
           최대 2,000자까지 입력 가능합니다.
         </p>
       ) : null}

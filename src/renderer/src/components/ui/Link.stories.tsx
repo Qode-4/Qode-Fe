@@ -32,7 +32,7 @@ const InteractivePreview = (args: React.ComponentProps<typeof Link>): React.JSX.
   return (
     <div className="space-y-2">
       <Link {...args} />
-      <p className="text-sm text-fg-subtle">
+      <p className="text-label text-fg-subtle">
         현재 hash: <code>{hash}</code>
       </p>
     </div>

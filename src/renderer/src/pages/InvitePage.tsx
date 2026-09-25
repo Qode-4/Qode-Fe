@@ -56,7 +56,7 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
         brand={INVITE_BRAND}
       >
         <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm">
+          <div className="flex items-center justify-between rounded-xl border border-line bg-surface-muted px-4 py-3 text-label">
             <span className="text-fg-subtle">초대 코드</span>
             <span className="font-semibold text-fg-default">{inviteCode}</span>
           </div>
@@ -81,7 +81,7 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
     <AuthFrame title="프로젝트 초대" description={`코드: ${inviteCode}`} brand={INVITE_BRAND}>
       <div className="space-y-4">
         {info.isLoading ? (
-          <div className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-sm text-fg-subtle">
+          <div className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-label text-fg-subtle">
             초대 정보를 불러오는 중…
           </div>
         ) : null}
@@ -97,15 +97,15 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
             <div className="flex items-center gap-3">
               <span
                 aria-hidden="true"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-fg-primary"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-label font-semibold text-fg-primary"
               >
                 {info.data.project.name.charAt(0)}
               </span>
               <div className="min-w-0">
-                <div className="truncate text-base font-semibold text-fg-default">
+                <div className="truncate text-body font-semibold text-fg-default">
                   {info.data.project.name}
                 </div>
-                <div className="text-xs text-fg-muted">역할: {info.data.role}</div>
+                <div className="text-caption text-fg-muted">역할: {info.data.role}</div>
               </div>
             </div>
 

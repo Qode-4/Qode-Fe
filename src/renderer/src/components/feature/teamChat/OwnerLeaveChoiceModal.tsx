@@ -22,7 +22,7 @@ export const OwnerLeaveChoiceModal = ({
       title="방장이 나가기 전에 선택해주세요"
       widthClassName="max-w-[440px]"
     >
-      <p className="text-ui-14 leading-[1.6] text-fg-default">
+      <p className="text-label leading-[1.6] text-fg-default">
         방장이 채팅방을 나가려면 채팅방을 삭제하거나, 다른 참여자에게 방장을 양도해야 합니다.
       </p>
 
@@ -32,8 +32,8 @@ export const OwnerLeaveChoiceModal = ({
           onClick={onChooseTransfer}
           className="flex flex-col items-start gap-1 rounded-[12px] border border-line bg-surface p-3 text-left transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2"
         >
-          <span className="text-ui-14 font-semibold text-fg-default">방장 양도하기</span>
-          <span className="text-ui-12 text-fg-muted">
+          <span className="text-label font-semibold text-fg-default">방장 양도하기</span>
+          <span className="text-caption text-fg-muted">
             다른 참여자에게 방장을 넘기고 채팅방에서 나갑니다. 채팅방과 대화는 그대로 유지됩니다.
           </span>
         </button>
@@ -43,8 +43,8 @@ export const OwnerLeaveChoiceModal = ({
           onClick={onChooseDelete}
           className="flex flex-col items-start gap-1 rounded-[12px] border border-line-danger bg-surface p-3 text-left transition-colors hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
         >
-          <span className="text-ui-14 font-semibold text-fg-danger">채팅방 삭제</span>
-          <span className="text-ui-12 text-fg-muted">
+          <span className="text-label font-semibold text-fg-danger">채팅방 삭제</span>
+          <span className="text-caption text-fg-muted">
             채팅방과 모든 대화가 삭제되고, 참여자 전원이 접근할 수 없게 됩니다.
           </span>
         </button>

@@ -137,7 +137,7 @@ export const ChatItemMenu = ({
                   role="menuitem"
                   disabled={action.disabled}
                   className={[
-                    'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs max-sm:py-3 max-sm:text-sm',
+                    'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-caption max-sm:py-3 max-sm:text-label',
                     action.danger
                       ? 'text-fg-danger hover:bg-danger-soft'
                       : 'text-fg-default hover:bg-surface-muted',

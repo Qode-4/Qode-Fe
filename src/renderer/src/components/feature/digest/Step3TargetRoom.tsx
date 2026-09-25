@@ -29,7 +29,7 @@ export const Step3TargetRoom = ({
 }: Props): React.JSX.Element => {
   if (status === 'loading') {
     return (
-      <div className="flex min-h-[220px] items-center justify-center text-sm text-fg-subtle">
+      <div className="flex min-h-[220px] items-center justify-center text-label text-fg-subtle">
         팀채팅 목록을 불러오는 중…
       </div>
     );
@@ -38,7 +38,7 @@ export const Step3TargetRoom = ({
   if (status === 'error') {
     return (
       <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center">
-        <p className="text-sm text-fg-danger">
+        <p className="text-label text-fg-danger">
           {errorMessage ?? '팀채팅 목록을 불러오지 못했습니다.'}
         </p>
         {onRetry ? (
@@ -52,7 +52,7 @@ export const Step3TargetRoom = ({
 
   if (chats.length === 0) {
     return (
-      <div className="flex min-h-[220px] items-center justify-center text-center text-sm text-fg-subtle">
+      <div className="flex min-h-[220px] items-center justify-center text-center text-label text-fg-subtle">
         참여 중인 팀채팅이 없습니다. 먼저 팀채팅을 만들어 주세요.
       </div>
     );
@@ -70,7 +70,7 @@ export const Step3TargetRoom = ({
           <li key={chat.id}>
             <label
               className={[
-                'flex cursor-pointer items-center gap-3 rounded-md border p-3 text-sm',
+                'flex cursor-pointer items-center gap-3 rounded-md border p-3 text-label',
                 selected
                   ? 'border-line-primary bg-primary-soft/60 text-fg-default'
                   : 'border-transparent bg-surface text-fg-default hover:bg-surface'

@@ -63,7 +63,7 @@ export const TextField = ({
 
   return (
     <div className={['flex flex-col gap-1.5', className ?? ''].join(' ')}>
-      <label htmlFor={inputId} className="text-ui-13 font-semibold text-fg-subtle">
+      <label htmlFor={inputId} className="text-caption font-semibold text-fg-subtle">
         {label}
       </label>
       <div className="relative">
@@ -72,7 +72,7 @@ export const TextField = ({
           id={inputId}
           type={effectiveType}
           className={[
-            'h-11 w-full rounded-lg border px-3 text-ui-15 text-fg-default outline-none transition-colors',
+            'h-11 w-full rounded-lg border px-3 text-label text-fg-default outline-none transition-colors',
             showToggle ? 'pr-11' : '',
             error
               ? 'border-line-danger bg-danger-soft focus:border-danger'
@@ -94,12 +94,12 @@ export const TextField = ({
         ) : null}
       </div>
       {hint ? (
-        <span id={hintId} className="text-xs text-fg-muted">
+        <span id={hintId} className="text-caption text-fg-muted">
           {hint}
         </span>
       ) : null}
       {error ? (
-        <span id={errorId} className="text-xs font-medium text-fg-danger" role="alert">
+        <span id={errorId} className="text-caption font-medium text-fg-danger" role="alert">
           {error}
         </span>
       ) : null}

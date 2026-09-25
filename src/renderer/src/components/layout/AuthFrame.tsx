@@ -38,10 +38,10 @@ export const AuthFrame = ({
         </div>
 
         <div className="space-y-4">
-          <h2 className="whitespace-pre-line text-ui-32 font-bold leading-[1.35] text-fg-default">
+          <h2 className="whitespace-pre-line text-display font-semibold leading-[1.35] text-fg-default">
             {brand.title}
           </h2>
-          <p className="whitespace-pre-line text-base font-medium leading-[1.6] text-fg-subtle">
+          <p className="whitespace-pre-line text-body font-medium leading-[1.6] text-fg-subtle">
             {brand.description}
           </p>
         </div>
@@ -49,7 +49,7 @@ export const AuthFrame = ({
         {brand.features && brand.features.length > 0 ? (
           <ul className="space-y-2.5">
             {brand.features.map((feat) => (
-              <li key={feat} className="flex items-center gap-2.5 text-sm text-fg-subtle">
+              <li key={feat} className="flex items-center gap-2.5 text-label text-fg-subtle">
                 <span
                   aria-hidden="true"
                   className="inline-block h-1.5 w-1.5 rounded-full bg-primary"
@@ -71,15 +71,15 @@ export const AuthFrame = ({
           </div>
 
           <div className="space-y-1.5">
-            <h1 className="text-ui-24 font-bold text-fg-default">{title}</h1>
+            <h1 className="text-heading font-semibold text-fg-default">{title}</h1>
             {description ? (
-              <p className="whitespace-pre-line text-sm text-fg-subtle">{description}</p>
+              <p className="whitespace-pre-line text-label text-fg-subtle">{description}</p>
             ) : null}
           </div>
 
           {children}
 
-          {footer ? <div className="text-center text-sm text-fg-subtle">{footer}</div> : null}
+          {footer ? <div className="text-center text-label text-fg-subtle">{footer}</div> : null}
         </div>
       </main>
     </div>

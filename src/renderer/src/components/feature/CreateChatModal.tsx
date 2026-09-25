@@ -48,11 +48,11 @@ export const CreateChatModal = ({
         }}
       >
         <label className="block" htmlFor="create-chat-name">
-          <span className="mb-1 block text-xs font-medium text-fg-muted">이름</span>
+          <span className="mb-1 block text-caption font-medium text-fg-muted">이름</span>
           <input
             id="create-chat-name"
             className={[
-              'h-10 w-full rounded-md border bg-surface px-3 text-base text-fg-default outline-none',
+              'h-10 w-full rounded-md border bg-surface px-3 text-body text-fg-default outline-none',
               nameError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
             ].join(' ')}
             value={name}
@@ -61,7 +61,7 @@ export const CreateChatModal = ({
             autoFocus
           />
           {nameError ? (
-            <span className="mt-1 block text-xs text-fg-danger">{nameError}</span>
+            <span className="mt-1 block text-caption text-fg-danger">{nameError}</span>
           ) : null}
         </label>
 

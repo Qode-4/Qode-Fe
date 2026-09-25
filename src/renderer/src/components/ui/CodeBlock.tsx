@@ -20,7 +20,7 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
 
   return (
     <div className="my-2 overflow-hidden rounded-md border border-line-code bg-code">
-      <div className="flex items-center justify-between border-b border-line-code bg-code px-3 py-1 text-ui-10">
+      <div className="flex items-center justify-between border-b border-line-code bg-code px-3 py-1 text-micro">
         <span className="font-mono text-fg-code-muted">{language}</span>
         <button
           type="button"
@@ -34,7 +34,7 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
       <Highlight code={code} language={language} theme={themes.oneDark}>
         {({ className, style, tokens, getLineProps, getTokenProps }) => (
           <pre
-            className={`${className} m-0 overflow-x-auto p-3 text-ui-14 leading-[1.55]`}
+            className={`${className} m-0 overflow-x-auto p-3 text-label leading-[1.55]`}
             style={{ ...style, background: 'transparent' }}
           >
             {tokens.map((line, i) => {

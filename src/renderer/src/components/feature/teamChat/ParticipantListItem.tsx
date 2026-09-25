@@ -38,7 +38,7 @@ const Avatar = ({
   return (
     <span
       aria-hidden
-      className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-ui-12 font-semibold text-fg-primary"
+      className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-caption font-semibold text-fg-primary"
     >
       {initialOf(name)}
     </span>
@@ -61,10 +61,10 @@ export const ParticipantListItem = ({
     >
       <Avatar name={name} avatarUrl={avatarUrl} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-ui-14 font-medium text-fg-default">{name ?? '이름 없음'}</p>
+        <p className="truncate text-label font-medium text-fg-default">{name ?? '이름 없음'}</p>
       </div>
       {role === 'OWNER' ? (
-        <span className="shrink-0 rounded-md bg-primary-soft px-2 py-0.5 text-ui-10 font-semibold text-fg-primary">
+        <span className="shrink-0 rounded-md bg-primary-soft px-2 py-0.5 text-micro font-semibold text-fg-primary">
           방장
         </span>
       ) : null}
