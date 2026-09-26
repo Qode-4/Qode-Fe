@@ -889,7 +889,7 @@ export const ProjectDetailPage = ({
   if (!projectId) {
     return (
       <InlineAlert tone="danger" title="잘못된 경로">
-        프로젝트를 찾을 수 없어요.
+        주소에 프로젝트 정보가 없어요.
       </InlineAlert>
     );
   }

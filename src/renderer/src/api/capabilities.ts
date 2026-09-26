@@ -3,4 +3,4 @@ export const API_CAPABILITIES = {
   messageShareEnabled: false
 } as const;
 
-export const TEAM_CHAT_READONLY_TOOLTIP = '아직 지원하지 않는 기능이에요.';
+export const TEAM_CHAT_READONLY_TOOLTIP = '아직 준비 중인 기능이에요.';

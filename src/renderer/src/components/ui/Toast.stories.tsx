@@ -25,7 +25,7 @@ export const Default: Story = {};
 export const AllTones: Story = {
   render: (args): React.JSX.Element => (
     <div className="flex flex-col gap-2">
-      <Toast {...args} toast={{ ...base, id: 's', tone: 'success', description: '저장했어요.' }} />
+      <Toast {...args} toast={{ ...base, id: 's', tone: 'success', description: '저장했어요' }} />
       <Toast {...args} toast={{ ...base, id: 'i', tone: 'info', description: '복사했어요' }} />
       <Toast
         {...args}

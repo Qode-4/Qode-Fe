@@ -78,7 +78,7 @@ export const TransferOwnershipModal = ({
     <OverlayModal open={open} onClose={handleClose} title="방장 넘기기" size="sm">
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <p className="text-label leading-[1.6] text-fg-default">
-          새 방장을 선택해주세요. 방장을 넘기면 나는 채팅방에서 자동으로 나가요.
+          새 방장을 선택해주세요. 방장을 넘기면 채팅방에서 자동으로 나가요.
         </p>
 
         {participants.isError ? (

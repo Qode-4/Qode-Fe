@@ -121,7 +121,7 @@ export const streamSse = async (options: StreamSseOptions): Promise<void> => {
   }
 
   const reader = response.body?.getReader();
-  if (!reader) throw new Error('답변을 읽지 못했어요.');
+  if (!reader) throw new Error('답변을 읽을 수 없어요.');
 
   const decoder = new TextDecoder();
   let buffer = '';
