@@ -5,6 +5,7 @@
  * 2. REQUIRED 에 적힌 의도한 조합이 WCAG AA 기준 미달이면 실패한다.
  * 3. 렌더러 소스에서 토큰이 아닌 클래스(raw 팔레트·기본 크기·기본 radius·임의값)를 찾으면 실패한다.
  * 3b. 패턴 규칙 위반(브라우저 confirm/alert, 손 스피너, 버튼 라벨 바꿔치기, 하드코딩 색)을 찾으면 실패한다.
+ * 3c. 화면 문구 규칙(해요체, 말줄임표 …, 용어집) 위반을 찾으면 실패한다 (docs/copy.md).
  * 4. cn.ts 토큰 목록이 main.css 와 같은지 본다.
  * 5. 컴포넌트 registry(docs/registry.md)를 생성하고 meta 누락을 검사한다 (scripts/registry.ts).
  *
@@ -269,6 +270,46 @@ for (const file of walk(SRC_DIR)) {
         if (except?.includes(rel)) continue;
         const m = line.match(re);
         if (m) failures.push(`${rel}:${i + 1}  ${m[0]}  — ${why}`);
+      }
+    });
+}
+
+// ── 3c. 화면 문구 (docs/copy.md) ─────────────────────────────────────────
+// 주석·스토리·테스트·개발자용 throw 는 보지 않는다. 스토리의 AI 답변 예시는 AI 가 쓴 글이라 제외.
+const COPY_RULES: Array<{ re: RegExp; why: string }> = [
+  { re: /[가-힣](?:습니다|습니까|십시오|합니다|됩니다|입니다)/, why: '습니다체 — 해요체로 쓴다' },
+  { re: /[가-힣)]\s?\.\.\./, why: '마침표 3개 — 말줄임표 "…" 한 글자' },
+  { re: /팀채팅/, why: '용어 — "팀 채팅"' },
+  { re: /레포지토리/, why: '용어 — "저장소"' },
+  { re: /양도/, why: '용어 — "방장 넘기기"' }
+];
+for (const file of walk(SRC_DIR)) {
+  const rel = relative(SRC_DIR, file);
+  if (!/\.tsx?$/.test(rel) || /\.(test|stories)\.tsx?$/.test(rel) || rel.endsWith('.meta.ts'))
+    continue;
+  let inBlock = false;
+  readFileSync(file, 'utf8')
+    .split('\n')
+    .forEach((raw, i) => {
+      // 블록 주석·JSDoc·줄 주석을 걷어낸 코드만 본다
+      let line = raw;
+      if (inBlock) {
+        const end = line.indexOf('*/');
+        if (end < 0) return;
+        line = line.slice(end + 2);
+        inBlock = false;
+      }
+      line = line.replace(/\/\*.*?\*\//g, '');
+      const open = line.indexOf('/*');
+      if (open >= 0) {
+        line = line.slice(0, open);
+        inBlock = true;
+      }
+      line = line.replace(/(^|\s)\/\/.*$/, '$1').replace(/\{\s*\/\*.*$/, '');
+      if (/throw new Error\(/.test(line)) return;
+      for (const { re, why } of COPY_RULES) {
+        const m = line.match(re);
+        if (m) failures.push(`${rel}:${i + 1}  ${m[0]}  — ${why} (docs/copy.md)`);
       }
     });
 }
