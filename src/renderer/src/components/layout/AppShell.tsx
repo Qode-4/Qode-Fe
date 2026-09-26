@@ -56,6 +56,7 @@ import { Icon } from '../ui/Icon';
 import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
 import { cn } from '../../lib/cn';
+import { TextField } from '../ui/TextField';
 
 type Props = {
   me?: GetAuthData | null;
@@ -1840,25 +1841,18 @@ export const AppShell = ({
             await createFolder();
           }}
         >
-          <label className="block" htmlFor="folder-create-input">
-            <span className="mb-1 block text-caption font-medium text-fg-muted">이름</span>
-            <input
-              id="folder-create-input"
-              className={[
-                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
-                folderCreateTouched && !folderCreateValue.trim()
-                  ? 'border-danger'
-                  : 'border-line-strong focus:border-line-primary'
-              ].join(' ')}
-              value={folderCreateValue}
-              onChange={(e) => setFolderCreateValue(e.target.value)}
-              onBlur={() => setFolderCreateTouched(true)}
-              autoFocus
-            />
-            {folderCreateTouched && !folderCreateValue.trim() ? (
-              <span className="mt-1 block text-caption text-fg-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="folder-create-input"
+            label="이름"
+            value={folderCreateValue}
+            onChange={(e) => setFolderCreateValue(e.target.value)}
+            onBlur={() => setFolderCreateTouched(true)}
+            autoFocus
+            error={
+              folderCreateTouched && !folderCreateValue.trim() ? '이름을 입력해주세요.' : undefined
+            }
+          />
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeFolderCreateModal}>
@@ -1883,25 +1877,20 @@ export const AppShell = ({
             await createSection();
           }}
         >
-          <label className="block" htmlFor="section-create-input">
-            <span className="mb-1 block text-caption font-medium text-fg-muted">이름</span>
-            <input
-              id="section-create-input"
-              className={[
-                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
-                sectionCreateTouched && !sectionCreateValue.trim()
-                  ? 'border-danger'
-                  : 'border-line-strong focus:border-line-primary'
-              ].join(' ')}
-              value={sectionCreateValue}
-              onChange={(e) => setSectionCreateValue(e.target.value)}
-              onBlur={() => setSectionCreateTouched(true)}
-              autoFocus
-            />
-            {sectionCreateTouched && !sectionCreateValue.trim() ? (
-              <span className="mt-1 block text-caption text-fg-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="section-create-input"
+            label="이름"
+            value={sectionCreateValue}
+            onChange={(e) => setSectionCreateValue(e.target.value)}
+            onBlur={() => setSectionCreateTouched(true)}
+            autoFocus
+            error={
+              sectionCreateTouched && !sectionCreateValue.trim()
+                ? '이름을 입력해주세요.'
+                : undefined
+            }
+          />
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionCreateModal}>
@@ -1926,25 +1915,20 @@ export const AppShell = ({
             await applySectionRename();
           }}
         >
-          <label className="block" htmlFor="section-rename-input">
-            <span className="mb-1 block text-caption font-medium text-fg-muted">이름</span>
-            <input
-              id="section-rename-input"
-              className={[
-                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
-                sectionRenameTouched && !sectionRenameValue.trim()
-                  ? 'border-danger'
-                  : 'border-line-strong focus:border-line-primary'
-              ].join(' ')}
-              value={sectionRenameValue}
-              onChange={(e) => setSectionRenameValue(e.target.value)}
-              onBlur={() => setSectionRenameTouched(true)}
-              autoFocus
-            />
-            {sectionRenameTouched && !sectionRenameValue.trim() ? (
-              <span className="mt-1 block text-caption text-fg-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="section-rename-input"
+            label="이름"
+            value={sectionRenameValue}
+            onChange={(e) => setSectionRenameValue(e.target.value)}
+            onBlur={() => setSectionRenameTouched(true)}
+            autoFocus
+            error={
+              sectionRenameTouched && !sectionRenameValue.trim()
+                ? '이름을 입력해주세요.'
+                : undefined
+            }
+          />
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionRenameModal}>
@@ -2155,25 +2139,16 @@ export const AppShell = ({
             applyProjectRename();
           }}
         >
-          <label className="block" htmlFor="project-rename-input">
-            <span className="mb-1 block text-caption font-medium text-fg-muted">이름</span>
-            <input
-              id="project-rename-input"
-              className={[
-                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
-                renameTouched && !renameValue.trim()
-                  ? 'border-danger'
-                  : 'border-line-strong focus:border-line-primary'
-              ].join(' ')}
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              onBlur={() => setRenameTouched(true)}
-              autoFocus
-            />
-            {renameTouched && !renameValue.trim() ? (
-              <span className="mt-1 block text-caption text-fg-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="project-rename-input"
+            label="이름"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onBlur={() => setRenameTouched(true)}
+            autoFocus
+            error={renameTouched && !renameValue.trim() ? '이름을 입력해주세요.' : undefined}
+          />
 
           {renameInfo ? (
             <div className="mt-3">

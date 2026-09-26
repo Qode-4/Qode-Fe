@@ -8,6 +8,7 @@ import { Button } from '../../ui/Button';
 import { InlineAlert } from '../../ui/InlineAlert';
 import { OverlayModal } from '../../ui/OverlayModal';
 import { ProjectMemberPickList, type PickListMember } from './ProjectMemberPickList';
+import { TextField } from '../../ui/TextField';
 
 type Props = {
   open: boolean;
@@ -114,28 +115,20 @@ export const CreateTeamChatModal = ({
   return (
     <OverlayModal open={open} onClose={handleClose} title="새 팀 채팅" size="md">
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <label className="block" htmlFor="create-team-chat-name">
-          <span className="mb-1 block text-caption font-medium text-fg-muted">채팅방 이름</span>
-          <input
-            id="create-team-chat-name"
-            className={[
-              'h-10 w-full rounded-control border bg-surface px-3 text-label text-fg-default outline-none',
-              displayedNameError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
-            ].join(' ')}
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setServerNameError(null);
-            }}
-            placeholder="새 팀 채팅"
-            autoFocus
-            maxLength={100}
-            aria-invalid={Boolean(displayedNameError)}
-          />
-          {displayedNameError ? (
-            <span className="mt-1 block text-caption text-fg-danger">{displayedNameError}</span>
-          ) : null}
-        </label>
+        <TextField
+          size="sm"
+          id="create-team-chat-name"
+          label="채팅방 이름"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            setServerNameError(null);
+          }}
+          placeholder="새 팀 채팅"
+          autoFocus
+          maxLength={100}
+          error={displayedNameError || undefined}
+        />
 
         <div>
           <div className="mb-1 flex items-center justify-between">

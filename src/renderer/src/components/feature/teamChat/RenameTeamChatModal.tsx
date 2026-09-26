@@ -5,6 +5,7 @@ import { friendlyErrorMessage } from '../../../api/errorMessages';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../ui/Button';
 import { OverlayModal } from '../../ui/OverlayModal';
+import { TextField } from '../../ui/TextField';
 
 type Props = {
   open: boolean;
@@ -85,28 +86,20 @@ export const RenameTeamChatModal = ({
   return (
     <OverlayModal open={open} onClose={handleClose} title="채팅방 이름 바꾸기" size="sm">
       <form onSubmit={handleSubmit}>
-        <label className="block" htmlFor="rename-team-chat-name">
-          <span className="mb-1 block text-caption font-medium text-fg-muted">채팅방 이름</span>
-          <input
-            id="rename-team-chat-name"
-            className={[
-              'h-10 w-full rounded-control border bg-surface px-3 text-label text-fg-default outline-none',
-              displayedError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
-            ].join(' ')}
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setServerError(null);
-            }}
-            placeholder={currentName}
-            autoFocus
-            maxLength={100}
-            aria-invalid={Boolean(displayedError)}
-          />
-          {displayedError ? (
-            <span className="mt-1 block text-caption text-fg-danger">{displayedError}</span>
-          ) : null}
-        </label>
+        <TextField
+          size="sm"
+          id="rename-team-chat-name"
+          label="채팅방 이름"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            setServerError(null);
+          }}
+          placeholder={currentName}
+          autoFocus
+          maxLength={100}
+          error={displayedError || undefined}
+        />
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button
