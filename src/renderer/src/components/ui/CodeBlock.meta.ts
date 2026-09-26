@@ -6,7 +6,8 @@ export default {
   summary: '줄번호·복사 버튼이 있는 다크 코드 블록',
   whenToUse: [
     '여러 줄 코드 — 보통 MarkdownAnswer 가 코드 펜스를 바꿔 줌',
-    '긴 줄은 블록 안 가로 스크롤(부모에 min-w-0)'
+    '긴 줄은 블록 안 가로 스크롤(부모에 min-w-0)',
+    '코드 글자는 text-label — 더 작게(text-caption) 하면 읽기 어렵다'
   ],
   whenNotToUse: ['한 줄 안의 짧은 코드 → 인라인 <code>'],
   related: ['MarkdownAnswer', 'SourceList'],

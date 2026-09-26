@@ -7,7 +7,8 @@ export default {
   whenToUse: [
     'AI 채팅·팀 채팅 하단 입력',
     '진행 상태는 status 로 입력창 위에',
-    '전송 불가 이유는 sendDisabledReason'
+    '전송 불가 이유는 sendDisabledReason',
+    '전송 버튼은 입력창 옆(아래가 아님)'
   ],
   whenNotToUse: [
     '폼 입력 → TextField',

@@ -9,7 +9,11 @@ export default {
     '재시도는 안에 Button size="sm" variant="secondary"',
     '모달이 열린 채 끝나는 성공은 tone="success"'
   ],
-  whenNotToUse: ['잠깐 알리고 사라져도 되는 결과 → Toast', '로딩·빈 상태 → StateMessage'],
+  whenNotToUse: [
+    '잠깐 알리고 사라져도 되는 결과 → Toast',
+    '로딩·빈 상태 → StateMessage',
+    '오렌지(primary)를 성공·실패 상태색으로 쓰기 — tone 을 쓴다'
+  ],
   related: ['Toast', 'StateMessage', 'Button'],
   patterns: ['error', 'feedback'],
   status: 'stable'

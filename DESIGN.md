@@ -3,7 +3,7 @@
 ## Source of truth — 문서 상태와 근거
 
 - 상태: **In sync** — 실제 구현과 코드가 이 문서와 정합한 상태로 유지된다. 이후 컴포넌트를 추가하거나 스타일을 손볼 때 이 기준서를 먼저 갱신하고 코드를 맞춘다.
-- 갱신일: 2026-09-25. (Quire Phase B 토큰 재편 반영)
+- 갱신일: 2026-09-26. (Quire Phase E — 컴포넌트별 기준을 `docs/registry.md` 로 옮김)
 - 목적: Qode 의 화면을 일관된 시각 규칙 아래 유지하기 위한 참고 기준서. 새 컴포넌트나 페이지도 아래 토큰·간격·패턴을 재사용해 낯설지 않은 경험을 제공한다.
 - 실제 스타일 구현의 기준 파일: `src/renderer/src/assets/main.css`. 컬러·타이포·간격 토큰은 여기서 시작한다. Tailwind v4 유틸리티는 이 토큰을 참조한다.
 - 확인한 구현: `components/layout/AppShell.tsx`, `components/ui/DrawerHeader.tsx`, `components/ui/ProjectSwitcher.tsx`, `components/ui/Button.tsx`, `components/ui/ChatComposer.tsx`, `components/ui/CodeBlock.tsx`, `components/ui/MarkdownAnswer.tsx`, `pages/ProjectDetailPage.tsx`, `pages/LoginPage.tsx`, `pages/SignupPage.tsx`, `api/capabilities.ts`. 경로는 별도 표시가 없으면 `src/renderer/src/` 기준이다.
@@ -163,7 +163,9 @@
 - 아이콘은 기존 SVGR 레지스트리와 `Icon` 컴포넌트를 사용한다.
 - 애니메이션은 상태 전달에 한정한다: 스트리밍 점(`LoadingDots`), 오렌지 진행 바(`bg-primary/60`) 정도. 지속적인 장식 움직임은 쓰지 않는다.
 
-## Components — 컴포넌트 기준
+## Components — 화면 구성 기준
+
+ui 컴포넌트 하나하나의 쓸 때·피할 때·옵션·쓰는 토큰은 [`docs/registry.md`](docs/registry.md) 가 기준이다(각 `ui/*.meta.ts` 와 JSDoc 에서 생성). 이 절은 컴포넌트를 조합한 **화면 규칙**만 다룬다.
 
 ### AppShell 레이아웃
 
@@ -176,53 +178,12 @@
   5. Flex `spacer` — 다음 프로필 행을 하단으로 밀어냄.
   6. Profile Row — `px-3` outer + inner `border-t border-line pt-3 pr-0 pb-4 pl-1`. `[UserAvatar brand][이름][⋮]`. Border-t 가 사이드바 좌우를 꽉 채우지 않고 양옆 여백을 두는 게 규칙.
 
-### DrawerHeader
-
-- 첫 줄에 브랜드: `<Logo variant="lockup" size="sm" />`(심볼 20px + 글자 16px). 심볼·글자를 `<img>` 로 따로 조립하거나 텍스트로 대체하지 않는다. 이미지는 번들 import 로만(절대 경로 금지 — Electron `file://`).
-- 둘째 줄은 `flex items-center gap-2` — `ProjectSwitcher` 가 flex-1, 설정 버튼은 `<IconButton variant="outline" size="md">`.
-
-### ProjectSwitcher
-
-- 트리거: `h-9 w-full rounded-control border border-line bg-surface px-2` + hover `bg-surface-muted`.
-- 좌측에 **선택된 프로젝트 첫 글자 아바타**: `size-5 rounded-control border border-line bg-surface text-caption font-semibold text-fg-subtle`. (드롭다운 항목 아바타와 동일 스타일.)
-- 우측 ▾ 셰브런: 열림 시 180° 회전 + `text-fg-subtle`.
-- 드롭다운: 트리거 아래 8px, `w-full min-w-[220px] rounded-control border border-line bg-surface py-1`. 항목 padding `px-2 py-1.5` 로 트리거 아이콘 위치와 정렬 유지. 현재 선택 항목은 `bg-surface-muted`. 하단 `+ 새 프로젝트` 링크 유지.
-- 키보드: menu 패턴. 트리거 Enter/Space/↓ 로 열면 현재 프로젝트에 포커스, ↑↓·Home·End 이동, Esc 로 닫고 트리거로 포커스 복귀. 프로젝트는 `menuitemradio` + `aria-checked`.
-
-### Button (`Button.tsx`)
-
-- 공통: `inline-flex items-center justify-center gap-2 rounded-control border font-medium transition-colors`. `rounded-control` (6px), 알약 금지.
-- 사이즈: `sm`=`h-9 px-3 text-caption`, `md`=`h-11 px-4 text-label`.
-- Variant:
-  - `primary`: `border-line-primary bg-primary text-fg-on-primary hover:brightness-95`. 그라데이션 없음.
-  - `secondary`: `border-line bg-surface text-fg-default hover:bg-surface-muted`. `border-line`(장식 border) 사용, `line-strong` 을 쓰지 않는다.
-  - `ghost`: `border-transparent bg-transparent text-fg-subtle hover:bg-surface-muted`.
-  - `danger`: `border-danger bg-danger text-fg-on-dark hover:brightness-95`.
-- Focus: `focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2`.
-- Disabled: `disabled:cursor-not-allowed disabled:opacity-60`.
-- 로딩 시 좌측에 3.5px spinner 를 넣고 `aria-busy` 를 세팅한다.
-
-### IconButton / TextField / OverlayModal
-
-- 같은 토큰·포커스·disabled 규칙을 재사용한다. 각 컴포넌트 파일 상단 JSDoc 이 언제 쓰고 피하는지의 기준이다.
-- **IconButton**: `variant` ghost(기본, 목록·카드 안) / outline(헤더처럼 단독) × `size` sm 24px(목록 줄 안 ⋯·+) / md 36px(기본). `aria-label` 필수.
-- **TextField**: `size` md 44px(인증 화면) / sm 40px(모달·설정 안). 입력창 border 는 `line-strong`, focus 는 `line-primary`, 오류는 `danger`.
-- **OverlayModal**: 폭은 `size` 로만 — sm 440 확인·짧은 입력 / md 520 기본 폼 / lg 640 여러 단계 폼 / xl 720 긴 답변·코드 보기. 임의 `max-w-[..]` 를 쓰지 않는다. footer 는 오른쪽 끝 [취소 secondary][주 액션 primary].
-
 ### LoginPage / SignupPage (인증 화면)
 
 - 중앙 정렬 `max-w-[520px]` 컨테이너, `gap-8`. 상단 타이틀 블록(`text-display font-medium`), 아래 폼 카드(`max-w-[360px] rounded-shell border border-line bg-surface p-6`).
 - 입력창: `h-10 w-full rounded-control border border-line-strong bg-surface px-3 text-body font-medium`. Focus: `focus:border-line-primary`. 오류: `border-danger`.
 - 제출 버튼: `h-10 w-full rounded-control bg-primary px-3 text-body font-medium text-fg-on-primary`. 알약 금지.
 - 하단 링크: `text-label text-fg-subtle` + `Link` 컴포넌트 (`font-medium text-fg-primary underline`).
-
-### ChatComposer
-
-- 컨테이너: `flex items-end gap-2 rounded-control bg-line-soft px-3 py-2 transition-colors focus-within:bg-primary-soft`. **테두리 없음, 배경 변화로 focus 표시**.
-- textarea: 컨테이너 내부, `flex-1 border-0 bg-transparent text-label leading-[1.6]`. 브라우저 기본 outline 은 `style={{ outline: 'none', boxShadow: 'none' }}` 로 제거. 컨테이너의 focus-within 배경 전환이 접근성 focus 표시를 대체한다.
-- 전송 버튼: **textarea 옆** (아래가 아님). `size-8` 정사각형 `rounded-control bg-primary`, disabled 시 `bg-line`. 이전 시안의 48px 아래 배치는 폐기.
-- 2000자 초과 경고는 컨테이너 밖 아래에 `text-caption text-fg-danger` 로 필요할 때만 노출한다.
-- 진행 상태(동기화 등)는 `status` prop 으로 입력창 **위**에 스피너 + 문구로 항상 보이게 한다. placeholder 에 상태를 넣지 않는다(글자를 치면 사라진다).
 
 ### 채팅 메시지 렌더링
 
@@ -235,38 +196,12 @@
 
 - 완료 카드: `article rounded-panel bg-surface p-3`. **테두리 없음**. 헤더 아래 여백 12px.
 - 스트리밍 카드: 완료 카드와 시각적으로 같다. 테두리를 두지 않는다. 상태 라벨은 헤더 오른쪽에 `· 요청 중...` / `· 스트리밍 중` 형태로 붙인다.
-- **AI 아바타** — `inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface` + 내부 Qode 심볼(`qode_logo_small.png`, 번들 import, size-4). 이전 시안의 오렌지 채움 `Q` 원은 폐기.
+- **AI 아바타** — `<Avatar kind="ai" size="md" />`(오렌지 테두리 원 + Qode 심볼). 이전 시안의 오렌지 채움 `Q` 원은 폐기.
 - 라벨: `text-label font-semibold text-fg-default` = `Qode AI`.
 - 스트리밍 표시:
   - `postPersonalMessage.isPending` 이 true 인 동안만 스트리밍 카드 렌더. onDone 즉시 hide.
   - streamContent 가 있으면 `MarkdownAnswer` 로 실시간 표시. 없으면 `찾아보는 중이에요...` + `LoadingDots`.
   - streamSources 는 완료 후 마지막 assistant 카드에 merge 되어 서버 미저장 케이스에서도 카드 유지.
-
-### MarkdownAnswer
-
-- Wrapper: `.markdown-answer text-body leading-[1.6] text-fg-default`. `memo` 로 감싸 스트리밍 중 불필요한 re-render 를 줄인다.
-- h1~h4 여백 `margin: 1em 0 0.5em`, p 여백 `margin: 0.6em 0`. 첫 문단은 `font-weight: 500` 로 살짝 강조.
-- 인라인 code 는 `bg-surface-muted border border-line-soft rounded-inline`.
-- 링크는 새 탭 `noopener noreferrer` + `text-fg-primary underline`.
-- 코드 펜스는 `CodeBlock` 이 자체 `<pre>` 를 렌더하므로 `<pre>` 래퍼는 벗겨서 중복을 방지한다.
-
-### CodeBlock (다크 테마)
-
-- 컨테이너: `rounded-control overflow-hidden border border-line-code bg-code`.
-- 헤더: `border-b border-line-code bg-code px-3 py-1 text-micro`. 좌: 언어 라벨 (`text-fg-code-muted font-mono`). 우: `복사` 버튼 (`text-fg-code-muted hover:text-fg-code`).
-- 본문: `prism-react-renderer` + `themes.oneDark`. `text-label leading-[1.55] p-3`. 배경은 컨테이너 색을 그대로 사용하도록 `style.background: 'transparent'` 로 덮어쓴다.
-- 라인 번호: `w-6 text-right text-fg-code-muted mr-3`.
-- 폰트 크기는 본문(text-body = 13px) 보다 살짝 작은 text-label (12px) 로 두어 코드 가독성과 카드 밀도 균형을 잡는다. 이보다 작으면 (text-caption) 코드가 판독이 어려워진다.
-
-### SourceList (참조 소스 목록, `ui/SourceList.tsx`)
-
-- 답변·요약이 참조한 코드 위치를 보여주는 **유일한** 컴포넌트. 메인 채팅, 원본 대화 모달, 팀 공유 카드, 공유 미리보기 4곳이 함께 쓴다. 새 화면에서 목록을 따로 만들지 않는다.
-- 카드: `rounded-card border border-line bg-surface`. 상자 안에 칩을 넣지 않는다.
-- 헤더(접기/펼치기 버튼, 기본 펼침): `참조 코드 · 파일 N개`. 셰브런은 사용하지 않는다.
-- **같은 파일은 한 줄로 묶는다.** 파일 순서는 서버가 준 순서(관련도) 그대로.
-- 한 줄: 파일명(`font-medium text-fg-default`, 최대 60%) → 폴더(`text-fg-muted`, 먼저 잘림) → 오른쪽 줄 범위(`tabular-nums`, `12–40 · 85–133`). 범위가 3개를 넘으면 `+N`, 전체는 `title` 툴팁.
-- 범위는 오름차순 정렬, 완전히 같은 범위만 합친다. 겹치는 범위는 AI 가 인용한 그대로 둔다. 실제 응답값만 표시하고 목데이터를 넣지 않는다.
-- 세로 공간이 제한된 모달에서만 `maxHeight` 로 높이를 제한한다(스크롤바만, fade 마스크 없음).
 
 ### 메시지 액션 (답변 하단)
 
@@ -278,22 +213,6 @@
 
 - `flex justify-center bg-surface px-6 py-3` 헤더. 하단 border 없음. 인라인 편집 input 은 `rounded-control border border-line-strong`.
 - 헤더 바로 아래 messages viewport 상단에 `pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-gradient-to-b from-surface to-transparent` 오버레이. 스크롤 시 콘텐츠가 헤더 뒤로 부드럽게 페이드된다.
-
-### InlineAlert / Toast
-
-- 오류 원인과 복구 행동을 함께 안내한다. 오렌지를 성공·실패 공통 상태색으로 사용하지 않는다.
-- 재시도 버튼은 alert 안에 `Button size="sm" variant="secondary"` 로 붙인다.
-- **어디에 띄울지**: 방금 한 동작의 결과, 놓쳐도 되는 것 → Toast(오른쪽 위, 몇 초 뒤 사라짐, `shadow-overlay`). 읽고 행동해야 하는 오류·계속 보여야 하는 안내 → InlineAlert(그 화면·폼 안). 입력 몇 개로 끝나는 작업·되돌릴 수 없는 확인 → OverlayModal. 목록 항목 하나에 딸린 작업 2~5개 → ChatItemMenu.
-- 스크린리더: 오류만 `role="alert"`(즉시), 안내·성공은 `role="status"`.
-
-### Avatar (`ui/Avatar.tsx`)
-
-- 사람·AI 를 나타내는 원은 모두 `<Avatar>` 로만 그린다. 원형 숫자·단계 표시는 아바타가 아니다.
-- `kind`: user(사진 또는 이니셜) · ai(오렌지 테두리 + Qode 심볼).
-- `size`: sm 24 메시지 · md 28 목록·헤더·사이드바 프로필 · lg 32 참여자 목록 · xl 40 프로필 창.
-- `tone`: brand(`bg-primary-soft font-semibold text-fg-primary`, 나·팀 강조) · neutral(`border border-line bg-surface-muted font-medium text-fg-muted`, 기본).
-- 사진(`src`)이 우선, 로드 실패 시 이니셜로 전환. 겹쳐 쌓을 땐 `ring`, 남은 인원은 `text="+N"`.
-- 이름이 옆에 글자로 있으므로 아바타는 스크린리더에서 숨긴다.
 
 ## SSE 스트리밍 렌더 라이프사이클
 
@@ -370,13 +289,16 @@
 
 ## 새 컴포넌트 추가 절차
 
-1. 기존 컴포넌트로 표현 가능한지 먼저 확인한다. 가능하면 확장을 우선.
+1. [`docs/registry.md`](docs/registry.md) 에서 기존 컴포넌트로 표현 가능한지 먼저 확인한다. 가능하면 확장을 우선.
 2. 사용하는 색·크기·간격이 위 토큰과 일치하는지 검토한다. 어긋나면 이 문서에 새 규칙을 추가하고 코드를 맞춘다.
 3. 접근성 체크: label, focus 표시, 색상 외 구분 수단, keyboard 조작 가능 여부.
 4. 스트리밍/비동기 상태가 있는 UI 는 위 **SSE 스트리밍 렌더 라이프사이클** 규칙을 따른다.
 5. 테스트 시 최소 4가지 상태를 봐야 한다: 기본 / hover · focus / disabled · loading / 오류.
+6. `ui/` 에 추가했다면 JSDoc(✅ Use / ❌ Don't) + `Name.meta.ts` + 스토리를 함께 만들고 `yarn tokens:check` 로 registry 를 다시 생성한다.
 
 ## 시안·구현 검토 체크리스트
+
+공통 항목(토큰·재사용·상태·접근성·안티패턴)은 [`docs/ai-review-checklist.md`](docs/ai-review-checklist.md). 아래는 Qode 화면 전용 항목이다.
 
 - [ ] 주요 과제(질문·답변)가 시각적으로 가장 분명하고 동일 정보가 중복되지 않는다.
 - [ ] 사이드바 섹션이 숨겨져 있고, sync 버튼이 w-full + 인라인 상태 텍스트로 표시된다.
@@ -390,12 +312,8 @@
 - [ ] 메인 채팅 영역이 크림 캔버스 위에 `rounded-shell` 흰 카드로 부유한다.
 - [ ] 스트리밍 article 이 `postPersonalMessage.isPending` false 되는 즉시 사라진다. 완료 카드와 겹치는 순간이 없다.
 - [ ] AI 답변 카드에 테두리 없음 (완료·스트리밍 모두).
-- [ ] 미구현 기능이나 가공한 운영 지표가 추가되지 않았다.
-- [ ] 빈 화면·로딩·생성 중·실패·비활성 상태가 정의되어 있다.
 - [ ] 긴 한국어 제목·긴 답변·긴 파일 경로에서 레이아웃이 유지된다.
 - [ ] 글자 확대(`data-font-size='large'`) 와 키보드 조작에서 입력창·메뉴·동기화에 접근 가능하다.
-- [ ] 기본·hover·focus 상태의 대비와 토큰 참조를 확인했다.
-- [ ] 같은 요소의 재구현 없이 기존 컴포넌트를 재사용한다.
 
 ## Open questions
 
