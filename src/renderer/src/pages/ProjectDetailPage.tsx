@@ -53,6 +53,7 @@ import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
 import { mapResponseError } from '../lib/response-errors';
 import { mapSyncError } from '../lib/sync-errors';
+import qodeMark from '../public/qode_logo_small.png';
 
 type TeamChatMenuAction = 'rename' | 'invite' | 'members' | 'delete' | 'leave' | 'create';
 
@@ -1262,7 +1263,7 @@ export const ProjectDetailPage = ({
                         className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface"
                       >
                         <img
-                          src="/favicon.ico"
+                          src={qodeMark}
                           alt=""
                           aria-hidden="true"
                           className="size-4 object-contain"
@@ -1329,7 +1330,7 @@ export const ProjectDetailPage = ({
                       className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface"
                     >
                       <img
-                        src="/favicon.ico"
+                        src={qodeMark}
                         alt=""
                         aria-hidden="true"
                         className="size-4 object-contain"

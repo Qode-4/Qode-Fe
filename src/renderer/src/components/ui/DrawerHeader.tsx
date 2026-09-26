@@ -4,6 +4,7 @@ import type { IconName } from '../icons/iconTypes';
 import { IconButton } from './IconButton';
 import { ProjectSwitcher } from './ProjectSwitcher';
 import { cn } from '../../lib/cn';
+import qodeMark from '../../public/qode_logo_small.png';
 
 type Props = {
   className?: string;
@@ -40,7 +41,7 @@ export const DrawerHeader = ({
         {logo ?? (
           <>
             <img
-              src="/favicon.ico"
+              src={qodeMark}
               alt=""
               aria-hidden="true"
               className="inline-block size-5 shrink-0 rounded-full"
