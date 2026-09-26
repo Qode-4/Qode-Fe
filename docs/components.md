@@ -1,7 +1,7 @@
 # Quire Components — 컴포넌트 인벤토리 & API 컨벤션
 
 - 상태: **In sync** — Phase C 1차(2026-09-25). 판정은 기록만 하고, 실행한 것은 §3에 표시한다.
-- 상위 문서: [`SYSTEM.md`](../SYSTEM.md) · 토큰: [`docs/foundations.md`](./foundations.md) · 시각 규칙: [`DESIGN.md`](../DESIGN.md)
+- 상위 문서: [`SYSTEM.md`](../SYSTEM.md) · 토큰: [`docs/foundations.md`](./foundations.md) · 시각 규칙: [`DESIGN.md`](../DESIGN.md) · 컴포넌트 registry: [`docs/registry.md`](./registry.md)
 - 집계 기준: `src/renderer/src`(generated·stories 제외) import 검색, 2026-09-25.
 
 ---
@@ -48,6 +48,7 @@ import { cn } from '../../lib/cn';
 
 - 파일 상단 JSDoc: 한 줄 정의 + `✅ Use` + `❌ Don't` (5줄 이내). 예: `components/ui/SourceList.tsx`.
 - 새 `ui/` 컴포넌트는 스토리 필수. 상태(기본 / 긴 내용 / 비어 있음 / 제한된 공간)를 스토리로 남긴다.
+- 옆에 `Name.meta.ts`(`componentMeta.ts` 스키마): 쓸 때·피할 때·관련·패턴. `yarn tokens:check` 가 이를 모아 [`docs/registry.md`](./registry.md) 를 만든다(Phase E). 컴포넌트별 규칙은 DESIGN.md 가 아니라 여기에 둔다.
 
 ---
 

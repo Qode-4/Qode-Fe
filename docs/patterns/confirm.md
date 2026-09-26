@@ -36,6 +36,7 @@
 - 이미 열린 모달 안의 목록에서 되돌릴 수 없는 동작(예: 팀 채팅 멤버 내보내기)은 `ConfirmDialog` 를 겹치지 않는다(모달 위 모달 금지).
 - 그 줄이 `내보낼까요? [취소] [내보내기]` 로 바뀐다. 포커스는 `취소` 에 먼저 둔다(실수 방지).
 - 실패는 모달 위쪽 InlineAlert 로, 성공하면 줄이 원래대로.
+- 참고 구현: `components/feature/teamChat/TeamChatMembersModal.tsx` — `confirmKickId` 상태, `autoFocus` 취소, `isLoading` 확인 버튼, `kick.isError` InlineAlert, 닫을 때 `reset()`.
 
 ### 공통 규칙
 

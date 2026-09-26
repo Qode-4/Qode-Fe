@@ -4,7 +4,7 @@
 
 - 상태: **Draft** — Phase A(정체성 & 브랜딩) 결정 반영. 팀 리뷰 후 확정한다.
 - 갱신일: 2026-09-25.
-- 관계: 이 문서는 Qode 디자인 시스템의 상위 정체성 문서다. 시각·컴포넌트 규칙은 [`DESIGN.md`](./DESIGN.md), 실제 토큰 값은 `src/renderer/src/assets/main.css`가 기준이다.
+- 관계: 이 문서는 Qode 디자인 시스템의 상위 정체성 문서다. 시각·화면 규칙은 [`DESIGN.md`](./DESIGN.md), 컴포넌트 규칙은 [`docs/registry.md`](./docs/registry.md), 실제 토큰 값은 `src/renderer/src/assets/main.css`가 기준이다.
 
 ---
 
@@ -86,10 +86,14 @@ Phase B~G의 결정도 Context 밸류에 따라 결정 사항과 이유를 함�
 
 ## 7. 관련 문서
 
-| 문서                               | 담당                  | 관계                                                       |
-| ---------------------------------- | --------------------- | ---------------------------------------------------------- |
-| `SYSTEM.md`                        | 정체성·철학·로드맵    | 최상위. 다른 문서와 철학이 어긋나면 여기를 먼저 검토한다.  |
-| [`DESIGN.md`](./DESIGN.md)         | 시각·컴포넌트 규칙    | 시각/컴포넌트 기준서.                                      |
-| `src/renderer/src/assets/main.css` | 토큰 실제 값          | 값의 기준.                                                 |
-| [`AGENTS.md`](./AGENTS.md)         | AI 에이전트 작업 안내 | 코드 구조·명령어. Phase E에서 Quire 검수 규칙과 연결 예정. |
-| [`README.md`](./README.md)         | 프로젝트 소개         | —                                                          |
+| 문서                                                           | 담당                  | 관계                                                            |
+| -------------------------------------------------------------- | --------------------- | --------------------------------------------------------------- |
+| `SYSTEM.md`                                                    | 정체성·철학·로드맵    | 최상위. 다른 문서와 철학이 어긋나면 여기를 먼저 검토한다.       |
+| [`DESIGN.md`](./DESIGN.md)                                     | 시각·화면 규칙        | 브랜드·시각 언어·화면 구성·접근성 기준서.                       |
+| [`docs/foundations.md`](./docs/foundations.md)                 | 토큰 의미             | 토큰 이름과 쓰임.                                               |
+| [`docs/registry.md`](./docs/registry.md)                       | 컴포넌트 규칙         | `ui/*.meta.ts` 에서 생성. 쓸 때·피할 때·옵션·토큰.              |
+| [`docs/patterns/`](./docs/patterns/README.md)                  | 패턴 결정             | 확인·에러·피드백·빈 상태·로딩.                                  |
+| [`docs/ai-review-checklist.md`](./docs/ai-review-checklist.md) | 검수                  | 머지 전 체크리스트. 🤖 항목은 `yarn tokens:check` 가 자동 검사. |
+| `src/renderer/src/assets/main.css`                             | 토큰 실제 값          | 값의 기준.                                                      |
+| [`AGENTS.md`](./AGENTS.md)                                     | AI 에이전트 작업 안내 | 코드 구조·명령어. UI 작업 전 읽을 Quire 문서를 안내한다.        |
+| [`README.md`](./README.md)                                     | 프로젝트 소개         | —                                                               |
