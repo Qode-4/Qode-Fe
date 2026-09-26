@@ -2,7 +2,7 @@
 
 > **Every decision, remembered.**
 
-- 상태: **Draft** — Phase A(정체성 & 브랜딩) 결정 반영. 팀 리뷰 후 확정한다.
+- 상태: **Draft** (2026-09-26) — Phase A(정체성 & 브랜딩) 결정 반영. 팀 리뷰 후 확정한다.
 - 갱신일: 2026-09-25.
 - 관계: 이 문서는 Qode 디자인 시스템의 상위 정체성 문서다. 시각·화면 규칙은 [`DESIGN.md`](./DESIGN.md), 컴포넌트 규칙은 [`docs/registry.md`](./docs/registry.md), 실제 토큰 값은 `src/renderer/src/assets/main.css`가 기준이다.
 
@@ -72,15 +72,15 @@
 
 ## 6. 이후 로드맵
 
-| Phase | 이름                 | 요약                                                                                           |
-| ----- | -------------------- | ---------------------------------------------------------------------------------------------- |
-| **A** | 정체성 & 브랜딩      | 이 문서                                                                                        |
-| B     | 파운데이션 재편      | 토큰 3-tier(raw → semantic → component), 색상 역할 분리, 접근성 매트릭스, 타이포·radius 명시화 |
-| C     | 컴포넌트 정비        | 인벤토리·상태 판정, API 컨벤션, "언제 쓰고 언제 피하나" 명세                                   |
-| D     | 패턴 & 의사결정 기록 | 확인·피드백·에러 등 반복 패턴의 결정 트리와 Do/Don't                                           |
-| E     | AI 컨텍스트          | `DESIGN.md` 스키마 표준화, 컴포넌트 registry, AI 검수 체크리스트                               |
-| F     | 화면 밖 경험         | 모션 토큰, 카피 톤, loading/error/empty/success 표준                                           |
-| G     | 운영                 | 변경 프로세스, Storybook addon, SoT 우선순위 규칙                                              |
+| Phase | 이름                 | 요약                                                                                           | 상태           |
+| ----- | -------------------- | ---------------------------------------------------------------------------------------------- | -------------- |
+| **A** | 정체성 & 브랜딩      | 이 문서                                                                                        | 완료           |
+| B     | 파운데이션 재편      | 토큰 3-tier(raw → semantic → component), 색상 역할 분리, 접근성 매트릭스, 타이포·radius 명시화 | 완료 (#53)     |
+| C     | 컴포넌트 정비        | 인벤토리·상태 판정, API 컨벤션, "언제 쓰고 언제 피하나" 명세                                   | 완료 (#54~#56) |
+| D     | 패턴 & 의사결정 기록 | 확인·피드백·에러 등 반복 패턴의 결정 트리와 Do/Don't                                           | 완료 (#57)     |
+| E     | AI 컨텍스트          | `DESIGN.md` 스키마 표준화, 컴포넌트 registry, AI 검수 체크리스트                               | 완료 (#58)     |
+| F     | 화면 밖 경험         | 모션 토큰, 카피 톤, loading/error/empty/success 표준                                           | 완료 (#59)     |
+| G     | 운영                 | 변경 프로세스, Storybook addon, SoT 우선순위 규칙                                              | 완료           |
 
 Phase B~G의 결정도 Context 밸류에 따라 결정 사항과 이유를 함께 남긴다.
 
@@ -92,6 +92,7 @@ Phase B~G의 결정도 Context 밸류에 따라 결정 사항과 이유를 함�
 | [`DESIGN.md`](./DESIGN.md)                                     | 시각·화면 규칙        | 브랜드·시각 언어·화면 구성·접근성 기준서.                       |
 | [`docs/foundations.md`](./docs/foundations.md)                 | 토큰 의미             | 토큰 이름과 쓰임.                                               |
 | [`docs/registry.md`](./docs/registry.md)                       | 컴포넌트 규칙         | `ui/*.meta.ts` 에서 생성. 쓸 때·피할 때·옵션·토큰.              |
+| [`docs/process/`](./docs/process/change-flow.md)               | 운영                  | 변경 흐름·문서 우선순위·상태 헤더 규칙.                         |
 | [`docs/copy.md`](./docs/copy.md)                               | 화면 문구             | 해요체·상황별 톤·용어집. 🤖 일부 자동 검사.                     |
 | [`docs/patterns/`](./docs/patterns/README.md)                  | 패턴 결정             | 확인·에러·피드백·빈 상태·로딩.                                  |
 | [`docs/ai-review-checklist.md`](./docs/ai-review-checklist.md) | 검수                  | 머지 전 체크리스트. 🤖 항목은 `yarn tokens:check` 가 자동 검사. |

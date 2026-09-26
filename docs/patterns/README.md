@@ -1,6 +1,6 @@
 # Quire Patterns — 반복 UX 패턴과 결정 기록
 
-- 상태: **In sync** — Phase D. 패턴마다 결정 트리 → 문서 → 어긋난 코드 수정 → 전/후 확인 순서로 진행한다.
+- 상태: **In sync** (2026-09-26) — Phase D. 패턴마다 결정 트리 → 문서 → 어긋난 코드 수정 → 전/후 확인 순서로 진행한다.
 - 상위 문서: [`SYSTEM.md`](../../SYSTEM.md) · 컴포넌트: [`docs/components.md`](../components.md) · 토큰: [`docs/foundations.md`](../foundations.md)
 
 컴포넌트보다 한 층 위의 "이럴 땐 무엇을 쓰나"를 정리한다. 새 화면을 만들 때 같은 결정을 다시 하지 않는 것이 목적이다.

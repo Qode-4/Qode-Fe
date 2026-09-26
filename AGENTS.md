@@ -105,6 +105,12 @@ vanilla-extract 플러그인이 세 곳(electron.vite, renderer vite, storybook)
 - pre-push: `build` (즉 typecheck가 두 번 돌아 푸시가 느리다)
 - commit-msg: 브랜치 이름의 숫자를 이슈 번호로 뽑아 커밋 제목 끝에 ` (#123)` 자동 추가
 
+## CI
+
+`.github/workflows/ci.yml` — develop·main 으로 가는 PR 마다 lint · typecheck · test · tokens:check · build.
+`tokens:check` 가 다시 만든 `docs/registry.md`·`docs/tokens/contrast-matrix.md` 가 커밋본과 다르면 실패하니 함께 커밋한다.
+토큰·컴포넌트·패턴을 새로 만들거나 바꿀 때는 [`docs/process/change-flow.md`](docs/process/change-flow.md), 문서끼리 어긋나면 [`docs/process/sot-priority.md`](docs/process/sot-priority.md).
+
 ## 배포
 
 `v*` 태그 푸시 → Electron 3플랫폼 패키징(`release.yml`). `main` 브랜치 푸시 → 웹 정적 빌드 EC2 배포(`web-deploy-ec2.yml`).
