@@ -3,7 +3,7 @@ import { Button } from '../../ui/Button';
 import { MarkdownAnswer } from '../../ui/MarkdownAnswer';
 import { SourceList } from '../../ui/SourceList';
 import { cleanAnswerSources, mergeSources } from '../../../lib/inlineSources';
-import qodeMark from '../../../public/qode_logo_small.png';
+import { Avatar } from '../../ui/Avatar';
 
 // DigestSourceView 모달의 본문. 컨테이너와 분리해 스토리에서 fake data 로 직접 렌더할 수 있게 함.
 
@@ -145,12 +145,7 @@ const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
 
       <article className="min-w-0 rounded-panel bg-surface p-3">
         <div className="mb-2 flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="inline-flex size-6 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface"
-          >
-            <img src={qodeMark} alt="" aria-hidden="true" className="size-3.5 object-contain" />
-          </span>
+          <Avatar kind="ai" size="sm" />
           <span className="text-caption font-semibold text-fg-default">Qode AI</span>
         </div>
 

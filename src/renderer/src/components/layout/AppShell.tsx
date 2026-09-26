@@ -56,6 +56,7 @@ import { Icon } from '../ui/Icon';
 import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
 import { cn } from '../../lib/cn';
+import { Avatar } from '../ui/Avatar';
 import { TextField } from '../ui/TextField';
 
 type Props = {
@@ -95,8 +96,6 @@ type ProjectMenuAction = {
 type SectionMenuAction = { key: 'rename' | 'createFolder' | 'delete'; label: string };
 type SettingsActionKind = 'profile' | 'logout';
 type SettingsMenuAction = { key: SettingsActionKind; label: string; iconName: IconName };
-type AvatarSize = 'sm' | 'md';
-
 const VIEWPORT_MARGIN = 8;
 const SETTINGS_MENU_WIDTH = 196;
 const PROFILE_DIALOG_WIDTH = 240;
@@ -106,11 +105,6 @@ const PROFILE_DIALOG_GAP = 17;
 // sm(640) 미만: 팝오버/메뉴는 바텀시트 (모달 풀스크린은 OverlayModal 자체에서 처리).
 const MOBILE_SHEET_CLASS =
   'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-shell border-t border-line bg-surface p-2 shadow-overlay';
-
-const avatarSizeClassMap: Record<AvatarSize, string> = {
-  sm: 'size-7 text-caption',
-  md: 'size-10 text-body'
-};
 
 const drawerTypography = {
   sectionTitle: 'text-caption',
@@ -127,56 +121,6 @@ const drawerTypography = {
   fontSizeLabel: 'text-micro',
   fontSizeOption: 'text-micro'
 } as const;
-
-type AvatarVariant = 'default' | 'brand';
-
-const UserAvatar = ({
-  name,
-  avatarUrl,
-  size,
-  variant = 'default'
-}: {
-  name: string;
-  avatarUrl?: string | null;
-  size: AvatarSize;
-  variant?: AvatarVariant;
-}): React.JSX.Element => {
-  const initial = name.trim().charAt(0).toUpperCase() || '?';
-  const sizeClassName = avatarSizeClassMap[size];
-  // avatarUrl이 바뀌면 실패 플래그를 초기화한다 — 이전 URL 실패가 새 URL을 가리면 안 된다.
-  // useEffect 대신 렌더 중 파생 상태 조정 패턴 (React 공식 권장).
-  const [imgFailed, setImgFailed] = useState(false);
-  const [prevAvatarUrl, setPrevAvatarUrl] = useState(avatarUrl);
-  if (avatarUrl !== prevAvatarUrl) {
-    setPrevAvatarUrl(avatarUrl);
-    setImgFailed(false);
-  }
-
-  if (avatarUrl && !imgFailed) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={`${name} 프로필 이미지`}
-        onError={() => setImgFailed(true)}
-        className={`inline-flex shrink-0 rounded-full border border-line object-cover ${sizeClassName}`}
-      />
-    );
-  }
-
-  const fallbackClassName =
-    variant === 'brand'
-      ? 'bg-primary-soft font-semibold text-fg-primary'
-      : 'border border-line bg-surface-muted font-medium text-fg-muted';
-
-  return (
-    <div
-      className={`inline-flex shrink-0 items-center justify-center rounded-full ${fallbackClassName} ${sizeClassName}`}
-      aria-hidden="true"
-    >
-      {initial}
-    </div>
-  );
-};
 
 // 팀당 최대 인원. 서버(project.service.ts MAX_TEAM_MEMBERS)와 같은 값이어야 한다.
 // 화면은 안내만 하고 실제 차단은 서버가 한다 — A-2 BR-A2-04.
@@ -1626,7 +1570,7 @@ export const AppShell = ({
               className="flex items-center gap-2 border-t border-line pt-3 pr-0 pb-4 pl-1"
               aria-label="프로필"
             >
-              <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" variant="brand" />
+              <Avatar name={userName} src={userAvatarUrl} size="md" tone="brand" />
               <p className="min-w-0 flex-1 truncate text-body font-semibold text-fg-default">
                 {userName}
               </p>
@@ -1724,7 +1668,7 @@ export const AppShell = ({
               onKeyDown={handleSettingsMenuKeyDown}
             >
               <div className="flex items-center gap-2 p-2">
-                <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" />
+                <Avatar name={userName} src={userAvatarUrl} size="md" />
                 <div className="min-w-0">
                   <p
                     className={[
@@ -1973,7 +1917,7 @@ export const AppShell = ({
 
               <div className="px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="md" />
+                  <Avatar name={userName} src={userAvatarUrl} size="xl" />
                   <div className="min-w-0 flex-1">
                     <input
                       value={userName}
@@ -2336,7 +2280,7 @@ export const AppShell = ({
                     className="grid grid-cols-[minmax(0,1fr)_120px_160px] max-sm:grid-cols-1 max-sm:gap-y-2 items-center border-b border-line-soft px-3 py-3 last:border-b-0"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size="sm" />
+                      <Avatar name={member.name} src={member.avatarUrl} size="md" />
                       <div className="min-w-0">
                         <div className="truncate text-label font-semibold text-fg-default">
                           {member.name}

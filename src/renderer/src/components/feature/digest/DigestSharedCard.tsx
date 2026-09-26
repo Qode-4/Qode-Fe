@@ -5,6 +5,7 @@ import { Icon } from '../../ui/Icon';
 import { MarkdownAnswer } from '../../ui/MarkdownAnswer';
 import { SourceList } from '../../ui/SourceList';
 import { extractReferenceLines, mergeSources } from '../../../lib/inlineSources';
+import { Avatar } from '../../ui/Avatar';
 
 // 팀채팅에 도착한 개인채팅 답변 요약 공유 카드.
 // 일반 팀채팅 메시지(회색/유저 말풍선)와 시각적으로 구분해 카드 형태로 렌더한다.
@@ -16,7 +17,6 @@ type Props = {
   content: string;
   sources: SourceItem[];
   senderName: string;
-  senderInitial?: string;
   createdAt: string;
   isMe: boolean;
   hasSourceLink?: boolean;
@@ -36,7 +36,6 @@ export const DigestSharedCard = ({
   content,
   sources,
   senderName,
-  senderInitial,
   createdAt,
   isMe,
   hasSourceLink,
@@ -45,7 +44,6 @@ export const DigestSharedCard = ({
   isDeleting
 }: Props): React.JSX.Element => {
   const time = formatTime(createdAt);
-  const initial = (senderInitial ?? senderName.charAt(0) ?? '?').toUpperCase();
 
   const menuActions: ChatItemMenuAction[] = isMe
     ? [
@@ -65,9 +63,7 @@ export const DigestSharedCard = ({
 
   return (
     <div className="group flex items-start gap-2">
-      <div className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface-muted text-caption font-medium text-fg-muted">
-        {initial}
-      </div>
+      <Avatar name={senderName} size="sm" />
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2 text-micro">

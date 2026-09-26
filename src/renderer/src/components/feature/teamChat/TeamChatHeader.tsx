@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useGetTeamChatParticipants } from '../../../api/auth/useTeamChatAPI';
 import { ChatItemMenu, type ChatItemMenuAction } from '../../ui/ChatItemMenu';
 import { sortParticipants } from './sortParticipants';
+import { Avatar } from '../../ui/Avatar';
 
 type Props = {
   chatId: string;
@@ -15,12 +16,6 @@ type Props = {
 };
 
 const AVATAR_STACK_LIMIT = 4;
-
-const initialOf = (name?: string | null): string => {
-  const trimmed = (name ?? '').trim();
-  if (!trimmed) return '?';
-  return trimmed.charAt(0).toUpperCase();
-};
 
 // 활성 팀채팅 상단에 이름·참여자 수·참여자 아바타 스택·⋯ 액션 메뉴를 렌더한다.
 // 메뉴 항목은 viewer 의 방장 여부에 따라 rename/delete 를 조건부 노출하고, invite/members/leave
@@ -113,28 +108,17 @@ export const TeamChatHeader = ({
 
       <div className="flex shrink-0 items-center gap-2">
         <div className="flex items-center -space-x-2" aria-hidden="true">
-          {preview.map((participant) =>
-            participant.avatarUrl ? (
-              <img
-                key={participant.userId}
-                src={participant.avatarUrl}
-                alt=""
-                className="size-7 rounded-full border-2 border-surface object-cover"
-              />
-            ) : (
-              <span
-                key={participant.userId}
-                className="inline-flex size-7 items-center justify-center rounded-full border-2 border-surface bg-primary-soft text-micro font-semibold text-fg-primary"
-              >
-                {initialOf(participant.userName)}
-              </span>
-            )
-          )}
-          {remaining > 0 ? (
-            <span className="inline-flex size-7 items-center justify-center rounded-full border-2 border-surface bg-surface-muted text-micro font-medium text-fg-muted">
-              +{remaining}
-            </span>
-          ) : null}
+          {preview.map((participant) => (
+            <Avatar
+              key={participant.userId}
+              name={participant.userName}
+              src={participant.avatarUrl}
+              size="md"
+              tone="brand"
+              ring
+            />
+          ))}
+          {remaining > 0 ? <Avatar text={`+${remaining}`} size="md" tone="neutral" ring /> : null}
         </div>
 
         <ChatItemMenu

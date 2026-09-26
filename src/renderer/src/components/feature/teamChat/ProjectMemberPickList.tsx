@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Avatar } from '../../ui/Avatar';
 
 export type PickListMember = {
   id: string;
@@ -17,8 +18,6 @@ type Props = {
   searchPlaceholder?: string;
   ariaLabel?: string;
 };
-
-const initialOf = (name: string): string => name.trim().charAt(0).toUpperCase() || '?';
 
 export const ProjectMemberPickList = ({
   members,
@@ -86,21 +85,7 @@ export const ProjectMemberPickList = ({
                     onChange={() => onToggle(member.id)}
                     aria-label={`${member.name} 선택`}
                   />
-                  {member.avatarUrl ? (
-                    <img
-                      src={member.avatarUrl}
-                      alt=""
-                      aria-hidden
-                      className="size-7 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span
-                      aria-hidden
-                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-caption font-semibold text-fg-primary"
-                    >
-                      {initialOf(member.name)}
-                    </span>
-                  )}
+                  <Avatar name={member.name} src={member.avatarUrl} size="md" tone="brand" />
                   <span className="min-w-0 flex-1 truncate text-label text-fg-default">
                     {member.name}
                   </span>

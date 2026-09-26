@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { TeamChatParticipantRole } from '../../../api/contracts/teamChat';
+import { Avatar } from '../../ui/Avatar';
 
 type Props = {
   name?: string | null;
@@ -7,42 +8,6 @@ type Props = {
   avatarUrl?: string | null;
   action?: ReactNode;
   emphasized?: boolean;
-};
-
-const initialOf = (name?: string | null): string => {
-  const trimmed = (name ?? '').trim();
-  if (!trimmed) return '?';
-  return trimmed.charAt(0).toUpperCase();
-};
-
-const Avatar = ({
-  name,
-  avatarUrl
-}: {
-  name?: string | null;
-  avatarUrl?: string | null;
-}): React.JSX.Element => {
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt=""
-        aria-hidden
-        className="size-8 rounded-full object-cover"
-        onError={(event) => {
-          event.currentTarget.style.display = 'none';
-        }}
-      />
-    );
-  }
-  return (
-    <span
-      aria-hidden
-      className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-caption font-semibold text-fg-primary"
-    >
-      {initialOf(name)}
-    </span>
-  );
 };
 
 export const ParticipantListItem = ({
@@ -59,7 +24,7 @@ export const ParticipantListItem = ({
         emphasized ? 'bg-surface-muted' : ''
       ].join(' ')}
     >
-      <Avatar name={name} avatarUrl={avatarUrl} />
+      <Avatar name={name} src={avatarUrl} size="lg" tone="brand" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-label font-medium text-fg-default">{name ?? '이름 없음'}</p>
       </div>
