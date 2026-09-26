@@ -81,7 +81,7 @@ export const Step2SummaryPreview = ({
           <MarkdownAnswer content={body.content} />
         ) : (
           <p className="text-label text-fg-subtle">
-            {isStreaming ? '요약을 생성하고 있어요…' : '요약을 준비 중입니다.'}
+            {isStreaming ? '요약을 생성하고 있어요…' : '요약을 준비하는 중…'}
           </p>
         )}
       </article>
@@ -99,7 +99,7 @@ export const Step2SummaryPreview = ({
 
       {showExhausted ? (
         <div className="rounded-control border border-danger/40 bg-danger/5 p-3 text-caption text-fg-danger">
-          재시도 횟수가 모두 소진되었습니다. 잠시 후 다시 시도해주세요.
+          다시 시도할 수 있는 횟수를 모두 썼어요. 잠시 후 다시 시도해주세요.
         </div>
       ) : null}
     </div>

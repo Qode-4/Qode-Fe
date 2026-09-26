@@ -49,7 +49,7 @@ export const Default: Story = {
 
 export const Sending: Story = {
   args: {
-    value: '답변을 생성하고 있습니다...',
+    value: '이 함수는 어디서 호출돼?',
     canSend: false,
     isSending: true
   },
@@ -81,7 +81,7 @@ export const Syncing: Story = {
     status: '코드를 동기화하는 중이에요 · 42%',
     disabled: true,
     canSend: false,
-    sendDisabledReason: '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.'
+    sendDisabledReason: '코드를 동기화하는 중이에요. 잠시 후 다시 시도해주세요.'
   },
   render: (args): React.JSX.Element => (
     <div className="w-[406px]">

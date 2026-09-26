@@ -75,10 +75,10 @@ export const TransferOwnershipModal = ({
   };
 
   return (
-    <OverlayModal open={open} onClose={handleClose} title="방장 양도" size="sm">
+    <OverlayModal open={open} onClose={handleClose} title="방장 넘기기" size="sm">
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <p className="text-label leading-[1.6] text-fg-default">
-          새 방장을 선택하세요. 양도가 완료되면 회원님은 자동으로 채팅방에서 나가게 됩니다.
+          새 방장을 선택해주세요. 방장을 넘기면 채팅방에서 자동으로 나가요.
         </p>
 
         {participants.isError ? (
@@ -104,13 +104,13 @@ export const TransferOwnershipModal = ({
             {participants.isLoading ? (
               <li className="px-3 py-6">
                 <StateMessage kind="loading" align="center">
-                  참여자를 불러오는 중...
+                  참여자를 불러오는 중…
                 </StateMessage>
               </li>
             ) : candidates.length === 0 ? (
               <li className="px-3 py-6">
                 <StateMessage kind="empty" align="center">
-                  양도할 수 있는 다른 참여자가 없습니다.
+                  방장을 넘길 수 있는 다른 참여자가 없어요.
                 </StateMessage>
               </li>
             ) : (
@@ -143,7 +143,7 @@ export const TransferOwnershipModal = ({
         )}
 
         {serverError ? (
-          <InlineAlert tone="danger" title="양도 실패">
+          <InlineAlert tone="danger" title="방장을 넘기지 못했어요">
             {serverError}
           </InlineAlert>
         ) : null}
@@ -159,7 +159,7 @@ export const TransferOwnershipModal = ({
             취소
           </Button>
           <Button type="submit" size="sm" disabled={!canSubmit} isLoading={transfer.isPending}>
-            양도하기
+            넘기기
           </Button>
         </div>
       </form>

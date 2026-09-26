@@ -75,7 +75,7 @@ export const ErrorWithRetries: Story = {
     status: 'error',
     content: '',
     sources: [],
-    error: { message: '요약 서버가 응답하지 않습니다. 잠시 후 다시 시도해주세요.' },
+    error: { message: '요약 서버가 응답하지 않아요. 잠시 후 다시 시도해주세요.' },
     retriesRemaining: 2
   }
 };

@@ -34,6 +34,9 @@
 
   --palette-black: #000000;
   --palette-white: #ffffff;
+
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
 }
 
 /* ─── Tier 2 · Semantic ──────────────────────────────────────────────────
@@ -111,6 +114,20 @@
   /* Elevation — 떠서 다른 콘텐츠를 가리는 요소 전용 하나만. 새 그림자는 문서에 먼저 등록한다. */
   --shadow-*: initial;
   --shadow-overlay: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* 모션 (docs/foundations.md §10)
+     hover 색·셰브런 회전 같은 작은 전환은 transition-* 만 쓰면 기본값(fast)이 붙는다.
+     화면에 나타나고 움직이는 것(토스트·드로어)은 duration-base + ease-enter. */
+  --ease-*: initial;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --default-transition-duration: var(--motion-fast);
+  --default-transition-timing-function: var(--ease-standard);
+}
+
+@utility duration-base {
+  transition-duration: var(--motion-base);
 }
 
 @layer base {

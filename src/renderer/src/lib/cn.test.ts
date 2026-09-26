@@ -23,6 +23,15 @@ describe('cn', () => {
     expect(cn('shadow-none', 'shadow-overlay')).toBe('shadow-overlay');
   });
 
+  it('모션 토큰을 같은 속성끼리만 합친다', () => {
+    expect(cn('duration-base ease-enter', 'duration-base ease-exit')).toBe(
+      'duration-base ease-exit'
+    );
+    expect(cn('transition-transform', 'duration-base', 'ease-enter')).toBe(
+      'transition-transform duration-base ease-enter'
+    );
+  });
+
   it('조건부 값과 falsy 를 처리한다', () => {
     const active = false;
     expect(cn('px-2', active && 'bg-primary-soft', undefined, null, '')).toBe('px-2');

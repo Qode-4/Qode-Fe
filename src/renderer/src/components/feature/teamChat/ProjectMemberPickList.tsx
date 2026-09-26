@@ -28,7 +28,7 @@ export const ProjectMemberPickList = ({
   excludedIds = [],
   onToggle,
   max,
-  emptyMessage = '검색 결과가 없습니다.',
+  emptyMessage = '검색 결과가 없어요.',
   loadingMessage,
   searchPlaceholder = '이름 검색',
   ariaLabel = '멤버 선택 목록'

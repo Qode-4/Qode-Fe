@@ -68,7 +68,7 @@ export const RenameTeamChatModal = ({
     } catch (error) {
       const info = handleApiError(error);
       if (info.status === 409) {
-        setServerError('이미 사용 중인 채팅방 이름입니다.');
+        setServerError('이미 쓰고 있는 채팅방 이름이에요.');
         return;
       }
       if (info.status === 403) {

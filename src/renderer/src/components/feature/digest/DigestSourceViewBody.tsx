@@ -66,7 +66,7 @@ export const DigestSourceViewBody = ({
         {status === 'error' ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
             <p className="text-label text-fg-danger">
-              {errorMessage ?? '원본 대화를 불러오지 못했습니다.'}
+              {errorMessage ?? '원본 대화를 불러오지 못했어요.'}
             </p>
             {onRetry ? (
               <Button type="button" size="sm" variant="secondary" onClick={onRetry}>
@@ -78,7 +78,7 @@ export const DigestSourceViewBody = ({
 
         {status === 'ready' && pairs.length === 0 ? (
           <StateMessage kind="empty" align="center" className="py-8">
-            공유된 대화가 없습니다.
+            공유된 대화가 없어요.
           </StateMessage>
         ) : null}
 

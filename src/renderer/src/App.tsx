@@ -185,7 +185,7 @@ const App = (): React.JSX.Element => {
 
     handledDeletedProjectIdRef.current = selectedProjectId;
 
-    toast.info('해당 프로젝트가 삭제되었습니다.');
+    toast.info('이 프로젝트는 삭제됐어요.');
     queryClient.setQueriesData<ProjectsListData>({ queryKey: ['projects'] }, (old) => {
       if (!old) return old;
       return { ...old, data: old.data.filter((p) => p.id !== selectedProjectId) };
@@ -227,7 +227,7 @@ const App = (): React.JSX.Element => {
           <h1 className="text-display font-semibold tracking-tight text-fg-default">
             어서오세요, {loginTransitionUserName}님!
           </h1>
-          <p className="mt-2 text-label text-fg-subtle">잠시만요, 준비하고 있어요...</p>
+          <p className="mt-2 text-label text-fg-subtle">잠시만요, 준비하고 있어요…</p>
           <Spinner size="lg" tone="brand" className="mx-auto mt-5 block" />
         </div>
       </div>

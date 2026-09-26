@@ -11,7 +11,11 @@ const twMerge = extendTailwindMerge({
     theme: {
       text: ['micro', 'caption', 'label', 'body', 'title', 'heading', 'display'],
       radius: ['inline', 'control', 'card', 'panel', 'shell'],
-      shadow: ['overlay']
+      shadow: ['overlay'],
+      ease: ['standard', 'enter', 'exit']
+    },
+    classGroups: {
+      duration: [{ duration: ['base'] }]
     }
   }
 });

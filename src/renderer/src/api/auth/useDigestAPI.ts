@@ -124,7 +124,7 @@ export const useDigestPreview = (params: { chatId: string }): UseDigestPreviewRe
             ? err.message
             : err instanceof Error
               ? err.message
-              : '요약 생성 중 오류가 발생했습니다.';
+              : '요약을 만드는 중 문제가 생겼어요.';
         const code = err instanceof SseServerError ? err.code : undefined;
 
         setState((prev) => ({

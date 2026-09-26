@@ -15,10 +15,10 @@ export type SelectableMessage = {
 };
 
 const disabledCopy: Record<Exclude<SelectableReason, 'ok'>, string> = {
-  streaming: '답변이 아직 생성 중입니다.',
-  failed: '답변 생성이 실패해 공유할 수 없습니다.',
-  empty: '공유할 내용이 없습니다.',
-  'not-assistant': 'AI 답변만 공유할 수 있습니다.'
+  streaming: '답변이 아직 만들어지는 중이에요.',
+  failed: '답변을 만들지 못해서 공유할 수 없어요.',
+  empty: '공유할 내용이 없어요.',
+  'not-assistant': 'AI 답변만 공유할 수 있어요.'
 };
 
 const evaluate = (message: ChatMessage): SelectableReason => {

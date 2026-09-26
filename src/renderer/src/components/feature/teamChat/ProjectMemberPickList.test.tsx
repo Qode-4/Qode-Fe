@@ -68,13 +68,13 @@ describe('ProjectMemberPickList', () => {
         members={MEMBERS}
         selectedIds={[]}
         onToggle={vi.fn()}
-        emptyMessage="검색된 멤버가 없습니다."
+        emptyMessage="검색된 멤버가 없어요."
       />
     );
 
     await user.type(screen.getByRole('textbox', { name: '멤버 이름으로 검색' }), 'nonexistent');
 
     const listbox = screen.getByRole('listbox');
-    expect(within(listbox).getByText('검색된 멤버가 없습니다.')).toBeInTheDocument();
+    expect(within(listbox).getByText('검색된 멤버가 없어요.')).toBeInTheDocument();
   });
 });

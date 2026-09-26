@@ -21,7 +21,7 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
       await navigator.clipboard.writeText(code);
       toast.success('복사했어요');
     } catch {
-      toast.error('복사에 실패했습니다. 텍스트를 직접 선택하여 복사해주세요.');
+      toast.error('복사하지 못했어요. 텍스트를 직접 선택해서 복사해주세요.');
     }
   };
 

@@ -21,7 +21,7 @@ export const buildStep1Pairs = (
     if (!selectedIds.has(m.id)) continue;
     if (m.role !== 'assistant') continue;
     const prev = i > 0 ? messages[i - 1] : null;
-    const question = prev?.role === 'user' ? prev.content : '(관련 질문을 찾지 못했습니다)';
+    const question = prev?.role === 'user' ? prev.content : '(관련 질문을 찾지 못했어요)';
     result.push({
       messageId: m.id,
       question,

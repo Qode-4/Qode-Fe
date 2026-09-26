@@ -96,7 +96,7 @@ export const DigestSharedCard = ({
               disabled={!hasSourceLink || !onOpenSource}
               title={
                 !hasSourceLink
-                  ? '이 카드에는 원본 대화 링크가 없습니다.'
+                  ? '이 카드에는 원본 대화 링크가 없어요.'
                   : '공유된 답변의 원본 대화를 보여줍니다.'
               }
               onClick={onOpenSource}

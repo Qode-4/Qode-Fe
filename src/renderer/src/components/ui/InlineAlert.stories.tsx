@@ -9,7 +9,7 @@ const meta = {
   args: {
     tone: 'info',
     title: '알림',
-    children: '요청이 정상적으로 처리되었습니다.'
+    children: '요청을 처리했어요.'
   },
   argTypes: {
     tone: {
@@ -37,7 +37,7 @@ export const AllTones: Story = {
         기본 정보를 확인해주세요.
       </InlineAlert>
       <InlineAlert {...args} tone="success" title="성공">
-        변경 사항이 저장되었습니다.
+        변경 사항을 저장했어요.
       </InlineAlert>
       <InlineAlert {...args} tone="danger" title="오류">
         잠시 후 다시 시도해주세요.

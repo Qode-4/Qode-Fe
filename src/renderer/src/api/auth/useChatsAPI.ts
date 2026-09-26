@@ -129,7 +129,7 @@ const parseSseBlock = (block: string, callbacks?: MessageStreamCallbacks): SseTe
     const message =
       typeof parsed === 'string'
         ? parsed
-        : ((parsed as { message?: string } | null)?.message ?? '스트리밍 중 오류가 발생했습니다.');
+        : ((parsed as { message?: string } | null)?.message ?? '답변을 받는 중 문제가 생겼어요.');
     // 서버가 HttpError의 details.code를 실어 보낸다(Qode-Server). 없으면 undefined 로 남는다.
     const code =
       typeof parsed === 'string' ? undefined : (parsed as { code?: string } | null)?.code;
@@ -159,7 +159,7 @@ export const streamChatMessage = async (params: {
   });
 
   if (!response.ok) {
-    let message = `요청에 실패했습니다. (${response.status})`;
+    let message = `요청하지 못했어요. (${response.status})`;
 
     try {
       const json = (await response.json()) as { message?: string };
@@ -172,7 +172,7 @@ export const streamChatMessage = async (params: {
   }
 
   const reader = response.body?.getReader();
-  if (!reader) throw new Error('스트리밍 응답을 읽을 수 없습니다.');
+  if (!reader) throw new Error('답변을 읽을 수 없어요.');
 
   const decoder = new TextDecoder();
   let buffer = '';
@@ -217,7 +217,7 @@ export const streamChatMessage = async (params: {
     if (tail) parseBlock(tail);
 
     if (!completed) {
-      throw new Error('응답이 완료되기 전에 스트리밍 연결이 종료되었습니다.');
+      throw new Error('답변이 끝나기 전에 연결이 끊겼어요.');
     }
   } finally {
     if (!readerFinished) await reader.cancel().catch(() => undefined);

@@ -18,7 +18,7 @@ const isEmail = (v: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 const SIGNUP_BRAND = {
   title: '큐오드에서\n지금 시작해보세요.',
-  description: '가입은 이메일 하나로 충분합니다.\n첫 프로젝트를 연결하면 바로 질문할 수 있어요.',
+  description: '가입은 이메일 하나면 충분해요.\n첫 프로젝트를 연결하면 바로 질문할 수 있어요.',
   features: ['개인 대화와 팀 대화를 분리', '변경사항은 언제든 동기화']
 };
 
@@ -46,11 +46,11 @@ export const SignupPage = ({ location }: Props): React.JSX.Element => {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = '이름을 입력해주세요.';
     if (!email) e.email = '이메일을 입력해주세요.';
-    else if (!isEmail(email)) e.email = '이메일 형식이 올바르지 않습니다.';
+    else if (!isEmail(email)) e.email = '이메일 형식이 올바르지 않아요.';
     if (!password) e.password = '비밀번호를 입력해주세요.';
-    else if (password.length < 8) e.password = '비밀번호는 8자 이상을 권장합니다.';
+    else if (password.length < 8) e.password = '비밀번호는 8자 이상을 권장해요.';
     if (!confirmPassword) e.confirmPassword = '비밀번호를 다시 입력해주세요.';
-    else if (password !== confirmPassword) e.confirmPassword = '비밀번호가 일치하지 않습니다.';
+    else if (password !== confirmPassword) e.confirmPassword = '비밀번호가 일치하지 않아요.';
     return e;
   }, [name, email, password, confirmPassword]);
 

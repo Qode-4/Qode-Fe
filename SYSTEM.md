@@ -92,6 +92,7 @@ Phase B~G의 결정도 Context 밸류에 따라 결정 사항과 이유를 함�
 | [`DESIGN.md`](./DESIGN.md)                                     | 시각·화면 규칙        | 브랜드·시각 언어·화면 구성·접근성 기준서.                       |
 | [`docs/foundations.md`](./docs/foundations.md)                 | 토큰 의미             | 토큰 이름과 쓰임.                                               |
 | [`docs/registry.md`](./docs/registry.md)                       | 컴포넌트 규칙         | `ui/*.meta.ts` 에서 생성. 쓸 때·피할 때·옵션·토큰.              |
+| [`docs/copy.md`](./docs/copy.md)                               | 화면 문구             | 해요체·상황별 톤·용어집. 🤖 일부 자동 검사.                     |
 | [`docs/patterns/`](./docs/patterns/README.md)                  | 패턴 결정             | 확인·에러·피드백·빈 상태·로딩.                                  |
 | [`docs/ai-review-checklist.md`](./docs/ai-review-checklist.md) | 검수                  | 머지 전 체크리스트. 🤖 항목은 `yarn tokens:check` 가 자동 검사. |
 | `src/renderer/src/assets/main.css`                             | 토큰 실제 값          | 값의 기준.                                                      |

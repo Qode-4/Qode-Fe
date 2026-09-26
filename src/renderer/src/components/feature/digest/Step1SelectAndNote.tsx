@@ -32,7 +32,7 @@ export const Step1SelectAndNote = ({
           공유할 대화 {selectedCount}개 · 최대 {MAX_SHARE_PAIRS}개
         </span>
         {selectedCount === 1 ? (
-          <span className="text-fg-subtle">마지막 1개는 해제할 수 없습니다.</span>
+          <span className="text-fg-subtle">마지막 1개는 해제할 수 없어요.</span>
         ) : null}
       </header>
 
@@ -73,7 +73,7 @@ export const Step1SelectAndNote = ({
         })}
         {pairs.length === 0 ? (
           <li className="p-6 text-center text-label text-fg-subtle">
-            공유 가능한 대화가 없습니다.
+            공유할 수 있는 대화가 없어요.
           </li>
         ) : null}
       </ul>

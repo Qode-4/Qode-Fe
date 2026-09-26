@@ -124,7 +124,7 @@ export const ChatComposer = ({
 
       {value.length >= MAX_LENGTH ? (
         <p className="mt-1 text-caption text-fg-danger" role="status">
-          최대 2,000자까지 입력 가능합니다.
+          최대 2,000자까지 입력할 수 있어요.
         </p>
       ) : null}
     </div>

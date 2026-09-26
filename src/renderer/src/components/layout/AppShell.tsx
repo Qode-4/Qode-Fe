@@ -413,7 +413,7 @@ export const AppShell = ({
       await navigator.clipboard.writeText(sourceGitUrl);
       toast.success('복사했어요');
     } catch {
-      toast.error('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
+      toast.error('복사하지 못했어요. 브라우저 권한을 확인해주세요.');
     }
   };
 
@@ -458,7 +458,7 @@ export const AppShell = ({
     Boolean(selectedProjectId) && !isSyncInProgress && !postProjectSync.isPending;
   const syncMenuLabel =
     isSyncInProgress || postProjectSync.isPending
-      ? '동기화 중...'
+      ? '동기화 중…'
       : selectedProjectSyncStatusValue === 'failed'
         ? '동기화 다시 시도'
         : '동기화';
@@ -1111,7 +1111,7 @@ export const AppShell = ({
           className={[
             'flex min-h-0 flex-col bg-sidebar touch-pan-y',
             'max-sm:fixed max-sm:inset-y-0 max-sm:left-0 max-sm:z-40 max-sm:w-[280px] max-sm:max-w-[85vw]',
-            'max-sm:shadow-overlay max-sm:transition-transform',
+            'max-sm:shadow-overlay max-sm:transition-transform max-sm:duration-base max-sm:ease-enter',
             isMobile && !mobileDrawerOpen ? 'max-sm:-translate-x-full' : 'max-sm:translate-x-0'
           ].join(' ')}
           onPointerDown={handleDrawerPointerDown}
@@ -1223,7 +1223,7 @@ export const AppShell = ({
                 <>
                   {sectionsErrorMessage ? null : sectionsLoading ? (
                     <StateMessage kind="loading" align="center" className="h-24">
-                      섹션을 불러오는 중입니다...
+                      섹션을 불러오는 중…
                     </StateMessage>
                   ) : sections.length > 0 ? (
                     <nav aria-label="섹션 목록" className="mt-0.5">
@@ -1353,7 +1353,7 @@ export const AppShell = ({
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
-                  <p className="text-fg-subtle">채팅 목록을 불러올 수 없습니다.</p>
+                  <p className="text-fg-subtle">채팅 목록을 불러오지 못했어요.</p>
                   <button
                     type="button"
                     onClick={onRetryChats}
@@ -1368,7 +1368,7 @@ export const AppShell = ({
                   className="mt-1 px-3 py-2"
                   action={selectedProjectId ? '＋ 를 눌러 코드에 질문해 보세요.' : undefined}
                 >
-                  아직 채팅이 없습니다.
+                  아직 채팅이 없어요.
                 </StateMessage>
               ) : null}
               <nav aria-label="내 채팅 목록" className="mt-0.5">
@@ -1498,7 +1498,7 @@ export const AppShell = ({
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
-                  <p className="text-fg-subtle">채팅 목록을 불러올 수 없습니다.</p>
+                  <p className="text-fg-subtle">채팅 목록을 불러오지 못했어요.</p>
                   <button
                     type="button"
                     onClick={onRetryChats}
@@ -1517,7 +1517,7 @@ export const AppShell = ({
                       : undefined
                   }
                 >
-                  아직 채팅이 없습니다.
+                  아직 채팅이 없어요.
                 </StateMessage>
               ) : null}
               <nav aria-label="팀 채팅 목록" className="mt-0.5">
@@ -2218,7 +2218,7 @@ export const AppShell = ({
           {reissueConfirming ? (
             <div className="mt-4 rounded-card border border-line bg-surface-muted p-3">
               <p className="text-label text-fg-default">
-                이전 링크로는 더 이상 참여할 수 없게 됩니다. 새 링크를 만들까요?
+                새 링크를 만들면 이전 링크로는 더 이상 참여할 수 없어요. 새 링크를 만들까요?
               </p>
               <div className="mt-3 flex items-center justify-end gap-2">
                 <Button
@@ -2275,7 +2275,7 @@ export const AppShell = ({
         <>
           {modalProjectMembers.isError ? (
             <div className="mt-3 rounded-card border border-line-danger bg-danger-soft p-3">
-              <p className="text-label text-fg-danger">멤버 목록을 불러올 수 없습니다.</p>
+              <p className="text-label text-fg-danger">멤버 목록을 불러오지 못했어요.</p>
               <div className="mt-2">
                 <Button
                   type="button"
@@ -2298,7 +2298,7 @@ export const AppShell = ({
 
               {modalProjectMembers.isLoading ? (
                 <StateMessage kind="loading" className="px-3 py-3">
-                  멤버를 불러오는 중...
+                  멤버를 불러오는 중…
                 </StateMessage>
               ) : null}
 
@@ -2382,7 +2382,7 @@ export const AppShell = ({
                 />
               ) : (
                 <div className="flex h-10 min-w-0 flex-1 items-center rounded-control border border-line bg-surface-muted px-3 text-label text-fg-subtle">
-                  연결된 레포지토리 정보가 없습니다.
+                  연결된 저장소 정보가 없어요.
                 </div>
               )}
               <IconButton

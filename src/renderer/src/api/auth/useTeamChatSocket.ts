@@ -59,7 +59,7 @@ export const useTeamChatSocket = (
 
     const handleError = (payload: { message: string }): void => {
       setIsSending(false);
-      setSendError(payload.message ?? '메시지 전송에 실패했습니다.');
+      setSendError(payload.message ?? '메시지를 보내지 못했어요.');
     };
 
     socket.on('team:message:receive', handleMessage);
