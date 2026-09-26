@@ -57,6 +57,7 @@ import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
 import { cn } from '../../lib/cn';
 import { Avatar } from '../ui/Avatar';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { TextField } from '../ui/TextField';
 
 type Props = {
@@ -174,6 +175,14 @@ const settingsMenuActions: SettingsMenuAction[] = [
   { key: 'logout', label: '로그아웃', iconName: 'Code_light' }
 ];
 
+type ConfirmRequest = {
+  title: string;
+  description: ReactNode;
+  confirmLabel: string;
+  emphasis?: boolean;
+  action: () => Promise<void>;
+};
+
 export const AppShell = ({
   me,
   projects,
@@ -202,6 +211,19 @@ export const AppShell = ({
   const isMobile = useIsMobile();
   const location = useHashLocation();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  // 되돌릴 수 없는 액션의 확인 — window.confirm 대신 ConfirmDialog (docs/patterns/confirm.md)
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const runConfirm = async (): Promise<void> => {
+    if (!confirmRequest) return;
+    setConfirmBusy(true);
+    try {
+      await confirmRequest.action();
+    } finally {
+      setConfirmBusy(false);
+      setConfirmRequest(null);
+    }
+  };
   const [drawerDragOffset, setDrawerDragOffset] = useState(0);
   const drawerDragStartXRef = useRef<number | null>(null);
   const drawerDragPointerIdRef = useRef<number | null>(null);
@@ -398,19 +420,24 @@ export const AppShell = ({
     }
   };
 
-  const removeMember = async (userId: string, isSelf: boolean): Promise<void> => {
+  const removeMember = (userId: string, isSelf: boolean, memberName: string): void => {
     if (!modalProjectId) return;
-    const message = isSelf
-      ? '이 프로젝트에서 나갈까요? 다시 들어오려면 초대 링크가 필요해요.'
-      : '이 멤버를 프로젝트에서 내보낼까요?';
-    if (!window.confirm(message)) return;
-
-    setMemberActionError(null);
-    try {
-      await deleteProjectMember.mutateAsync({ projectId: modalProjectId, userId });
-    } catch (error) {
-      setMemberActionError(handleApiError(error).message);
-    }
+    setConfirmRequest({
+      title: isSelf ? '이 프로젝트에서 나갈까요?' : `‘${memberName}’님을 프로젝트에서 제거할까요?`,
+      description: isSelf
+        ? '다시 들어오려면 초대 링크가 필요해요.'
+        : '다시 초대하기 전까지 이 프로젝트에 접근할 수 없어요.',
+      confirmLabel: isSelf ? '나가기' : '제거',
+      emphasis: true,
+      action: async () => {
+        setMemberActionError(null);
+        try {
+          await deleteProjectMember.mutateAsync({ projectId: modalProjectId, userId });
+        } catch (error) {
+          setMemberActionError(handleApiError(error).message);
+        }
+      }
+    });
   };
 
   const selectedProjectSyncStatus = useGetProjectSyncStatus({
@@ -858,16 +885,22 @@ export const AppShell = ({
     project: ProjectsListData['data'][number]
   ): Promise<void> => {
     setOpenMenuProjectId(null);
-    if (!window.confirm(`"${project.name}" 프로젝트를 삭제할까요?`)) return;
-
-    try {
-      await deleteProject.mutateAsync(project.id);
-      if (selectedProjectId === project.id) {
-        navigate('/projects', { replace: true });
+    setConfirmRequest({
+      title: `‘${project.name}’ 프로젝트를 삭제할까요?`,
+      description: '멤버 전원이 이 프로젝트와 그 안의 대화에 더 이상 접근할 수 없어요.',
+      confirmLabel: '삭제',
+      emphasis: true,
+      action: async () => {
+        try {
+          await deleteProject.mutateAsync(project.id);
+          if (selectedProjectId === project.id) {
+            navigate('/projects', { replace: true });
+          }
+        } catch (error) {
+          toast.error(friendlyErrorMessage(error, 'project.delete'));
+        }
       }
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'project.delete'));
-    }
+    });
   };
 
   const handleProjectMenuOpen = (projectId: string, button: HTMLButtonElement): void => {
@@ -967,13 +1000,18 @@ export const AppShell = ({
     const section = sections.find((item) => item.id === sectionId);
     setOpenSectionMenuId(null);
     if (!section) return;
-    if (!window.confirm(`"${section.name}" 섹션을 삭제할까요?`)) return;
-
-    try {
-      await deleteSection.mutateAsync(sectionId);
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'section.delete'));
-    }
+    setConfirmRequest({
+      title: `‘${section.name}’ 섹션을 삭제할까요?`,
+      description: '삭제하면 되돌릴 수 없어요.',
+      confirmLabel: '삭제',
+      action: async () => {
+        try {
+          await deleteSection.mutateAsync(sectionId);
+        } catch (error) {
+          toast.error(friendlyErrorMessage(error, 'section.delete'));
+        }
+      }
+    });
   };
 
   const createFolder = async (): Promise<void> => {
@@ -994,13 +1032,18 @@ export const AppShell = ({
 
   const handlePersonalChatDelete = async (chat: ChatsMeListData['data'][number]): Promise<void> => {
     if (!selectedProjectId) return;
-    if (!window.confirm(`"${chat.name}" 채팅을 삭제할까요?`)) return;
-
-    try {
-      await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'chat.delete'));
-    }
+    setConfirmRequest({
+      title: `‘${chat.name}’ 채팅을 삭제할까요?`,
+      description: '대화 내용이 모두 사라져요.',
+      confirmLabel: '삭제',
+      action: async () => {
+        try {
+          await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
+        } catch (error) {
+          toast.error(friendlyErrorMessage(error, 'chat.delete'));
+        }
+      }
+    });
   };
 
   const beginChatRename = (chat: ChatsMeListData['data'][number]): void => {
@@ -2286,7 +2329,7 @@ export const AppShell = ({
                           size="sm"
                           variant="secondary"
                           disabled={deleteProjectMember.isPending}
-                          onClick={() => void removeMember(member.id, isSelf)}
+                          onClick={() => removeMember(member.id, isSelf, member.name)}
                         >
                           {isSelf ? '나가기' : '프로젝트에서 제거'}
                         </Button>
@@ -2354,6 +2397,16 @@ export const AppShell = ({
           </div>
         </>
       </OverlayModal>
+      <ConfirmDialog
+        open={confirmRequest !== null}
+        title={confirmRequest?.title ?? ''}
+        description={confirmRequest?.description}
+        confirmLabel={confirmRequest?.confirmLabel ?? ''}
+        emphasis={confirmRequest?.emphasis}
+        isProcessing={confirmBusy}
+        onClose={() => setConfirmRequest(null)}
+        onConfirm={() => void runConfirm()}
+      />
     </div>
   );
 };
