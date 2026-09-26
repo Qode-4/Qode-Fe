@@ -55,6 +55,7 @@ import { DrawerHeader } from '../ui/DrawerHeader';
 import { Icon } from '../ui/Icon';
 import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
+import { cn } from '../../lib/cn';
 
 type Props = {
   me?: GetAuthData | null;
@@ -1478,12 +1479,7 @@ export const AppShell = ({
                         <ChatItemMenu
                           triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
                           ariaLabel={`${chat.name} 채팅 작업 메뉴`}
-                          triggerClassName={[
-                            'inline-flex h-6 w-6 items-center justify-center rounded-inline transition-colors',
-                            isActive
-                              ? 'text-fg-default hover:bg-line'
-                              : 'text-fg-muted hover:bg-line'
-                          ].join(' ')}
+                          triggerClassName={cn('hover:bg-line', isActive && 'text-fg-default')}
                           actions={menuActions}
                         />
                       </div>
@@ -1613,12 +1609,7 @@ export const AppShell = ({
                           <ChatItemMenu
                             triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
                             ariaLabel={`${chat.name} 채팅 작업 메뉴`}
-                            triggerClassName={[
-                              'inline-flex h-6 w-6 items-center justify-center rounded-inline transition-colors',
-                              isActive
-                                ? 'text-fg-default hover:bg-line'
-                                : 'text-fg-muted hover:bg-line'
-                            ].join(' ')}
+                            triggerClassName={cn('hover:bg-line', isActive && 'text-fg-default')}
                             actions={teamMenuActions}
                           />
                         </div>

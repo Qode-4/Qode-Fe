@@ -9,6 +9,7 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'aria-la
   name: IconName;
   iconClassName?: string;
   'aria-label': string;
+  ref?: React.Ref<HTMLButtonElement>;
 };
 
 const variantMap: Record<NonNullable<Props['variant']>, string> = {

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { IconName } from '../icons/iconTypes';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { Icon } from './Icon';
+import { IconButton } from './IconButton';
 import { cn } from '../../lib/cn';
 
 export type ChatItemMenuAction = {
@@ -18,6 +19,9 @@ type Props = {
   actions: ChatItemMenuAction[];
   ariaLabel?: string;
   triggerAriaLabel: string;
+  /** sm 24px 목록 줄 안(기본) · md 36px 헤더 */
+  triggerSize?: 'sm' | 'md';
+  /** 색만 덮어쓸 때(예: 활성 행). 크기·모양은 triggerSize 로 */
   triggerClassName?: string;
 };
 
@@ -30,6 +34,7 @@ export const ChatItemMenu = ({
   actions,
   ariaLabel = '채팅 작업 메뉴',
   triggerAriaLabel,
+  triggerSize = 'sm',
   triggerClassName
 }: Props): React.JSX.Element => {
   const [open, setOpen] = useState(false);
@@ -100,23 +105,23 @@ export const ChatItemMenu = ({
 
   return (
     <>
-      <button
+      <IconButton
         ref={triggerRef}
-        type="button"
+        variant="ghost"
+        size={triggerSize}
+        name="More_horizontal_light"
         aria-label={triggerAriaLabel}
         aria-haspopup="menu"
         aria-expanded={open}
         data-chat-item-menu-trigger
-        className={triggerClassName}
+        className={cn('text-fg-muted hover:text-fg-default', triggerClassName)}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           if (open) closeMenu();
           else openMenu();
         }}
-      >
-        <Icon name="More_horizontal_light" size="sm" decorative />
-      </button>
+      />
 
       {open && pos
         ? createPortal(
