@@ -4,7 +4,7 @@ import { OverlayModal } from '../../ui/OverlayModal';
 import { DigestSourceViewBody } from './DigestSourceViewBody';
 
 const sampleSource: DigestSourceResponse = {
-  note: '결제 흐름 정리했어요. 확인 부탁드립니다.',
+  note: '결제 흐름 정리했어요. 확인 부탁해요.',
   sharedAt: '2026-09-19T14:32:00Z',
   pairs: [
     {

@@ -100,7 +100,7 @@ export const Step1SelectAndNote = ({
           value={note}
           onChange={(e) => onNoteChange(e.target.value)}
           maxLength={MAX_NOTE_LENGTH}
-          placeholder="예) 결제 흐름 정리했어요. 확인 부탁드립니다."
+          placeholder="예) 결제 흐름 정리했어요. 확인 부탁해요."
         />
       </label>
     </div>
