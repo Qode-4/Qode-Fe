@@ -7,7 +7,8 @@
 
 - [ ] [`docs/registry.md`](./registry.md) 에서 쓸 컴포넌트를 찾았다 — "피할 때"에 걸리면 → 로 안내된 것을 쓴다
 - [ ] 상황이 패턴에 해당하면 [`docs/patterns/`](./patterns/README.md) 의 결정 트리를 따랐다
-- [ ] 새 색·크기가 필요하면 [`docs/foundations.md`](./foundations.md) 의 토큰부터 찾았다
+- [ ] 새 색·크기·모션이 필요하면 [`docs/foundations.md`](./foundations.md) 의 토큰부터 찾았다
+- [ ] 문구는 [`docs/copy.md`](./copy.md) 의 톤·용어집을 따랐다
 
 ## 1. 토큰
 
@@ -59,7 +60,14 @@
 - [ ] 미구현 기능을 동작하는 것처럼 보이게 하거나 가짜 수치를 넣지 않았다 — 서버가 없으면 `API_CAPABILITIES` 로 끄고 안내 문구
 - [ ] 렌더러 코드가 Electron API(`window.electron`)에 의존하지 않는다(웹 배포가 깨진다)
 
-## 8. 확인 방법
+## 8. 문구 — [`docs/copy.md`](./copy.md)
+
+- [ ] 🤖 해요체 — `~습니다`·`~입니다` 없음(개발자용 `throw new Error` 제외)
+- [ ] 🤖 말줄임표는 `…` 한 글자, 🤖 용어집(팀 채팅·저장소·방장 넘기기)
+- [ ] 실패는 무엇을 못 했는지 + 다음 행동, 로딩은 "~를 불러오는 중…", 성공은 "~했어요"
+- [ ] 버튼은 결과 동사, 같은 동작은 메뉴·모달 제목·버튼에서 같은 이름
+
+## 9. 확인 방법
 
 - [ ] `yarn lint` · `yarn typecheck` · `yarn test` · `yarn build` · `yarn tokens:check`
 - [ ] 바뀐 화면을 실제로 열어 기본·hover/focus·로딩·오류·빈 상태를 봤다

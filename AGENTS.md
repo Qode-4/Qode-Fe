@@ -88,7 +88,8 @@ vanilla-extract 플러그인이 세 곳(electron.vite, renderer vite, storybook)
 
 1. [`docs/registry.md`](docs/registry.md) — 컴포넌트별 쓸 때·피할 때·옵션. 새로 만들기 전에 여기서 찾는다.
 2. [`docs/patterns/`](docs/patterns/README.md) — 확인·에러·피드백·빈 상태·로딩의 결정 트리.
-3. [`docs/foundations.md`](docs/foundations.md) — 토큰의 의미. 정체성·원칙은 [`SYSTEM.md`](SYSTEM.md).
+3. [`docs/foundations.md`](docs/foundations.md) — 토큰(색·글자·모서리·모션)의 의미. 정체성·원칙은 [`SYSTEM.md`](SYSTEM.md).
+   화면 문구는 [`docs/copy.md`](docs/copy.md) — 해요체, `…`, 용어집.
 4. 끝나면 [`docs/ai-review-checklist.md`](docs/ai-review-checklist.md) 로 검수하고 `yarn tokens:check` 를 돌린다.
 
 새 ui 컴포넌트는 JSDoc(✅ Use / ❌ Don't) + `Name.meta.ts` + 스토리를 함께 만든다. `docs/registry.md` 는 생성 파일이라 직접 고치지 않는다.
