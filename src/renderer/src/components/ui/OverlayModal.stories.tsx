@@ -13,7 +13,7 @@ const meta = {
   args: {
     open: true,
     title: '모달 제목',
-    widthClassName: 'max-w-[520px]',
+    size: 'md',
     onClose: () => undefined,
     children: (
       <div className="space-y-2">

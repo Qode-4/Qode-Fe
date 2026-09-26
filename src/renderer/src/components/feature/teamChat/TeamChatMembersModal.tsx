@@ -53,12 +53,7 @@ export const TeamChatMembersModal = ({
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={onClose}
-      title={`참여자 (${list.length}명)`}
-      widthClassName="max-w-[440px]"
-    >
+    <OverlayModal open={open} onClose={onClose} title={`참여자 (${list.length}명)`} size="sm">
       <div className="flex flex-col gap-3">
         {participants.isError ? (
           <InlineAlert tone="danger" title="참여자 목록을 불러올 수 없어요">

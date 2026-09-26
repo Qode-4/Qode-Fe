@@ -43,7 +43,7 @@ const sampleSource: DigestSourceResponse = {
 type BodyStoryArgs = React.ComponentProps<typeof DigestSourceViewBody>;
 
 const Wrap = (args: BodyStoryArgs): React.JSX.Element => (
-  <OverlayModal open onClose={() => undefined} title="원본 대화" widthClassName="max-w-[720px]">
+  <OverlayModal open onClose={() => undefined} title="원본 대화" size="xl">
     <DigestSourceViewBody {...args} />
   </OverlayModal>
 );

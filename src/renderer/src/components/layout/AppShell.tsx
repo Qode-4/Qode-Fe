@@ -1841,7 +1841,7 @@ export const AppShell = ({
         open={Boolean(folderCreateModalSectionId)}
         onClose={closeFolderCreateModal}
         title="폴더 추가"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={async (e) => {
@@ -1884,7 +1884,7 @@ export const AppShell = ({
         open={sectionCreateModalOpen}
         onClose={closeSectionCreateModal}
         title="섹션 추가"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={async (e) => {
@@ -1927,7 +1927,7 @@ export const AppShell = ({
         open={Boolean(sectionRenameModalSectionId)}
         onClose={closeSectionRenameModal}
         title="섹션 이름 변경"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={async (e) => {
@@ -2156,7 +2156,7 @@ export const AppShell = ({
         open={projectModal?.kind === 'rename'}
         onClose={closeProjectModal}
         title="프로젝트 이름 바꾸기"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={(e) => {
@@ -2205,7 +2205,7 @@ export const AppShell = ({
         open={projectModal?.kind === 'invite'}
         onClose={closeProjectModal}
         title="멤버 추가하기"
-        widthClassName="max-w-[620px]"
+        size="lg"
       >
         <>
           <div className="flex items-end justify-between gap-3">
@@ -2321,7 +2321,7 @@ export const AppShell = ({
         open={projectModal?.kind === 'members'}
         onClose={closeProjectModal}
         title="멤버들"
-        widthClassName="max-w-[680px]"
+        size="lg"
       >
         <>
           {memberActionError ? (
@@ -2420,7 +2420,7 @@ export const AppShell = ({
         open={projectModal?.kind === 'source'}
         onClose={closeProjectModal}
         title="소스"
-        widthClassName="max-w-[620px]"
+        size="lg"
       >
         <>
           <div className="mt-3">

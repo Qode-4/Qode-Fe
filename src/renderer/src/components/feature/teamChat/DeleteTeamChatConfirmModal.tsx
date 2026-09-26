@@ -23,12 +23,7 @@ export const DeleteTeamChatConfirmModal = ({
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={handleClose}
-      title="채팅방 삭제"
-      widthClassName="max-w-[420px]"
-    >
+    <OverlayModal open={open} onClose={handleClose} title="채팅방 삭제" size="sm">
       <InlineAlert tone="danger" title="이 작업은 되돌릴 수 없어요">
         <span>
           <span className="font-semibold">‘{chatName}’</span> 채팅방과 이 채팅방의 모든 메시지가

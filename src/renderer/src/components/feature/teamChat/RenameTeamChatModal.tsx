@@ -83,12 +83,7 @@ export const RenameTeamChatModal = ({
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={handleClose}
-      title="채팅방 이름 바꾸기"
-      widthClassName="max-w-[420px]"
-    >
+    <OverlayModal open={open} onClose={handleClose} title="채팅방 이름 바꾸기" size="sm">
       <form onSubmit={handleSubmit}>
         <label className="block" htmlFor="rename-team-chat-name">
           <span className="mb-1 block text-caption font-medium text-fg-muted">채팅방 이름</span>

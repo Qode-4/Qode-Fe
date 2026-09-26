@@ -77,12 +77,7 @@ export const TransferOwnershipModal = ({
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={handleClose}
-      title="방장 양도"
-      widthClassName="max-w-[440px]"
-    >
+    <OverlayModal open={open} onClose={handleClose} title="방장 양도" size="sm">
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <p className="text-label leading-[1.6] text-fg-default">
           새 방장을 선택하세요. 양도가 완료되면 회원님은 자동으로 채팅방에서 나가게 됩니다.
