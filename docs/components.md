@@ -85,6 +85,14 @@ import { cn } from '../../lib/cn';
 | AppShell 아이콘 버튼 6개 | `IconButton` 으로 흡수(⋮·☰ 아이콘 레지스트리 추가) |
 | CreateChatModal          | 삭제                                                |
 
+### Phase D 패턴에서 추가
+
+| 컴포넌트      | 패턴                                        | 처리                                                          |
+| ------------- | ------------------------------------------- | ------------------------------------------------------------- |
+| ConfirmDialog | [확인](./patterns/confirm.md)               | `window.confirm` 4곳·확인 모달 2벌 흡수, 간단·강조 두 단계    |
+| Spinner       | [빈 상태·로딩](./patterns/empty-loading.md) | 손으로 만든 스피너 6곳 흡수, `size` sm·md·lg × `tone`         |
+| StateMessage  | [빈 상태·로딩](./patterns/empty-loading.md) | 영역 로딩·빈 상태 문장 ~20곳 흡수, 빈 상태 다음 행동 `action` |
+
 ---------- | --------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | AI 아바타 | ProjectDetailPage ×2, DigestSourceViewBody (Qode 심볼 원형) | 크기(size-6 / size-7)만 다름 — `Logo variant="mark"` 로 흡수 가능 |
 | UserAvatar | AppShell 내부, ProjectDetailPage `Avatar`, DigestSharedCard 이니셜 원 | 이니셜 원 3벌 |
