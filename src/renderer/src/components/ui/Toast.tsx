@@ -42,7 +42,7 @@ export const Toast = ({ toast, onDismiss }: Props): React.JSX.Element => {
       role={toast.tone === 'danger' ? 'alert' : 'status'}
       aria-live={toast.tone === 'danger' ? 'assertive' : 'polite'}
       className={cn(
-        'pointer-events-auto flex w-[320px] items-start gap-2 rounded-panel border px-3.5 py-3 text-label shadow-none transition-all duration-200',
+        'pointer-events-auto flex w-[320px] items-start gap-2 rounded-panel border px-3.5 py-3 text-label shadow-overlay transition-all duration-200',
         toneClassMap[toast.tone],
         visible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
       )}
