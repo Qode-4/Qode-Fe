@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import qodeMark from '../../public/qode_logo_small.png';
 import { Logo } from '../ui/Logo';
 
 type BrandContent = {
@@ -33,8 +32,7 @@ export const AuthFrame = ({
     <div className="flex h-full min-h-full items-stretch bg-surface">
       <aside className="hidden flex-1 flex-col justify-between bg-primary-soft px-14 py-16 lg:flex">
         <div className="flex items-center gap-2">
-          <img src={qodeMark} alt="" aria-hidden="true" className="h-8 w-8" />
-          <Logo ariaLabel="Qode" className="h-[22px] w-[34px]" />
+          <Logo variant="lockup" size="md" />
         </div>
 
         <div className="space-y-4">
@@ -66,8 +64,7 @@ export const AuthFrame = ({
       <main className="flex flex-1 items-center justify-center bg-surface px-4 py-6 sm:px-8 sm:py-10">
         <div className="w-full max-w-[400px] space-y-6">
           <div className="flex items-center gap-2 lg:hidden">
-            <img src={qodeMark} alt="" aria-hidden="true" className="h-8 w-8" />
-            <Logo ariaLabel="Qode" className="h-[22px] w-[34px]" />
+            <Logo variant="lockup" size="md" />
           </div>
 
           <div className="space-y-1.5">
