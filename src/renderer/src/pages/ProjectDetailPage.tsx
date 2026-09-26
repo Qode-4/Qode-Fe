@@ -42,11 +42,14 @@ import { useDeleteDigestCard } from '../api/auth/useDigestAPI';
 import { useShareSelectionState } from '../hooks/useShareSelectionState';
 import type { IconName } from '../components/icons/iconTypes';
 import { Button } from '../components/ui/Button';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { MarkdownAnswer } from '../components/ui/MarkdownAnswer';
 import { SourceList } from '../components/ui/SourceList';
+import { Spinner } from '../components/ui/Spinner';
+import { StateMessage } from '../components/ui/StateMessage';
 import { cleanAnswerSources, mergeSources } from '../lib/inlineSources';
 import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
@@ -270,6 +273,8 @@ export const ProjectDetailPage = ({
   // 기존 단일 메시지 공유 훅(usePostMessageShare)은 useChatsAPI 에 남아 있지만 이 페이지에선 안 씀.
   const shareSelection = useShareSelectionState();
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  // 공유 취소는 되돌릴 수 없어서 확인을 거친다 (docs/patterns/confirm.md)
+  const [shareDeleteId, setShareDeleteId] = useState<string | null>(null);
   const [shareModalInitialIds, setShareModalInitialIds] = useState<Set<string>>(new Set());
   // 팀채팅에 도착한 공유 카드의 "공유 취소" 처리(공유자 본인만 노출).
   const deleteDigestCard = useDeleteDigestCard({ chatId: activeChatId || '__empty__' });
@@ -499,7 +504,7 @@ export const ProjectDetailPage = ({
   const copyText = async (value: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success('복사되었습니다');
+      toast.success('복사했어요');
     } catch {
       toast.error('복사에 실패했습니다. 텍스트를 직접 선택하여 복사해주세요.');
     }
@@ -762,24 +767,32 @@ export const ProjectDetailPage = ({
           <LeaveTeamChatConfirmModal
             open
             chatName={teamChatModal.chatName}
+            error={
+              leaveTeamChat.error
+                ? friendlyErrorMessage(leaveTeamChat.error).description
+                : undefined
+            }
             isProcessing={leaveTeamChat.isPending}
-            onClose={closeTeamChatModal}
+            onClose={() => {
+              leaveTeamChat.reset();
+              closeTeamChatModal();
+            }}
             onConfirm={() => {
               leaveTeamChat.mutate(
                 { chatId: teamChatModal.chatId },
                 {
                   onSuccess: (result) => {
-                    if (result.chatDeleted) {
-                      dropActiveIfMatches(teamChatModal.chatId);
-                      toast.success('마지막 참여자로 나가면서 채팅방이 삭제되었어요');
-                    } else {
-                      dropActiveIfMatches(teamChatModal.chatId);
-                      toast.success('채팅방에서 나갔어요');
+                    // 보던 채팅이 사라질 때만 알린다 — 목록 변화로 보이면 조용히 (docs/patterns/feedback.md)
+                    const wasActive = activeChatId === teamChatModal.chatId;
+                    dropActiveIfMatches(teamChatModal.chatId);
+                    if (wasActive) {
+                      toast.success(
+                        result.chatDeleted
+                          ? '마지막 참여자로 나가면서 채팅방이 삭제되었어요'
+                          : '채팅방에서 나갔어요'
+                      );
                     }
                     closeTeamChatModal();
-                  },
-                  onError: (error) => {
-                    toast.error(friendlyErrorMessage(error));
                   }
                 }
               );
@@ -822,6 +835,7 @@ export const ProjectDetailPage = ({
             onClose={closeTeamChatModal}
             onTransferred={() => {
               // 서버가 원 방장 leave 까지 처리한다. FE 는 chat 캐시 제거 + 다른 채팅으로 이동.
+              const wasActive = activeChatId === teamChatModal.chatId;
               dropActiveIfMatches(teamChatModal.chatId);
               queryClient.removeQueries({
                 queryKey: QUERY_KEY.teamChatParticipants(teamChatModal.chatId)
@@ -829,7 +843,7 @@ export const ProjectDetailPage = ({
               void queryClient.invalidateQueries({
                 queryKey: QUERY_KEY.projectChatsByProject(projectId)
               });
-              toast.success('방장을 양도하고 채팅방을 나왔어요');
+              if (wasActive) toast.success('방장을 양도하고 채팅방을 나왔어요');
               closeTeamChatModal();
             }}
           />
@@ -840,19 +854,25 @@ export const ProjectDetailPage = ({
           <DeleteTeamChatConfirmModal
             open
             chatName={teamChatModal.chatName}
+            error={
+              deleteTeamChat.error
+                ? friendlyErrorMessage(deleteTeamChat.error).description
+                : undefined
+            }
             isProcessing={deleteTeamChat.isPending}
-            onClose={closeTeamChatModal}
+            onClose={() => {
+              deleteTeamChat.reset();
+              closeTeamChatModal();
+            }}
             onConfirm={() => {
               deleteTeamChat.mutate(
                 { chatId: teamChatModal.chatId },
                 {
                   onSuccess: () => {
+                    const wasActive = activeChatId === teamChatModal.chatId;
                     dropActiveIfMatches(teamChatModal.chatId);
-                    toast.success('채팅방을 삭제했어요');
+                    if (wasActive) toast.success('채팅방을 삭제했어요');
                     closeTeamChatModal();
-                  },
-                  onError: (error) => {
-                    toast.error(friendlyErrorMessage(error));
                   }
                 }
               );
@@ -875,14 +895,15 @@ export const ProjectDetailPage = ({
       <InlineAlert tone="danger" title="프로젝트 조회 실패">
         <div className="flex flex-col items-start gap-2">
           <p>프로젝트 정보를 불러올 수 없습니다.</p>
-          <button
+          <Button
             type="button"
+            size="sm"
+            variant="secondary"
             onClick={() => void project.refetch()}
-            disabled={project.isFetching}
-            className="rounded-control border border-line-danger bg-surface px-3 py-1 text-caption font-medium text-fg-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
+            isLoading={project.isFetching}
           >
-            {project.isFetching ? '다시 시도 중...' : '다시 시도'}
-          </button>
+            다시 시도
+          </Button>
         </div>
       </InlineAlert>
     );
@@ -895,11 +916,8 @@ export const ProjectDetailPage = ({
     return (
       <section className="flex h-full min-h-0 flex-col items-center justify-center bg-surface">
         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
-          <div
-            aria-hidden="true"
-            className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-line-primary"
-          />
-          <p className="text-caption font-medium text-fg-muted">프로젝트를 불러오는 중...</p>
+          <Spinner size="lg" tone="brand" />
+          <p className="text-caption text-fg-muted">프로젝트를 불러오는 중...</p>
         </div>
       </section>
     );
@@ -967,10 +985,7 @@ export const ProjectDetailPage = ({
           aria-live="polite"
           className="mx-4 mb-2 flex items-center gap-2 rounded-panel border border-line bg-surface-muted px-3 py-2 text-caption text-fg-subtle"
         >
-          <span
-            aria-hidden="true"
-            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-line-strong border-t-transparent"
-          />
+          <Spinner size="md" />
           <div className="min-w-0">
             <p className="font-medium">연결이 끊어졌습니다</p>
             <p className="text-micro text-fg-muted">재연결 중...</p>
@@ -1087,7 +1102,7 @@ export const ProjectDetailPage = ({
           ) : (
             <div className="flex min-h-full w-full min-w-0 max-w-[48rem] flex-col gap-6">
               {messages.isLoading ? (
-                <p className="text-caption font-medium text-fg-muted">메시지를 불러오는 중...</p>
+                <StateMessage kind="loading">메시지를 불러오는 중...</StateMessage>
               ) : null}
 
               {messages.isError ? (
@@ -1143,19 +1158,7 @@ export const ProjectDetailPage = ({
                           })
                         }
                         isDeleting={deleteDigestCard.isPending}
-                        onDeleteShare={
-                          isMineShare
-                            ? () => {
-                                deleteDigestCard.mutate(
-                                  { messageId },
-                                  {
-                                    onSuccess: () => toast.success('공유를 취소했어요'),
-                                    onError: (error) => toast.error(handleApiError(error).message)
-                                  }
-                                );
-                              }
-                            : undefined
-                        }
+                        onDeleteShare={isMineShare ? () => setShareDeleteId(messageId) : undefined}
                       />
                     );
                   }
@@ -1423,6 +1426,31 @@ export const ProjectDetailPage = ({
       )}
 
       {teamChatModalNode}
+      <ConfirmDialog
+        open={shareDeleteId !== null}
+        title="공유를 취소할까요?"
+        description="팀 채팅에서 이 공유 카드가 사라져요."
+        confirmLabel="공유 취소"
+        error={
+          deleteDigestCard.error
+            ? friendlyErrorMessage(deleteDigestCard.error).description
+            : undefined
+        }
+        isProcessing={deleteDigestCard.isPending}
+        onClose={() => {
+          deleteDigestCard.reset();
+          setShareDeleteId(null);
+        }}
+        onConfirm={() => {
+          if (!shareDeleteId) return;
+          deleteDigestCard.mutate(
+            { messageId: shareDeleteId },
+            {
+              onSuccess: () => setShareDeleteId(null)
+            }
+          );
+        }}
+      />
 
       {shareModalOpen && activeChatId && chatName && isPersonalChat ? (
         <ShareToTeamChatModal

@@ -145,11 +145,10 @@ export const InviteTeamChatMembersModal = ({
               onToggle={toggle}
               max={remainingSlots}
               searchPlaceholder="이름으로 참여자 찾기"
-              emptyMessage={
-                members.isLoading || participants.isLoading
-                  ? '멤버를 불러오는 중...'
-                  : '초대할 수 있는 프로젝트 멤버가 없습니다.'
+              loadingMessage={
+                members.isLoading || participants.isLoading ? '멤버를 불러오는 중...' : undefined
               }
+              emptyMessage="초대할 수 있는 프로젝트 멤버가 없습니다."
               ariaLabel="초대 가능한 프로젝트 멤버"
             />
           )}

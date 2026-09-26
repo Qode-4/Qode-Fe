@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { Icon } from './Icon';
+import { Spinner } from './Spinner';
 import { cn } from '../../lib/cn';
 
 // 질문 최대 길이. 명세 E-1 비기능 요구사항, 서버 sendUserMessageBodySchema 와 같은 값이다.
@@ -76,10 +77,7 @@ export const ChatComposer = ({
       aria-label="전송"
     >
       {isSending ? (
-        <span
-          className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"
-          aria-hidden="true"
-        />
+        <Spinner size="sm" />
       ) : (
         <Icon name="Send_hor_fill" size="sm" decorative className="text-fg-on-primary" />
       )}
@@ -93,10 +91,7 @@ export const ChatComposer = ({
           role="status"
           className="mb-1.5 flex items-center gap-1.5 px-1 text-caption text-fg-muted"
         >
-          <span
-            aria-hidden="true"
-            className="size-3 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
-          />
+          <Spinner size="sm" />
           {status}
         </p>
       ) : null}

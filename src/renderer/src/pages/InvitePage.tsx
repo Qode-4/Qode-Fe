@@ -6,6 +6,7 @@ import { AuthFrame } from '../components/layout/AuthFrame';
 import { Button } from '../components/ui/Button';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { Link } from '../components/ui/Link';
+import { StateMessage } from '../components/ui/StateMessage';
 import { buildPath, matchPath, navigate } from '../lib/hashRouter';
 import type { RouteLocation } from '../lib/hashRouter';
 
@@ -81,8 +82,10 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
     <AuthFrame title="프로젝트 초대" description={`코드: ${inviteCode}`} brand={INVITE_BRAND}>
       <div className="space-y-4">
         {info.isLoading ? (
-          <div className="rounded-panel border border-line bg-surface px-4 py-6 text-center text-label text-fg-subtle">
-            초대 정보를 불러오는 중…
+          <div className="rounded-panel border border-line bg-surface px-4 py-6">
+            <StateMessage kind="loading" align="center">
+              초대 정보를 불러오는 중…
+            </StateMessage>
           </div>
         ) : null}
 

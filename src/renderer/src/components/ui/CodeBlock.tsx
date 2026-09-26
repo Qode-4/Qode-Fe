@@ -19,7 +19,7 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
   const handleCopy = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(code);
-      toast.success('복사되었습니다');
+      toast.success('복사했어요');
     } catch {
       toast.error('복사에 실패했습니다. 텍스트를 직접 선택하여 복사해주세요.');
     }

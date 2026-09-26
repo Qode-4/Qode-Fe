@@ -14,7 +14,7 @@ import {
 import { createPortal } from 'react-dom';
 import { usePostAuthLogout } from '../../api/auth/useAuthAPI';
 import { useDeleteChat, usePatchChat } from '../../api/auth/useChatsAPI';
-import { friendlyErrorMessage } from '../../api/errorMessages';
+import { friendlyErrorMessage, type ErrorContext } from '../../api/errorMessages';
 import { useToast } from '../../hooks/useToast';
 import {
   useDeleteProject,
@@ -57,7 +57,9 @@ import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
 import { cn } from '../../lib/cn';
 import { Avatar } from '../ui/Avatar';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { TextField } from '../ui/TextField';
+import { StateMessage } from '../ui/StateMessage';
 
 type Props = {
   me?: GetAuthData | null;
@@ -174,6 +176,17 @@ const settingsMenuActions: SettingsMenuAction[] = [
   { key: 'logout', label: '로그아웃', iconName: 'Code_light' }
 ];
 
+type ConfirmRequest = {
+  title: string;
+  description: ReactNode;
+  confirmLabel: string;
+  emphasis?: boolean;
+  /** 실패 메시지 문맥(friendlyErrorMessage) */
+  errorContext?: ErrorContext;
+  /** 실패는 던진다 — runConfirm 이 모달 안에 보여준다 */
+  action: () => Promise<void>;
+};
+
 export const AppShell = ({
   me,
   projects,
@@ -202,6 +215,28 @@ export const AppShell = ({
   const isMobile = useIsMobile();
   const location = useHashLocation();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  // 되돌릴 수 없는 액션의 확인 — window.confirm 대신 ConfirmDialog (docs/patterns/confirm.md)
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const closeConfirm = (): void => {
+    setConfirmRequest(null);
+    setConfirmError(null);
+  };
+  // 실패하면 모달을 닫지 않고 안에 오류를 보여준다 — 바로 다시 시도할 수 있게 (docs/patterns/error.md)
+  const runConfirm = async (): Promise<void> => {
+    if (!confirmRequest) return;
+    setConfirmBusy(true);
+    setConfirmError(null);
+    try {
+      await confirmRequest.action();
+      closeConfirm();
+    } catch (error) {
+      setConfirmError(friendlyErrorMessage(error, confirmRequest.errorContext).description);
+    } finally {
+      setConfirmBusy(false);
+    }
+  };
   const [drawerDragOffset, setDrawerDragOffset] = useState(0);
   const drawerDragStartXRef = useRef<number | null>(null);
   const drawerDragPointerIdRef = useRef<number | null>(null);
@@ -320,7 +355,6 @@ export const AppShell = ({
 
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [reissueConfirming, setReissueConfirming] = useState(false);
-  const [memberActionError, setMemberActionError] = useState<string | null>(null);
 
   const modalProject = useMemo(
     () => projects.find((it) => it.id === projectModal?.projectId),
@@ -377,7 +411,7 @@ export const AppShell = ({
     if (!sourceGitUrl) return;
     try {
       await navigator.clipboard.writeText(sourceGitUrl);
-      toast.success('복사되었습니다');
+      toast.success('복사했어요');
     } catch {
       toast.error('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
     }
@@ -398,19 +432,19 @@ export const AppShell = ({
     }
   };
 
-  const removeMember = async (userId: string, isSelf: boolean): Promise<void> => {
+  const removeMember = (userId: string, isSelf: boolean, memberName: string): void => {
     if (!modalProjectId) return;
-    const message = isSelf
-      ? '이 프로젝트에서 나갈까요? 다시 들어오려면 초대 링크가 필요해요.'
-      : '이 멤버를 프로젝트에서 내보낼까요?';
-    if (!window.confirm(message)) return;
-
-    setMemberActionError(null);
-    try {
-      await deleteProjectMember.mutateAsync({ projectId: modalProjectId, userId });
-    } catch (error) {
-      setMemberActionError(handleApiError(error).message);
-    }
+    setConfirmRequest({
+      title: isSelf ? '이 프로젝트에서 나갈까요?' : `‘${memberName}’님을 프로젝트에서 제거할까요?`,
+      description: isSelf
+        ? '다시 들어오려면 초대 링크가 필요해요.'
+        : '다시 초대하기 전까지 이 프로젝트에 접근할 수 없어요.',
+      confirmLabel: isSelf ? '나가기' : '제거',
+      emphasis: true,
+      action: async () => {
+        await deleteProjectMember.mutateAsync({ projectId: modalProjectId, userId });
+      }
+    });
   };
 
   const selectedProjectSyncStatus = useGetProjectSyncStatus({
@@ -807,9 +841,6 @@ export const AppShell = ({
       setInviteSuccess(null);
       setReissueConfirming(false);
     }
-    if (kind === 'members') {
-      setMemberActionError(null);
-    }
   };
 
   const closeProjectModal = (): void => {
@@ -858,16 +889,21 @@ export const AppShell = ({
     project: ProjectsListData['data'][number]
   ): Promise<void> => {
     setOpenMenuProjectId(null);
-    if (!window.confirm(`"${project.name}" 프로젝트를 삭제할까요?`)) return;
-
-    try {
-      await deleteProject.mutateAsync(project.id);
-      if (selectedProjectId === project.id) {
-        navigate('/projects', { replace: true });
+    setConfirmRequest({
+      title: `‘${project.name}’ 프로젝트를 삭제할까요?`,
+      description: '멤버 전원이 이 프로젝트와 그 안의 대화에 더 이상 접근할 수 없어요.',
+      confirmLabel: '삭제',
+      emphasis: true,
+      errorContext: 'project.delete',
+      action: async () => {
+        await deleteProject.mutateAsync(project.id);
+        // 보던 프로젝트가 사라지면 왜 화면이 바뀌었는지 알린다 (docs/patterns/feedback.md)
+        if (selectedProjectId === project.id) {
+          navigate('/projects', { replace: true });
+          toast.success(`‘${project.name}’ 프로젝트를 삭제했어요`);
+        }
       }
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'project.delete'));
-    }
+    });
   };
 
   const handleProjectMenuOpen = (projectId: string, button: HTMLButtonElement): void => {
@@ -907,6 +943,7 @@ export const AppShell = ({
   const closeSectionRenameModal = (): void => {
     setSectionRenameModalSectionId(null);
     setSectionRenameTouched(false);
+    patchSection.reset();
   };
 
   const openSectionCreateModal = (): void => {
@@ -918,6 +955,7 @@ export const AppShell = ({
   const closeSectionCreateModal = (): void => {
     setSectionCreateModalOpen(false);
     setSectionCreateTouched(false);
+    postSection.reset();
   };
 
   const openFolderCreateModal = (sectionId: string): void => {
@@ -930,6 +968,7 @@ export const AppShell = ({
   const closeFolderCreateModal = (): void => {
     setFolderCreateModalSectionId(null);
     setFolderCreateTouched(false);
+    postFolder.reset();
   };
 
   const applySectionRename = async (): Promise<void> => {
@@ -945,8 +984,8 @@ export const AppShell = ({
         body: { name: trimmed }
       });
       closeSectionRenameModal();
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'section.rename'));
+    } catch {
+      // 실패는 mutation.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     }
   };
 
@@ -958,8 +997,8 @@ export const AppShell = ({
     try {
       await postSection.mutateAsync({ name: trimmed });
       closeSectionCreateModal();
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'section.create'));
+    } catch {
+      // 실패는 mutation.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     }
   };
 
@@ -967,13 +1006,15 @@ export const AppShell = ({
     const section = sections.find((item) => item.id === sectionId);
     setOpenSectionMenuId(null);
     if (!section) return;
-    if (!window.confirm(`"${section.name}" 섹션을 삭제할까요?`)) return;
-
-    try {
-      await deleteSection.mutateAsync(sectionId);
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'section.delete'));
-    }
+    setConfirmRequest({
+      title: `‘${section.name}’ 섹션을 삭제할까요?`,
+      description: '삭제하면 되돌릴 수 없어요.',
+      confirmLabel: '삭제',
+      errorContext: 'section.delete',
+      action: async () => {
+        await deleteSection.mutateAsync(sectionId);
+      }
+    });
   };
 
   const createFolder = async (): Promise<void> => {
@@ -987,20 +1028,23 @@ export const AppShell = ({
         body: { name: trimmed }
       });
       closeFolderCreateModal();
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'folder.create'));
+    } catch {
+      // 실패는 mutation.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     }
   };
 
   const handlePersonalChatDelete = async (chat: ChatsMeListData['data'][number]): Promise<void> => {
     if (!selectedProjectId) return;
-    if (!window.confirm(`"${chat.name}" 채팅을 삭제할까요?`)) return;
-
-    try {
-      await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'chat.delete'));
-    }
+    setConfirmRequest({
+      title: `‘${chat.name}’ 채팅을 삭제할까요?`,
+      description: '대화 내용이 모두 사라져요.',
+      confirmLabel: '삭제',
+      errorContext: 'chat.delete',
+      action: async () => {
+        await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
+        if (activeChatId === chat.id) toast.success(`‘${chat.name}’ 채팅을 삭제했어요`);
+      }
+    });
   };
 
   const beginChatRename = (chat: ChatsMeListData['data'][number]): void => {
@@ -1178,14 +1222,9 @@ export const AppShell = ({
               {sectionsCollapsed ? null : (
                 <>
                   {sectionsErrorMessage ? null : sectionsLoading ? (
-                    <div
-                      className={[
-                        'flex h-24 items-center justify-center text-center font-normal leading-[1.6] text-fg-muted',
-                        drawerTypography.emptyState
-                      ].join(' ')}
-                    >
+                    <StateMessage kind="loading" align="center" className="h-24">
                       섹션을 불러오는 중입니다...
-                    </div>
+                    </StateMessage>
                   ) : sections.length > 0 ? (
                     <nav aria-label="섹션 목록" className="mt-0.5">
                       {sections.map((section) => (
@@ -1324,14 +1363,13 @@ export const AppShell = ({
                   </button>
                 </div>
               ) : !chatsIsLoading && personalChats.length === 0 ? (
-                <p
-                  className={[
-                    'mt-1 px-3 py-2 font-normal text-fg-subtle',
-                    drawerTypography.emptyState
-                  ].join(' ')}
+                <StateMessage
+                  kind="empty"
+                  className="mt-1 px-3 py-2"
+                  action={selectedProjectId ? '＋ 를 눌러 코드에 질문해 보세요.' : undefined}
                 >
                   아직 채팅이 없습니다.
-                </p>
+                </StateMessage>
               ) : null}
               <nav aria-label="내 채팅 목록" className="mt-0.5">
                 {personalChats.map((chat) => {
@@ -1470,14 +1508,17 @@ export const AppShell = ({
                   </button>
                 </div>
               ) : !chatsIsLoading && teamChats.length === 0 ? (
-                <p
-                  className={[
-                    'mt-1 px-3 py-2 font-normal text-fg-subtle',
-                    drawerTypography.emptyState
-                  ].join(' ')}
+                <StateMessage
+                  kind="empty"
+                  className="mt-1 px-3 py-2"
+                  action={
+                    API_CAPABILITIES.teamChatWritable && onCreateTeamChat && selectedProjectId
+                      ? '＋ 를 눌러 팀원과 대화를 시작해 보세요.'
+                      : undefined
+                  }
                 >
                   아직 채팅이 없습니다.
-                </p>
+                </StateMessage>
               ) : null}
               <nav aria-label="팀 채팅 목록" className="mt-0.5">
                 {teamChats.map((chat) => {
@@ -1772,12 +1813,20 @@ export const AppShell = ({
             }
           />
 
+          {postFolder.isError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">
+                {friendlyErrorMessage(postFolder.error, 'folder.create').description}
+              </InlineAlert>
+            </div>
+          ) : null}
+
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeFolderCreateModal}>
               취소
             </Button>
             <Button type="submit" size="sm" isLoading={postFolder.isPending}>
-              {postFolder.isPending ? '추가 중...' : '추가'}
+              추가
             </Button>
           </div>
         </form>
@@ -1810,12 +1859,20 @@ export const AppShell = ({
             }
           />
 
+          {postSection.isError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">
+                {friendlyErrorMessage(postSection.error, 'section.create').description}
+              </InlineAlert>
+            </div>
+          ) : null}
+
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionCreateModal}>
               취소
             </Button>
             <Button type="submit" size="sm" isLoading={postSection.isPending}>
-              {postSection.isPending ? '추가 중...' : '추가'}
+              추가
             </Button>
           </div>
         </form>
@@ -1848,12 +1905,20 @@ export const AppShell = ({
             }
           />
 
+          {patchSection.isError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">
+                {friendlyErrorMessage(patchSection.error, 'section.rename').description}
+              </InlineAlert>
+            </div>
+          ) : null}
+
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionRenameModal}>
               취소
             </Button>
             <Button type="submit" size="sm" isLoading={patchSection.isPending}>
-              {patchSection.isPending ? '저장 중...' : '저장'}
+              저장
             </Button>
           </div>
         </form>
@@ -2167,10 +2232,10 @@ export const AppShell = ({
                 <Button
                   type="button"
                   size="sm"
-                  disabled={postInviteReissue.isPending}
+                  isLoading={postInviteReissue.isPending}
                   onClick={() => void reissueInviteLink()}
                 >
-                  {postInviteReissue.isPending ? '만드는 중...' : '새 링크 만들기'}
+                  새 링크 만들기
                 </Button>
               </div>
             </div>
@@ -2208,12 +2273,6 @@ export const AppShell = ({
         size="lg"
       >
         <>
-          {memberActionError ? (
-            <div className="mt-3">
-              <InlineAlert tone="danger">{memberActionError}</InlineAlert>
-            </div>
-          ) : null}
-
           {modalProjectMembers.isError ? (
             <div className="mt-3 rounded-card border border-line-danger bg-danger-soft p-3">
               <p className="text-label text-fg-danger">멤버 목록을 불러올 수 없습니다.</p>
@@ -2238,7 +2297,9 @@ export const AppShell = ({
               </div>
 
               {modalProjectMembers.isLoading ? (
-                <div className="px-3 py-3 text-label text-fg-subtle">멤버를 불러오는 중...</div>
+                <StateMessage kind="loading" className="px-3 py-3">
+                  멤버를 불러오는 중...
+                </StateMessage>
               ) : null}
 
               {modalProjectMembers.data?.data.map((member) => {
@@ -2286,7 +2347,7 @@ export const AppShell = ({
                           size="sm"
                           variant="secondary"
                           disabled={deleteProjectMember.isPending}
-                          onClick={() => void removeMember(member.id, isSelf)}
+                          onClick={() => removeMember(member.id, isSelf, member.name)}
                         >
                           {isSelf ? '나가기' : '프로젝트에서 제거'}
                         </Button>
@@ -2354,6 +2415,17 @@ export const AppShell = ({
           </div>
         </>
       </OverlayModal>
+      <ConfirmDialog
+        open={confirmRequest !== null}
+        title={confirmRequest?.title ?? ''}
+        description={confirmRequest?.description}
+        confirmLabel={confirmRequest?.confirmLabel ?? ''}
+        emphasis={confirmRequest?.emphasis}
+        error={confirmError}
+        isProcessing={confirmBusy}
+        onClose={closeConfirm}
+        onConfirm={() => void runConfirm()}
+      />
     </div>
   );
 };

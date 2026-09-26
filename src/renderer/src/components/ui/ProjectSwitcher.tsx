@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../lib/hashRouter';
 import { cn } from '../../lib/cn';
+import { Button } from './Button';
+import { StateMessage } from './StateMessage';
 
 type ProjectItem = {
   id: string;
@@ -156,18 +158,22 @@ export const ProjectSwitcher = ({
                 <p className="mb-2 px-2 text-body text-fg-subtle">
                   프로젝트 목록을 불러올 수 없습니다.
                 </p>
-                <button
+                <Button
                   type="button"
                   role="menuitem"
-                  className="w-full rounded-panel border border-line px-3 py-2 text-body font-medium text-fg-default transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isFetching || !onRetry}
+                  variant="secondary"
+                  className="w-full"
+                  disabled={!onRetry}
+                  isLoading={isFetching}
                   onClick={() => onRetry?.()}
                 >
-                  {isFetching ? '재시도 중...' : '다시 시도'}
-                </button>
+                  다시 시도
+                </Button>
               </div>
             ) : projects.length === 0 ? (
-              <div className="px-4 py-3 text-label text-fg-muted">프로젝트가 없습니다.</div>
+              <StateMessage kind="empty" className="px-4 py-3">
+                프로젝트가 없습니다.
+              </StateMessage>
             ) : (
               projects.map((project) => {
                 const isSelected = project.id === selectedProjectId;

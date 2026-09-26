@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { usePatchTeamChatName } from '../../../api/auth/useTeamChatAPI';
 import { handleApiError } from '../../../api/axios';
 import { friendlyErrorMessage } from '../../../api/errorMessages';
-import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../ui/Button';
 import { OverlayModal } from '../../ui/OverlayModal';
 import { TextField } from '../../ui/TextField';
@@ -25,7 +24,6 @@ export const RenameTeamChatModal = ({
   onRenamed
 }: Props): React.JSX.Element | null => {
   const patchName = usePatchTeamChatName({ projectId });
-  const toast = useToast();
   const [name, setName] = useState(currentName);
   const [touched, setTouched] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -79,7 +77,6 @@ export const RenameTeamChatModal = ({
       }
       const friendly = friendlyErrorMessage(error, 'chat.rename');
       setServerError(friendly.description);
-      toast.error(friendly);
     }
   };
 
