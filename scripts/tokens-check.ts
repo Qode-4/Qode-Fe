@@ -4,6 +4,7 @@
  * 1. main.css 의 semantic 색을 값으로 풀어 fg × bg 대비 매트릭스를 docs/tokens/contrast-matrix.md 로 생성한다.
  * 2. REQUIRED 에 적힌 의도한 조합이 WCAG AA 기준 미달이면 실패한다.
  * 3. 렌더러 소스에서 토큰이 아닌 클래스(raw 팔레트·기본 크기·기본 radius·임의값)를 찾으면 실패한다.
+ * 3b. 패턴 규칙 위반(브라우저 confirm/alert, 손 스피너, 버튼 라벨 바꿔치기, 하드코딩 색)을 찾으면 실패한다.
  * 4. cn.ts 토큰 목록이 main.css 와 같은지 본다.
  * 5. 컴포넌트 registry(docs/registry.md)를 생성하고 meta 누락을 검사한다 (scripts/registry.ts).
  *
@@ -224,6 +225,42 @@ for (const file of walk(SRC_DIR)) {
           if (ALLOW.some((a) => a.file === rel && a.token === m[0])) continue;
           failures.push(`${rel}:${i + 1}  ${m[0]}  — ${why}`);
         }
+      }
+    });
+}
+
+// ── 3b. 패턴 규칙 (docs/patterns · docs/ai-review-checklist.md) ──────────
+// className 이 아니라 코드 모양을 본다. 대신 쓸 것을 메시지에 적는다.
+const PATTERN_RULES: Array<{ re: RegExp; why: string; except?: string[] }> = [
+  {
+    re: /(?<![\w.])(?:window\.)?(?:confirm|alert|prompt)\(/,
+    why: '브라우저 대화상자 — 확인은 ConfirmDialog, 알림은 Toast·InlineAlert (patterns/confirm.md)'
+  },
+  {
+    re: /animate-spin/,
+    why: '손으로 만든 스피너 — Spinner 를 쓴다 (patterns/empty-loading.md)',
+    except: ['components/ui/Spinner.tsx']
+  },
+  {
+    re: /\.isPending\s*\?\s*'[^']*중(?:\.\.\.|…)'/,
+    why: '처리 중 라벨 바꿔치기 — Button isLoading (patterns/empty-loading.md)'
+  },
+  {
+    re: /['"`]#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?['"`]|rgba?\(\s*\d/,
+    why: '하드코딩 색 — main.css 토큰을 쓴다'
+  }
+];
+for (const file of walk(SRC_DIR)) {
+  const rel = relative(SRC_DIR, file);
+  if (!rel.endsWith('.tsx') || /\.(test|stories)\.tsx$/.test(rel)) continue;
+  readFileSync(file, 'utf8')
+    .split('\n')
+    .forEach((line, i) => {
+      if (/^\s*(\/\/|\*)/.test(line)) return; // 주석
+      for (const { re, why, except } of PATTERN_RULES) {
+        if (except?.includes(rel)) continue;
+        const m = line.match(re);
+        if (m) failures.push(`${rel}:${i + 1}  ${m[0]}  — ${why}`);
       }
     });
 }
