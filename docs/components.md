@@ -1,6 +1,6 @@
 # Quire Components — 컴포넌트 인벤토리 & API 컨벤션
 
-- 상태: **In sync** — Phase C 1차(2026-09-25). 판정은 기록만 하고, 실행한 것은 §3에 표시한다.
+- 상태: **In sync** (2026-09-26) — Phase C 1차(2026-09-25). 판정은 기록만 하고, 실행한 것은 §3에 표시한다.
 - 상위 문서: [`SYSTEM.md`](../SYSTEM.md) · 토큰: [`docs/foundations.md`](./foundations.md) · 시각 규칙: [`DESIGN.md`](../DESIGN.md) · 컴포넌트 registry: [`docs/registry.md`](./registry.md)
 - 집계 기준: `src/renderer/src`(generated·stories 제외) import 검색, 2026-09-25.
 

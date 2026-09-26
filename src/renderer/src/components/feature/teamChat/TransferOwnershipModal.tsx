@@ -97,7 +97,7 @@ export const TransferOwnershipModal = ({
           </InlineAlert>
         ) : (
           <ul
-            role="radiogroup"
+            role={candidates.length > 0 && !participants.isLoading ? 'radiogroup' : undefined}
             aria-label="새 방장 후보"
             className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-control border border-line bg-surface p-1"
           >
@@ -124,6 +124,7 @@ export const TransferOwnershipModal = ({
                     avatarUrl={participant.avatarUrl}
                     role={participant.memberRole}
                     emphasized={isSelected}
+                    itemRole="none"
                     action={
                       <input
                         type="radio"

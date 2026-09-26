@@ -332,6 +332,8 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           </section>
 
           <section
+            // GitHub 인증 전에는 잠긴 단계 — 흐리게만 하지 않고 키보드·스크린리더에서도 막는다
+            inert={!isAuthorized}
             className={[
               'rounded-card border border-line bg-surface p-3 transition-opacity',
               isAuthorized ? 'opacity-100' : 'pointer-events-none opacity-60'

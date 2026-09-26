@@ -357,7 +357,7 @@ UI 를 만들거나 고칠 때: 아래 표에서 맞는 컴포넌트를 먼저 �
 
 **관련** [MarkdownAnswer](#markdownanswer) · [SourceList](#sourcelist) · **패턴** —
 
-**토큰** 색 `code` `code-raised` `fg-code` `fg-code-muted` `line-code` · 글자 `label` `micro` · 모서리 `control` `inline`
+**토큰** 색 `code` `code-raised` `fg-code` `fg-code-muted` `line-code` `line-primary` · 글자 `label` `micro` · 모서리 `control` `inline`
 
 ### Icon
 
@@ -437,7 +437,7 @@ AI 답변이 참조한 코드 위치 목록(같은 파일은 한 줄)
 
 **관련** [CodeBlock](#codeblock) · [MarkdownAnswer](#markdownanswer) · **패턴** —
 
-**토큰** 색 `fg-default` `fg-muted` `fg-subtle` `line` `line-soft` `surface` `surface-muted` · 글자 `caption` · 모서리 `card`
+**토큰** 색 `fg-default` `fg-muted` `fg-subtle` `line` `line-primary` `line-soft` `surface` `surface-muted` · 글자 `caption` · 모서리 `card`
 
 ### SuggestionCard
 

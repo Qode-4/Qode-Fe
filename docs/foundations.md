@@ -1,6 +1,6 @@
 # Quire Foundations — 파운데이션 결정 기록
 
-- 상태: **In sync** — Phase B 결정과 구현(`refactor/design-tokens`)이 이 문서와 일치한다. 토큰을 바꿀 때는 이 문서를 먼저 갱신하고 `yarn tokens:check`로 검증한다.
+- 상태: **In sync** (2026-09-26) — Phase B 결정과 구현(`refactor/design-tokens`)이 이 문서와 일치한다. 토큰을 바꿀 때는 이 문서를 먼저 갱신하고 `yarn tokens:check`로 검증한다.
 - 갱신일: 2026-09-25.
 - 상위 문서: [`SYSTEM.md`](../SYSTEM.md). 실제 값의 기준은 구현 후 `src/renderer/src/assets/main.css`.
 - 표기: 사용 횟수는 2026-09-25 기준 `src/renderer/src`(generated·stories 제외) grep 결과.

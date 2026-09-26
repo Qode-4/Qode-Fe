@@ -1,0 +1,37 @@
+name: 시스템 변경 제안
+description: 새 토큰·컴포넌트·패턴이 필요하거나 기존 규칙을 바꾸자고 제안합니다. (docs/process/change-flow.md)
+title: '[System]: '
+labels: ['system-change']
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 무엇을 바꾸나요
+      options:
+        - 토큰 (색·글자·모서리·모션)
+        - 컴포넌트 (새 ui 컴포넌트 · variant/size 추가)
+        - 패턴 (결정 트리)
+        - 문구 규칙 (톤·용어집)
+    validations:
+      required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: 왜 필요한가요
+      description: 어떤 화면에서 무엇을 하려는데 막혔는지. 스크린샷이 있으면 좋아요.
+    validations:
+      required: true
+  - type: textarea
+    id: existing
+    attributes:
+      label: 기존 것으로는 왜 안 되나요
+      description: docs/registry.md · docs/patterns · docs/foundations.md 에서 검토한 것
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 제안
+      description: 이름·값·쓸 때/피할 때. 다른 대안이 있었다면 함께.
+    validations:
+      required: true

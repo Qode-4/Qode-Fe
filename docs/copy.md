@@ -1,5 +1,7 @@
 # Quire Copy — 화면 문구 카탈로그
 
+- 상태: **In sync** (2026-09-26) — Phase F. 화면 문구와 이 문서가 일치하고, 🤖 항목은 CI 가 검사한다.
+
 > 화면에 보이는 한국어 문구의 기준. 🤖 표시는 `yarn tokens:check` 가 자동으로 잡는다.
 > 상위: [`SYSTEM.md`](../SYSTEM.md) · 상황별 결정: [`docs/patterns/`](./patterns/README.md) · 컴포넌트: [`docs/registry.md`](./registry.md)
 

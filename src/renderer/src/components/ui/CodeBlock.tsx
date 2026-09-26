@@ -41,7 +41,12 @@ export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
       <Highlight code={code} language={language} theme={themes.oneDark}>
         {({ className, style, tokens, getLineProps, getTokenProps }) => (
           <pre
-            className={cn(className, 'm-0 overflow-x-auto p-3 text-label leading-[1.55]')}
+            // 긴 줄은 가로 스크롤 — 키보드로도 스크롤할 수 있게 포커스를 받는다
+            tabIndex={0}
+            className={cn(
+              className,
+              'm-0 overflow-x-auto p-3 text-label leading-[1.55] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-line-primary'
+            )}
             style={{ ...style, background: 'transparent' }}
           >
             {tokens.map((line, i) => {

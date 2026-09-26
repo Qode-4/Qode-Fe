@@ -68,7 +68,7 @@ export const Step3TargetRoom = ({
       {chats.map((chat) => {
         const selected = chat.id === selectedChatId;
         return (
-          <li key={chat.id}>
+          <li key={chat.id} role="none">
             <label
               className={[
                 'flex cursor-pointer items-center gap-3 rounded-control border p-3 text-label',

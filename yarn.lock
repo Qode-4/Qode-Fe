@@ -2153,6 +2153,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@storybook/addon-a11y@npm:^8.6.14":
+  version: 8.6.18
+  resolution: "@storybook/addon-a11y@npm:8.6.18"
+  dependencies:
+    "@storybook/addon-highlight": 8.6.18
+    "@storybook/global": ^5.0.0
+    "@storybook/test": 8.6.18
+    axe-core: ^4.2.0
+  peerDependencies:
+    storybook: ^8.6.18
+  checksum: 63e975c6f0f4c6f6d87fb65730a7ff5388895c0b105f6f649d31cd995d42dd9fa7072ada30a3c705077c0fc1d4f22d10fc3eec73c646af1654931803c376cd3d
+  languageName: node
+  linkType: hard
+
 "@storybook/addon-actions@npm:8.6.18":
   version: 8.6.18
   resolution: "@storybook/addon-actions@npm:8.6.18"
@@ -3985,6 +3999,13 @@ __metadata:
   version: 1.13.2
   resolution: "aws4@npm:1.13.2"
   checksum: 9ac924e4a91c088b4928ea86b68d8c4558b0e6289ccabaae0e3e96a611bd75277c2eab6e3965821028768700516f612b929a5ce822f33a8771f74ba2a8cedb9c
+  languageName: node
+  linkType: hard
+
+"axe-core@npm:^4.2.0":
+  version: 4.13.0
+  resolution: "axe-core@npm:4.13.0"
+  checksum: 7788457bf83dfe91feebfb9229705e56fee2e188df95a67b936afd4c6da7aba5be049c50f87ee789a034983c7c5d922bcbd270a8c341afbd3ddb3823935c1659
   languageName: node
   linkType: hard
 
@@ -9290,6 +9311,7 @@ __metadata:
     "@electron-toolkit/preload": ^3.0.2
     "@electron-toolkit/tsconfig": ^2.0.0
     "@electron-toolkit/utils": ^4.0.0
+    "@storybook/addon-a11y": ^8.6.14
     "@storybook/addon-essentials": ^8.6.14
     "@storybook/addon-interactions": ^8.6.14
     "@storybook/react-vite": ^8.6.14

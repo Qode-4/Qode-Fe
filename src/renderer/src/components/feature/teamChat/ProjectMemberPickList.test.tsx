@@ -16,9 +16,9 @@ describe('ProjectMemberPickList', () => {
 
     await user.type(screen.getByRole('textbox', { name: '멤버 이름으로 검색' }), '지');
 
-    expect(screen.getByRole('option', { name: /지호/ })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: /나연/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: /가온/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /지호/ })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /나연/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /가온/ })).not.toBeInTheDocument();
   });
 
   it('체크박스 클릭 시 onToggle 콜백에 memberId 를 전달한다', async () => {
@@ -41,9 +41,9 @@ describe('ProjectMemberPickList', () => {
       />
     );
 
-    expect(screen.queryByRole('option', { name: /지호/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('option', { name: /나연/ })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: /가온/ })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /지호/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /나연/ })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /가온/ })).toBeInTheDocument();
   });
 
   it('max 에 도달하면 선택되지 않은 나머지 항목은 disabled 처리된다', () => {
@@ -74,7 +74,7 @@ describe('ProjectMemberPickList', () => {
 
     await user.type(screen.getByRole('textbox', { name: '멤버 이름으로 검색' }), 'nonexistent');
 
-    const listbox = screen.getByRole('listbox');
-    expect(within(listbox).getByText('검색된 멤버가 없어요.')).toBeInTheDocument();
+    const list = screen.getByRole('list');
+    expect(within(list).getByText('검색된 멤버가 없어요.')).toBeInTheDocument();
   });
 });

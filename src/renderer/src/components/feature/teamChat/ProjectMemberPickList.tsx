@@ -62,9 +62,7 @@ export const ProjectMemberPickList = ({
       </label>
 
       <ul
-        role="listbox"
         aria-label={ariaLabel}
-        aria-multiselectable
         className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-control border border-line bg-surface"
       >
         {loadingMessage ? (
@@ -84,7 +82,7 @@ export const ProjectMemberPickList = ({
             const isSelected = selectedSet.has(member.id);
             const disabled = !isSelected && atMax;
             return (
-              <li key={member.id} role="option" aria-selected={isSelected}>
+              <li key={member.id}>
                 <label
                   className={[
                     'flex cursor-pointer items-center gap-3 px-3 py-2 transition-colors',

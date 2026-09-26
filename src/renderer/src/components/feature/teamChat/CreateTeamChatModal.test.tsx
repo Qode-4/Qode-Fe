@@ -78,7 +78,7 @@ describe('CreateTeamChatModal', () => {
     // 멤버 로드 대기
     const user = userEvent.setup();
     await waitFor(() => {
-      expect(screen.getByRole('option', { name: /지호/ })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /지호/ })).toBeInTheDocument();
     });
 
     await user.type(screen.getByLabelText('채팅방 이름'), '기획 회의');
@@ -130,7 +130,7 @@ describe('CreateTeamChatModal', () => {
 
     const user = userEvent.setup();
     await waitFor(() => {
-      expect(screen.getByRole('option', { name: /나연/ })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /나연/ })).toBeInTheDocument();
     });
     await user.type(screen.getByLabelText('채팅방 이름'), '중복 이름');
     await user.click(screen.getByRole('checkbox', { name: '나연 선택' }));
