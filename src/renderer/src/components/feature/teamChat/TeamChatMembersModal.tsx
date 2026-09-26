@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   useDeleteTeamChatParticipant,
   useGetTeamChatParticipants
@@ -30,6 +30,8 @@ export const TeamChatMembersModal = ({
 }: Props): React.JSX.Element | null => {
   const participants = useGetTeamChatParticipants({ chatId, enabled: open && Boolean(chatId) });
   const kick = useDeleteTeamChatParticipant({ chatId, projectId });
+  // 모달 안이라 ConfirmDialog 를 겹치지 않고 그 줄 안에서 확인한다 (docs/patterns/confirm.md)
+  const [confirmKickId, setConfirmKickId] = useState<string | null>(null);
   const toast = useToast();
 
   const list = useMemo(
@@ -46,7 +48,10 @@ export const TeamChatMembersModal = ({
   const handleKick = async (userId: string, name: string): Promise<void> => {
     // 실패는 kick.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     await kick.mutateAsync({ userId }).then(
-      () => toast.success(`${name}님을 내보냈어요`),
+      () => {
+        setConfirmKickId(null);
+        toast.success(`${name}님을 내보냈어요`);
+      },
       () => undefined
     );
   };
@@ -56,6 +61,7 @@ export const TeamChatMembersModal = ({
       open={open}
       onClose={() => {
         kick.reset();
+        setConfirmKickId(null);
         onClose();
       }}
       title={`참여자 (${list.length}명)`}
@@ -108,17 +114,49 @@ export const TeamChatMembersModal = ({
                     role={participant.memberRole}
                     emphasized={isSelf}
                     action={
-                      canKick ? (
+                      !canKick ? null : confirmKickId === participant.userId ? (
+                        <div
+                          role="group"
+                          aria-label={`${displayName} 내보내기 확인`}
+                          className="flex items-center gap-1.5"
+                        >
+                          <span className="text-caption font-medium text-fg-danger">
+                            내보낼까요?
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            autoFocus
+                            disabled={kick.isPending}
+                            onClick={() => {
+                              kick.reset();
+                              setConfirmKickId(null);
+                            }}
+                          >
+                            취소
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="danger"
+                            isLoading={kick.isPending}
+                            onClick={() => void handleKick(participant.userId, displayName)}
+                          >
+                            내보내기
+                          </Button>
+                        </div>
+                      ) : (
                         <button
                           type="button"
                           className="rounded-control px-2 py-1 text-caption font-medium text-fg-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
-                          onClick={() => void handleKick(participant.userId, displayName)}
+                          onClick={() => setConfirmKickId(participant.userId)}
                           disabled={kick.isPending}
                           aria-label={`${displayName} 내보내기`}
                         >
                           내보내기
                         </button>
-                      ) : null
+                      )
                     }
                   />
                 );
