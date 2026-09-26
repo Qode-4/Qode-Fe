@@ -410,7 +410,7 @@ export const AppShell = ({
     if (!sourceGitUrl) return;
     try {
       await navigator.clipboard.writeText(sourceGitUrl);
-      toast.success('복사되었습니다');
+      toast.success('복사했어요');
     } catch {
       toast.error('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
     }
@@ -896,8 +896,10 @@ export const AppShell = ({
       errorContext: 'project.delete',
       action: async () => {
         await deleteProject.mutateAsync(project.id);
+        // 보던 프로젝트가 사라지면 왜 화면이 바뀌었는지 알린다 (docs/patterns/feedback.md)
         if (selectedProjectId === project.id) {
           navigate('/projects', { replace: true });
+          toast.success(`‘${project.name}’ 프로젝트를 삭제했어요`);
         }
       }
     });
@@ -1039,6 +1041,7 @@ export const AppShell = ({
       errorContext: 'chat.delete',
       action: async () => {
         await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
+        if (activeChatId === chat.id) toast.success(`‘${chat.name}’ 채팅을 삭제했어요`);
       }
     });
   };

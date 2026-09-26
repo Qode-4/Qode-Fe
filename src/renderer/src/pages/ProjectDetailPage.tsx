@@ -502,7 +502,7 @@ export const ProjectDetailPage = ({
   const copyText = async (value: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success('복사되었습니다');
+      toast.success('복사했어요');
     } catch {
       toast.error('복사에 실패했습니다. 텍스트를 직접 선택하여 복사해주세요.');
     }
@@ -780,12 +780,15 @@ export const ProjectDetailPage = ({
                 { chatId: teamChatModal.chatId },
                 {
                   onSuccess: (result) => {
-                    if (result.chatDeleted) {
-                      dropActiveIfMatches(teamChatModal.chatId);
-                      toast.success('마지막 참여자로 나가면서 채팅방이 삭제되었어요');
-                    } else {
-                      dropActiveIfMatches(teamChatModal.chatId);
-                      toast.success('채팅방에서 나갔어요');
+                    // 보던 채팅이 사라질 때만 알린다 — 목록 변화로 보이면 조용히 (docs/patterns/feedback.md)
+                    const wasActive = activeChatId === teamChatModal.chatId;
+                    dropActiveIfMatches(teamChatModal.chatId);
+                    if (wasActive) {
+                      toast.success(
+                        result.chatDeleted
+                          ? '마지막 참여자로 나가면서 채팅방이 삭제되었어요'
+                          : '채팅방에서 나갔어요'
+                      );
                     }
                     closeTeamChatModal();
                   }
@@ -830,6 +833,7 @@ export const ProjectDetailPage = ({
             onClose={closeTeamChatModal}
             onTransferred={() => {
               // 서버가 원 방장 leave 까지 처리한다. FE 는 chat 캐시 제거 + 다른 채팅으로 이동.
+              const wasActive = activeChatId === teamChatModal.chatId;
               dropActiveIfMatches(teamChatModal.chatId);
               queryClient.removeQueries({
                 queryKey: QUERY_KEY.teamChatParticipants(teamChatModal.chatId)
@@ -837,7 +841,7 @@ export const ProjectDetailPage = ({
               void queryClient.invalidateQueries({
                 queryKey: QUERY_KEY.projectChatsByProject(projectId)
               });
-              toast.success('방장을 양도하고 채팅방을 나왔어요');
+              if (wasActive) toast.success('방장을 양도하고 채팅방을 나왔어요');
               closeTeamChatModal();
             }}
           />
@@ -863,8 +867,9 @@ export const ProjectDetailPage = ({
                 { chatId: teamChatModal.chatId },
                 {
                   onSuccess: () => {
+                    const wasActive = activeChatId === teamChatModal.chatId;
                     dropActiveIfMatches(teamChatModal.chatId);
-                    toast.success('채팅방을 삭제했어요');
+                    if (wasActive) toast.success('채팅방을 삭제했어요');
                     closeTeamChatModal();
                   }
                 }
@@ -1444,10 +1449,7 @@ export const ProjectDetailPage = ({
           deleteDigestCard.mutate(
             { messageId: shareDeleteId },
             {
-              onSuccess: () => {
-                toast.success('공유를 취소했어요');
-                setShareDeleteId(null);
-              }
+              onSuccess: () => setShareDeleteId(null)
             }
           );
         }}

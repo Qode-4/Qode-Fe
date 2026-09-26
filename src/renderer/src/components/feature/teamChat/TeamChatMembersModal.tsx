@@ -4,7 +4,6 @@ import {
   useGetTeamChatParticipants
 } from '../../../api/auth/useTeamChatAPI';
 import { friendlyErrorMessage } from '../../../api/errorMessages';
-import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../ui/Button';
 import { InlineAlert } from '../../ui/InlineAlert';
 import { OverlayModal } from '../../ui/OverlayModal';
@@ -32,7 +31,6 @@ export const TeamChatMembersModal = ({
   const kick = useDeleteTeamChatParticipant({ chatId, projectId });
   // 모달 안이라 ConfirmDialog 를 겹치지 않고 그 줄 안에서 확인한다 (docs/patterns/confirm.md)
   const [confirmKickId, setConfirmKickId] = useState<string | null>(null);
-  const toast = useToast();
 
   const list = useMemo(
     () => sortParticipants(participants.data?.data ?? [], undefined, viewerUserId),
@@ -45,13 +43,10 @@ export const TeamChatMembersModal = ({
   );
   const viewerRole = viewer?.memberRole;
 
-  const handleKick = async (userId: string, name: string): Promise<void> => {
+  const handleKick = async (userId: string): Promise<void> => {
     // 실패는 kick.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     await kick.mutateAsync({ userId }).then(
-      () => {
-        setConfirmKickId(null);
-        toast.success(`${name}님을 내보냈어요`);
-      },
+      () => setConfirmKickId(null),
       () => undefined
     );
   };
@@ -141,7 +136,7 @@ export const TeamChatMembersModal = ({
                             size="sm"
                             variant="danger"
                             isLoading={kick.isPending}
-                            onClick={() => void handleKick(participant.userId, displayName)}
+                            onClick={() => void handleKick(participant.userId)}
                           >
                             내보내기
                           </Button>
