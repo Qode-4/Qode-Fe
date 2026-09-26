@@ -286,11 +286,14 @@
 - **어디에 띄울지**: 방금 한 동작의 결과, 놓쳐도 되는 것 → Toast(오른쪽 위, 몇 초 뒤 사라짐, `shadow-overlay`). 읽고 행동해야 하는 오류·계속 보여야 하는 안내 → InlineAlert(그 화면·폼 안). 입력 몇 개로 끝나는 작업·되돌릴 수 없는 확인 → OverlayModal. 목록 항목 하나에 딸린 작업 2~5개 → ChatItemMenu.
 - 스크린리더: 오류만 `role="alert"`(즉시), 안내·성공은 `role="status"`.
 
-### UserAvatar (`AppShell.tsx` 내부)
+### Avatar (`ui/Avatar.tsx`)
 
-- 기본 variant: `border border-line bg-surface-muted font-medium text-fg-muted`.
-- brand variant: `bg-primary-soft font-semibold text-fg-primary`. 사이드바 하단 프로필과 프로젝트 아바타 등 브랜드 강조 자리에 사용.
-- `avatarUrl` 있으면 이미지가 우선, 로드 실패 시 이니셜로 fallback. URL 이 바뀌면 실패 플래그를 초기화한다.
+- 사람·AI 를 나타내는 원은 모두 `<Avatar>` 로만 그린다. 원형 숫자·단계 표시는 아바타가 아니다.
+- `kind`: user(사진 또는 이니셜) · ai(오렌지 테두리 + Qode 심볼).
+- `size`: sm 24 메시지 · md 28 목록·헤더·사이드바 프로필 · lg 32 참여자 목록 · xl 40 프로필 창.
+- `tone`: brand(`bg-primary-soft font-semibold text-fg-primary`, 나·팀 강조) · neutral(`border border-line bg-surface-muted font-medium text-fg-muted`, 기본).
+- 사진(`src`)이 우선, 로드 실패 시 이니셜로 전환. 겹쳐 쌓을 땐 `ring`, 남은 인원은 `text="+N"`.
+- 이름이 옆에 글자로 있으므로 아바타는 스크린리더에서 숨긴다.
 
 ## SSE 스트리밍 렌더 라이프사이클
 
