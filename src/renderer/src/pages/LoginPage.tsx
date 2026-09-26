@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { usePostAuthLogin } from '../api/auth/useAuthAPI';
-import { authTransitionStorage } from '../api/authTransitionStorage';
 import { handleApiError } from '../api/axios';
 import { tokenStorage } from '../api/tokenStorage';
 import { AuthFrame } from '../components/layout/AuthFrame';
@@ -25,8 +24,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
   const next = resolveNextPath(location.query.next);
   const login = usePostAuthLogin();
 
-  const handleLoginSuccess = (userName: string) => {
-    authTransitionStorage.setLoginTransitionUserName(userName);
+  const handleLoginSuccess = () => {
     if (!tokenStorage.getAccessToken()) return;
     navigate(next);
   };
@@ -81,7 +79,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
               login.mutate(
                 { email: QUICK_LOGIN_EMAIL, password: QUICK_LOGIN_PASSWORD },
                 {
-                  onSuccess: (data) => handleLoginSuccess(data.user.name)
+                  onSuccess: handleLoginSuccess
                 }
               );
             }}
@@ -106,7 +104,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
             login.mutate(
               { email, password },
               {
-                onSuccess: (data) => handleLoginSuccess(data.user.name)
+                onSuccess: handleLoginSuccess
               }
             );
           }}
