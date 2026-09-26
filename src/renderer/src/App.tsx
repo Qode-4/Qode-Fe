@@ -4,7 +4,6 @@ import { useGetAuthMe } from './api/auth/useAuthAPI';
 import { useGetProjectChats, type ProjectChatItem } from './api/auth/useChatsAPI';
 import { useGetProject, useGetProjects } from './api/auth/useProjectsAPI';
 import { useGetProjectSections } from './api/auth/useSectionsAPI';
-import { authTransitionStorage } from './api/authTransitionStorage';
 import { handleApiError } from './api/axios';
 import type { ProjectsListData } from './api/generated/data-contracts';
 import { QUERY_KEY } from './api/queryKeys';
@@ -12,7 +11,6 @@ import { tokenStorage } from './api/tokenStorage';
 import { CreateProjectModal } from './components/feature/CreateProjectModal';
 import { AppShell } from './components/layout/AppShell';
 import { InlineAlert } from './components/ui/InlineAlert';
-import { Spinner } from './components/ui/Spinner';
 import { useToast } from './hooks/useToast';
 import { buildPath, matchPath, navigate, resolveNextPath } from './lib/hashRouter';
 import { applyUiFontSize, getStoredUiFontSize } from './lib/uiFontSize';
@@ -39,7 +37,6 @@ const App = (): React.JSX.Element => {
   const me = useGetAuthMe({ enabled: !isAuthRoute });
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
   const projects = useGetProjects({ search: '', enabled: Boolean(token) });
-  const loginTransitionUserName = authTransitionStorage.getLoginTransitionUserName();
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -166,13 +163,6 @@ const App = (): React.JSX.Element => {
     }
   }, [token, isInviteRoute, projects.isSuccess, projects.data]);
 
-  useEffect(() => {
-    if (!loginTransitionUserName) return;
-    if (!token || me.isSuccess || me.isError) {
-      authTransitionStorage.clearLoginTransitionUserName();
-    }
-  }, [loginTransitionUserName, token, me.isSuccess, me.isError]);
-
   // 삭제된 프로젝트로 들어오면(404): 알림, 목록 캐시에서 제거, 기본 프로젝트로 fallback
   const handledDeletedProjectIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -216,20 +206,6 @@ const App = (): React.JSX.Element => {
     return (
       <div className="flex h-full items-center justify-center text-label text-fg-muted">
         Redirecting...
-      </div>
-    );
-  }
-
-  if (me.isLoading && loginTransitionUserName) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-display font-semibold tracking-tight text-fg-default">
-            어서오세요, {loginTransitionUserName}님!
-          </h1>
-          <p className="mt-2 text-label text-fg-subtle">잠시만요, 준비하고 있어요…</p>
-          <Spinner size="lg" tone="brand" className="mx-auto mt-5 block" />
-        </div>
       </div>
     );
   }
