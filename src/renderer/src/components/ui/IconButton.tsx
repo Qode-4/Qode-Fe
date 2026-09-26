@@ -28,7 +28,7 @@ const sizeMap: Record<NonNullable<Props['size']>, string> = {
  *         aria-label 필수(타입으로 강제).
  * ❌ Don't: 뜻이 모호하면 글자 있는 <Button>. 페이지 이동에 쓰지 않는다.
  * variant: ghost 기본(목록·카드 안) · outline 헤더처럼 단독으로 놓일 때
- * size: md 36px 기본 · sm 24px 목록 줄 안의 ⋯·+
+ * size: md 36px(아이콘 20) 기본 · sm 24px(아이콘 16) 목록 줄 안의 ⋯·+
  */
 export const IconButton = ({
   variant = 'ghost',
@@ -56,7 +56,12 @@ export const IconButton = ({
       )}
       disabled={disabled}
     >
-      <Icon name={name} size="sm" decorative className={cn('shrink-0', iconClassName)} />
+      <Icon
+        name={name}
+        size="sm"
+        decorative
+        className={cn('shrink-0', size === 'md' && 'size-5', iconClassName)}
+      />
     </button>
   );
 };
