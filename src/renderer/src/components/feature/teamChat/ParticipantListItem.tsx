@@ -8,6 +8,8 @@ type Props = {
   avatarUrl?: string | null;
   action?: ReactNode;
   emphasized?: boolean;
+  /** radiogroup 처럼 목록이 아닌 역할의 부모 안에 둘 때 'none' — 안의 radio 가 그룹에 직접 속하게 한다 */
+  itemRole?: 'none';
 };
 
 export const ParticipantListItem = ({
@@ -15,10 +17,12 @@ export const ParticipantListItem = ({
   role,
   avatarUrl,
   action,
-  emphasized
+  emphasized,
+  itemRole
 }: Props): React.JSX.Element => {
   return (
     <li
+      role={itemRole}
       className={[
         'flex items-center gap-3 rounded-control px-2 py-2',
         emphasized ? 'bg-surface-muted' : ''

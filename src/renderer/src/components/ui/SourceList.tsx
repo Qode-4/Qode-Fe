@@ -49,8 +49,10 @@ export const SourceList = ({
       {expanded ? (
         <ul
           id={listId}
-          className="overflow-y-auto border-t border-line-soft py-1"
+          className="overflow-y-auto border-t border-line-soft py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-line-primary"
           style={maxHeight ? { maxHeight } : undefined}
+          // 높이를 제한해 스크롤이 생길 때만 키보드 포커스를 받는다
+          tabIndex={maxHeight ? 0 : undefined}
         >
           {groups.map((g) => {
             const visible = g.ranges.slice(0, MAX_VISIBLE_RANGES);

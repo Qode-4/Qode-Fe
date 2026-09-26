@@ -29,8 +29,16 @@ const codeRenderer: Components['code'] = ({ className, children }) => {
   return <CodeBlock language={match?.[1] ?? 'plaintext'} code={raw} />;
 };
 
+// GFM 체크리스트(- [ ]) 는 라벨 없는 체크박스로 그려진다 — 스크린리더가 읽을 이름을 붙인다.
+const inputRenderer: Components['input'] = ({ node, ...props }) => {
+  void node;
+  if (props.type !== 'checkbox') return <input {...props} />;
+  return <input {...props} aria-label={props.checked ? '완료한 항목' : '남은 항목'} />;
+};
+
 const components: Components = {
   a: linkRenderer,
+  input: inputRenderer,
   pre: preRenderer,
   code: codeRenderer
 };
