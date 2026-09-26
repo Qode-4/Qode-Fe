@@ -263,7 +263,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
                 <p className="text-label font-semibold text-fg-default">2. GitHub 인증</p>
-                <p className="text-caption text-fg-muted">승인 후 저장소 목록을 불러옵니다.</p>
+                <p className="text-caption text-fg-muted">승인하면 저장소 목록을 불러와요.</p>
               </div>
               <span
                 className={`rounded-full border px-2 py-0.5 text-micro font-semibold ${stepTone(isAuthorized)}`}

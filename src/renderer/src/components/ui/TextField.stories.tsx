@@ -37,7 +37,7 @@ export const Default: Story = {
 
 export const WithError: Story = {
   args: {
-    error: '올바른 이메일 형식이 아닙니다.'
+    error: '이메일 형식이 올바르지 않아요.'
   },
   render: (args) => (
     <div className="w-[320px]">
