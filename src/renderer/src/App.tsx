@@ -184,7 +184,7 @@ const App = (): React.JSX.Element => {
 
     handledDeletedProjectIdRef.current = selectedProjectId;
 
-    toast.error('해당 프로젝트가 삭제되었습니다.');
+    toast.info('해당 프로젝트가 삭제되었습니다.');
     queryClient.setQueriesData<ProjectsListData>({ queryKey: ['projects'] }, (old) => {
       if (!old) return old;
       return { ...old, data: old.data.filter((p) => p.id !== selectedProjectId) };

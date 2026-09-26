@@ -14,7 +14,7 @@ import {
 import { createPortal } from 'react-dom';
 import { usePostAuthLogout } from '../../api/auth/useAuthAPI';
 import { useDeleteChat, usePatchChat } from '../../api/auth/useChatsAPI';
-import { friendlyErrorMessage } from '../../api/errorMessages';
+import { friendlyErrorMessage, type ErrorContext } from '../../api/errorMessages';
 import { useToast } from '../../hooks/useToast';
 import {
   useDeleteProject,
@@ -180,6 +180,9 @@ type ConfirmRequest = {
   description: ReactNode;
   confirmLabel: string;
   emphasis?: boolean;
+  /** 실패 메시지 문맥(friendlyErrorMessage) */
+  errorContext?: ErrorContext;
+  /** 실패는 던진다 — runConfirm 이 모달 안에 보여준다 */
   action: () => Promise<void>;
 };
 
@@ -214,14 +217,23 @@ export const AppShell = ({
   // 되돌릴 수 없는 액션의 확인 — window.confirm 대신 ConfirmDialog (docs/patterns/confirm.md)
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const closeConfirm = (): void => {
+    setConfirmRequest(null);
+    setConfirmError(null);
+  };
+  // 실패하면 모달을 닫지 않고 안에 오류를 보여준다 — 바로 다시 시도할 수 있게 (docs/patterns/error.md)
   const runConfirm = async (): Promise<void> => {
     if (!confirmRequest) return;
     setConfirmBusy(true);
+    setConfirmError(null);
     try {
       await confirmRequest.action();
+      closeConfirm();
+    } catch (error) {
+      setConfirmError(friendlyErrorMessage(error, confirmRequest.errorContext).description);
     } finally {
       setConfirmBusy(false);
-      setConfirmRequest(null);
     }
   };
   const [drawerDragOffset, setDrawerDragOffset] = useState(0);
@@ -342,7 +354,6 @@ export const AppShell = ({
 
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [reissueConfirming, setReissueConfirming] = useState(false);
-  const [memberActionError, setMemberActionError] = useState<string | null>(null);
 
   const modalProject = useMemo(
     () => projects.find((it) => it.id === projectModal?.projectId),
@@ -430,12 +441,7 @@ export const AppShell = ({
       confirmLabel: isSelf ? '나가기' : '제거',
       emphasis: true,
       action: async () => {
-        setMemberActionError(null);
-        try {
-          await deleteProjectMember.mutateAsync({ projectId: modalProjectId, userId });
-        } catch (error) {
-          setMemberActionError(handleApiError(error).message);
-        }
+        await deleteProjectMember.mutateAsync({ projectId: modalProjectId, userId });
       }
     });
   };
@@ -834,9 +840,6 @@ export const AppShell = ({
       setInviteSuccess(null);
       setReissueConfirming(false);
     }
-    if (kind === 'members') {
-      setMemberActionError(null);
-    }
   };
 
   const closeProjectModal = (): void => {
@@ -890,14 +893,11 @@ export const AppShell = ({
       description: '멤버 전원이 이 프로젝트와 그 안의 대화에 더 이상 접근할 수 없어요.',
       confirmLabel: '삭제',
       emphasis: true,
+      errorContext: 'project.delete',
       action: async () => {
-        try {
-          await deleteProject.mutateAsync(project.id);
-          if (selectedProjectId === project.id) {
-            navigate('/projects', { replace: true });
-          }
-        } catch (error) {
-          toast.error(friendlyErrorMessage(error, 'project.delete'));
+        await deleteProject.mutateAsync(project.id);
+        if (selectedProjectId === project.id) {
+          navigate('/projects', { replace: true });
         }
       }
     });
@@ -940,6 +940,7 @@ export const AppShell = ({
   const closeSectionRenameModal = (): void => {
     setSectionRenameModalSectionId(null);
     setSectionRenameTouched(false);
+    patchSection.reset();
   };
 
   const openSectionCreateModal = (): void => {
@@ -951,6 +952,7 @@ export const AppShell = ({
   const closeSectionCreateModal = (): void => {
     setSectionCreateModalOpen(false);
     setSectionCreateTouched(false);
+    postSection.reset();
   };
 
   const openFolderCreateModal = (sectionId: string): void => {
@@ -963,6 +965,7 @@ export const AppShell = ({
   const closeFolderCreateModal = (): void => {
     setFolderCreateModalSectionId(null);
     setFolderCreateTouched(false);
+    postFolder.reset();
   };
 
   const applySectionRename = async (): Promise<void> => {
@@ -978,8 +981,8 @@ export const AppShell = ({
         body: { name: trimmed }
       });
       closeSectionRenameModal();
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'section.rename'));
+    } catch {
+      // 실패는 mutation.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     }
   };
 
@@ -991,8 +994,8 @@ export const AppShell = ({
     try {
       await postSection.mutateAsync({ name: trimmed });
       closeSectionCreateModal();
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'section.create'));
+    } catch {
+      // 실패는 mutation.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     }
   };
 
@@ -1004,12 +1007,9 @@ export const AppShell = ({
       title: `‘${section.name}’ 섹션을 삭제할까요?`,
       description: '삭제하면 되돌릴 수 없어요.',
       confirmLabel: '삭제',
+      errorContext: 'section.delete',
       action: async () => {
-        try {
-          await deleteSection.mutateAsync(sectionId);
-        } catch (error) {
-          toast.error(friendlyErrorMessage(error, 'section.delete'));
-        }
+        await deleteSection.mutateAsync(sectionId);
       }
     });
   };
@@ -1025,8 +1025,8 @@ export const AppShell = ({
         body: { name: trimmed }
       });
       closeFolderCreateModal();
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'folder.create'));
+    } catch {
+      // 실패는 mutation.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     }
   };
 
@@ -1036,12 +1036,9 @@ export const AppShell = ({
       title: `‘${chat.name}’ 채팅을 삭제할까요?`,
       description: '대화 내용이 모두 사라져요.',
       confirmLabel: '삭제',
+      errorContext: 'chat.delete',
       action: async () => {
-        try {
-          await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
-        } catch (error) {
-          toast.error(friendlyErrorMessage(error, 'chat.delete'));
-        }
+        await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
       }
     });
   };
@@ -1815,6 +1812,14 @@ export const AppShell = ({
             }
           />
 
+          {postFolder.isError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">
+                {friendlyErrorMessage(postFolder.error, 'folder.create').description}
+              </InlineAlert>
+            </div>
+          ) : null}
+
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeFolderCreateModal}>
               취소
@@ -1853,6 +1858,14 @@ export const AppShell = ({
             }
           />
 
+          {postSection.isError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">
+                {friendlyErrorMessage(postSection.error, 'section.create').description}
+              </InlineAlert>
+            </div>
+          ) : null}
+
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionCreateModal}>
               취소
@@ -1890,6 +1903,14 @@ export const AppShell = ({
                 : undefined
             }
           />
+
+          {patchSection.isError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">
+                {friendlyErrorMessage(patchSection.error, 'section.rename').description}
+              </InlineAlert>
+            </div>
+          ) : null}
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionRenameModal}>
@@ -2251,12 +2272,6 @@ export const AppShell = ({
         size="lg"
       >
         <>
-          {memberActionError ? (
-            <div className="mt-3">
-              <InlineAlert tone="danger">{memberActionError}</InlineAlert>
-            </div>
-          ) : null}
-
           {modalProjectMembers.isError ? (
             <div className="mt-3 rounded-card border border-line-danger bg-danger-soft p-3">
               <p className="text-label text-fg-danger">멤버 목록을 불러올 수 없습니다.</p>
@@ -2403,8 +2418,9 @@ export const AppShell = ({
         description={confirmRequest?.description}
         confirmLabel={confirmRequest?.confirmLabel ?? ''}
         emphasis={confirmRequest?.emphasis}
+        error={confirmError}
         isProcessing={confirmBusy}
-        onClose={() => setConfirmRequest(null)}
+        onClose={closeConfirm}
         onConfirm={() => void runConfirm()}
       />
     </div>

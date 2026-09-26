@@ -44,17 +44,29 @@ export const TeamChatMembersModal = ({
   const viewerRole = viewer?.memberRole;
 
   const handleKick = async (userId: string, name: string): Promise<void> => {
-    try {
-      await kick.mutateAsync({ userId });
-      toast.success(`${name}님을 내보냈어요`);
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error));
-    }
+    // 실패는 kick.error 로 모달 안에 보여준다 (docs/patterns/error.md)
+    await kick.mutateAsync({ userId }).then(
+      () => toast.success(`${name}님을 내보냈어요`),
+      () => undefined
+    );
   };
 
   return (
-    <OverlayModal open={open} onClose={onClose} title={`참여자 (${list.length}명)`} size="sm">
+    <OverlayModal
+      open={open}
+      onClose={() => {
+        kick.reset();
+        onClose();
+      }}
+      title={`참여자 (${list.length}명)`}
+      size="sm"
+    >
       <div className="flex flex-col gap-3">
+        {kick.isError ? (
+          <InlineAlert tone="danger" title="내보내지 못했어요">
+            {friendlyErrorMessage(kick.error).description}
+          </InlineAlert>
+        ) : null}
         {participants.isError ? (
           <InlineAlert tone="danger" title="참여자 목록을 불러올 수 없어요">
             <div className="flex flex-col items-start gap-2">

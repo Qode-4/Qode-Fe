@@ -3,11 +3,13 @@ import { useDigestPreview, useDigestShare } from '../../../api/auth/useDigestAPI
 import { useGetProjectChats } from '../../../api/auth/useChatsAPI';
 import type { ChatMessage } from '../../../api/contracts/chats';
 import { Button } from '../../ui/Button';
+import { InlineAlert } from '../../ui/InlineAlert';
 import { OverlayModal } from '../../ui/OverlayModal';
 import { Step1SelectAndNote } from './Step1SelectAndNote';
 import { Step2SummaryPreview } from './Step2SummaryPreview';
 import { Step3TargetRoom, type Step3ChatOption } from './Step3TargetRoom';
 import { buildStep1Pairs } from './pairs';
+import { friendlyErrorMessage } from '../../../api/errorMessages';
 import { handleApiError } from '../../../api/axios';
 import { useToast } from '../../../hooks/useToast';
 
@@ -147,9 +149,6 @@ export const ShareToTeamChatModal = ({
           toast.success('팀채팅에 공유했어요');
           onShared?.(targetChatId);
           onClose();
-        },
-        onError: (err) => {
-          toast.error(handleApiError(err).message);
         }
       }
     );
@@ -158,7 +157,10 @@ export const ShareToTeamChatModal = ({
   return (
     <OverlayModal
       open={open}
-      onClose={onClose}
+      onClose={() => {
+        share.reset();
+        onClose();
+      }}
       title="팀에 공유하기"
       size="lg"
       footer={
@@ -221,6 +223,12 @@ export const ShareToTeamChatModal = ({
               teamChatsQuery.error ? handleApiError(teamChatsQuery.error).message : undefined
             }
           />
+        ) : null}
+
+        {share.isError ? (
+          <InlineAlert tone="danger" title="공유하지 못했어요">
+            {friendlyErrorMessage(share.error).description}
+          </InlineAlert>
         ) : null}
       </div>
     </OverlayModal>

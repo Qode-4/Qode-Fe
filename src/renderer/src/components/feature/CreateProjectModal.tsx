@@ -8,7 +8,6 @@ import { useGetProjectSyncStatus, usePostProjects } from '../../api/auth/useProj
 import { handleApiError } from '../../api/axios';
 import { friendlyErrorMessage } from '../../api/errorMessages';
 import type { GithubOauthDeviceStartCreateData } from '../../api/generated/data-contracts';
-import { useToast } from '../../hooks/useToast';
 import {
   clearCachedOauthFlow,
   readCachedOauthFlow,
@@ -31,7 +30,6 @@ const PROJECT_NAME_MAX = 50;
 const PROJECT_DESCRIPTION_MAX = 200;
 
 export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element | null => {
-  const toast = useToast();
   const create = usePostProjects();
   const startGithubOauth = usePostGithubOauthDeviceStart();
 
@@ -181,6 +179,8 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     setCreatedProjectId('');
     autoHandledFlowRef.current = null;
     startedFlowRef.current = null;
+    startGithubOauth.reset();
+    create.reset();
     onClose();
   };
 
@@ -191,9 +191,6 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
         setSelectedRepoFullName('');
         saveCachedOauthFlow(data);
         startedFlowRef.current = data.data.flowId;
-      },
-      onError: (error) => {
-        toast.error(friendlyErrorMessage(error, 'github.connect'));
       }
     });
   };
@@ -221,9 +218,6 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             {
               onSuccess: (data) => {
                 setCreatedProjectId(data.data.id);
-              },
-              onError: (error) => {
-                toast.error(friendlyErrorMessage(error, 'project.create'));
               }
             }
           );
@@ -403,6 +397,22 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           <div className="mt-3">
             <InlineAlert tone="danger" title="저장소 조회 실패">
               {handleApiError(repos.error).message}
+            </InlineAlert>
+          </div>
+        ) : null}
+
+        {startGithubOauth.isError ? (
+          <div className="mt-3">
+            <InlineAlert tone="danger" title="GitHub 연결 실패">
+              {friendlyErrorMessage(startGithubOauth.error, 'github.connect').description}
+            </InlineAlert>
+          </div>
+        ) : null}
+
+        {create.isError ? (
+          <div className="mt-3">
+            <InlineAlert tone="danger" title="프로젝트를 만들지 못했어요">
+              {friendlyErrorMessage(create.error, 'project.create').description}
             </InlineAlert>
           </div>
         ) : null}

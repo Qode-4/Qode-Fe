@@ -765,8 +765,16 @@ export const ProjectDetailPage = ({
           <LeaveTeamChatConfirmModal
             open
             chatName={teamChatModal.chatName}
+            error={
+              leaveTeamChat.error
+                ? friendlyErrorMessage(leaveTeamChat.error).description
+                : undefined
+            }
             isProcessing={leaveTeamChat.isPending}
-            onClose={closeTeamChatModal}
+            onClose={() => {
+              leaveTeamChat.reset();
+              closeTeamChatModal();
+            }}
             onConfirm={() => {
               leaveTeamChat.mutate(
                 { chatId: teamChatModal.chatId },
@@ -780,9 +788,6 @@ export const ProjectDetailPage = ({
                       toast.success('채팅방에서 나갔어요');
                     }
                     closeTeamChatModal();
-                  },
-                  onError: (error) => {
-                    toast.error(friendlyErrorMessage(error));
                   }
                 }
               );
@@ -843,8 +848,16 @@ export const ProjectDetailPage = ({
           <DeleteTeamChatConfirmModal
             open
             chatName={teamChatModal.chatName}
+            error={
+              deleteTeamChat.error
+                ? friendlyErrorMessage(deleteTeamChat.error).description
+                : undefined
+            }
             isProcessing={deleteTeamChat.isPending}
-            onClose={closeTeamChatModal}
+            onClose={() => {
+              deleteTeamChat.reset();
+              closeTeamChatModal();
+            }}
             onConfirm={() => {
               deleteTeamChat.mutate(
                 { chatId: teamChatModal.chatId },
@@ -853,9 +866,6 @@ export const ProjectDetailPage = ({
                     dropActiveIfMatches(teamChatModal.chatId);
                     toast.success('채팅방을 삭제했어요');
                     closeTeamChatModal();
-                  },
-                  onError: (error) => {
-                    toast.error(friendlyErrorMessage(error));
                   }
                 }
               );

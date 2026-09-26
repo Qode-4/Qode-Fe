@@ -3,6 +3,7 @@ import { ConfirmDialog } from '../../ui/ConfirmDialog';
 type Props = {
   open: boolean;
   chatName: string;
+  error?: string;
   isProcessing?: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -12,6 +13,7 @@ type Props = {
 export const DeleteTeamChatConfirmModal = ({
   open,
   chatName,
+  error,
   isProcessing,
   onClose,
   onConfirm
@@ -22,6 +24,7 @@ export const DeleteTeamChatConfirmModal = ({
     description="채팅방과 모든 메시지가 삭제되며, 참여자 전원이 접근할 수 없게 돼요."
     confirmLabel="삭제"
     emphasis
+    error={error}
     isProcessing={isProcessing}
     onClose={onClose}
     onConfirm={onConfirm}

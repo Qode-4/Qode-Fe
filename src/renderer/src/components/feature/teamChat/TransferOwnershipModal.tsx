@@ -4,7 +4,6 @@ import {
   usePostTeamChatOwnershipTransfer
 } from '../../../api/auth/useTeamChatAPI';
 import { friendlyErrorMessage } from '../../../api/errorMessages';
-import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../ui/Button';
 import { InlineAlert } from '../../ui/InlineAlert';
 import { OverlayModal } from '../../ui/OverlayModal';
@@ -33,7 +32,6 @@ export const TransferOwnershipModal = ({
     enabled: open && Boolean(chatId)
   });
   const transfer = usePostTeamChatOwnershipTransfer({ chatId, projectId });
-  const toast = useToast();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -72,7 +70,6 @@ export const TransferOwnershipModal = ({
     } catch (error) {
       const friendly = friendlyErrorMessage(error);
       setServerError(friendly.description);
-      toast.error(friendly);
     }
   };
 

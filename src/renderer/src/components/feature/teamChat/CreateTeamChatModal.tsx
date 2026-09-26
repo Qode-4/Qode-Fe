@@ -3,7 +3,6 @@ import { useGetProjectMembers } from '../../../api/auth/useProjectsAPI';
 import { usePostTeamChat } from '../../../api/auth/useTeamChatAPI';
 import { handleApiError } from '../../../api/axios';
 import { friendlyErrorMessage } from '../../../api/errorMessages';
-import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../ui/Button';
 import { InlineAlert } from '../../ui/InlineAlert';
 import { OverlayModal } from '../../ui/OverlayModal';
@@ -33,7 +32,6 @@ export const CreateTeamChatModal = ({
 }: Props): React.JSX.Element | null => {
   const members = useGetProjectMembers({ projectId, enabled: open && Boolean(projectId) });
   const createChat = usePostTeamChat({ projectId });
-  const toast = useToast();
 
   const [name, setName] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -108,7 +106,6 @@ export const CreateTeamChatModal = ({
       }
       const friendly = friendlyErrorMessage(error, 'chat.create');
       setServerGenericError(friendly.description);
-      toast.error(friendly);
     }
   };
 

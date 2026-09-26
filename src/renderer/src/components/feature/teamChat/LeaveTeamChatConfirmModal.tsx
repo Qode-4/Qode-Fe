@@ -3,6 +3,7 @@ import { ConfirmDialog } from '../../ui/ConfirmDialog';
 type Props = {
   open: boolean;
   chatName: string;
+  error?: string;
   isProcessing?: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -12,6 +13,7 @@ type Props = {
 export const LeaveTeamChatConfirmModal = ({
   open,
   chatName,
+  error,
   isProcessing,
   onClose,
   onConfirm
@@ -21,6 +23,7 @@ export const LeaveTeamChatConfirmModal = ({
     title={`‘${chatName}’ 채팅방에서 나갈까요?`}
     description="나가면 대화를 읽거나 새 메시지를 보낼 수 없어요."
     confirmLabel="나가기"
+    error={error}
     isProcessing={isProcessing}
     onClose={onClose}
     onConfirm={onConfirm}
