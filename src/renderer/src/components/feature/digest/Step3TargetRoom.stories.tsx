@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Step3TargetRoom, type Step3ChatOption } from './Step3TargetRoom';
 
 const sampleChats: Step3ChatOption[] = [
-  { id: 'chat-1', name: '프론트엔드 팀채팅' },
+  { id: 'chat-1', name: '프론트엔드 팀 채팅' },
   { id: 'chat-2', name: '결제 스쿼드 방' },
   { id: 'chat-3', name: '릴리스 공지' },
   { id: 'chat-4', name: 'CS 이관 이슈방' }
@@ -58,7 +58,7 @@ export const ErrorState: Story = {
     selectedChatId: null,
     onSelect: () => undefined,
     onRetry: () => undefined,
-    errorMessage: '팀채팅 목록을 불러오지 못했습니다.'
+    errorMessage: '팀 채팅 목록을 불러오지 못했어요.'
   }
 };
 

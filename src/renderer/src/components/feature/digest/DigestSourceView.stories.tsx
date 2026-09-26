@@ -95,7 +95,7 @@ export const ErrorState: Story = {
   args: {
     status: 'error',
     source: undefined,
-    errorMessage: '원본 대화가 삭제되었거나 접근할 수 없습니다.',
+    errorMessage: '원본 대화가 삭제됐거나 볼 수 없어요.',
     sharerName: '정예지',
     sharedAt: '2026-09-19T14:32:00Z',
     onRetry: () => undefined,

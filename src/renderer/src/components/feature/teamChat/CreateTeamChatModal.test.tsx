@@ -137,7 +137,7 @@ describe('CreateTeamChatModal', () => {
     await user.click(screen.getByRole('button', { name: '생성' }));
 
     await waitFor(() => {
-      expect(screen.getByText('이미 사용 중인 채팅방 이름입니다.')).toBeInTheDocument();
+      expect(screen.getByText('이미 쓰고 있는 채팅방 이름이에요.')).toBeInTheDocument();
     });
   });
 });

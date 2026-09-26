@@ -5,7 +5,7 @@ import { Toast, type ToastItem } from './Toast';
 const base: ToastItem = {
   id: 't1',
   tone: 'info',
-  description: '복사되었습니다.',
+  description: '복사했어요',
   duration: 4000
 };
 
@@ -26,7 +26,7 @@ export const AllTones: Story = {
   render: (args): React.JSX.Element => (
     <div className="flex flex-col gap-2">
       <Toast {...args} toast={{ ...base, id: 's', tone: 'success', description: '저장했어요.' }} />
-      <Toast {...args} toast={{ ...base, id: 'i', tone: 'info', description: '복사되었습니다.' }} />
+      <Toast {...args} toast={{ ...base, id: 'i', tone: 'info', description: '복사했어요' }} />
       <Toast
         {...args}
         toast={{

@@ -17,7 +17,7 @@ const meta = {
     onClose: () => undefined,
     children: (
       <div className="space-y-2">
-        <p className="text-label text-fg-subtle">모달 본문 내용을 확인하는 기본 예시입니다.</p>
+        <p className="text-label text-fg-subtle">모달 본문 내용을 확인하는 기본 예시예요.</p>
         <Button size="sm">확인</Button>
       </div>
     )
@@ -40,7 +40,7 @@ const InteractiveExample = (args: React.ComponentProps<typeof OverlayModal>): Re
     <div className="p-6">
       <Button onClick={() => setOpen(true)}>모달 열기</Button>
       <OverlayModal {...args} open={open} onClose={() => setOpen(false)}>
-        <p className="text-label text-fg-subtle">ESC 또는 바깥 영역 클릭으로 닫을 수 있습니다.</p>
+        <p className="text-label text-fg-subtle">ESC 또는 바깥 영역을 눌러 닫을 수 있어요.</p>
       </OverlayModal>
     </div>
   );

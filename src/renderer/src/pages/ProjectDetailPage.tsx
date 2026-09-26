@@ -227,7 +227,7 @@ export const ProjectDetailPage = ({
   const isSyncFailed = syncPhase === 'failed';
   // 인덱싱이 끝나기 전에는 검색할 코드가 없어 답이 근거 없이 나온다. 서버도 같은 이유로
   // 409 SYNC_IN_PROGRESS 로 막는다(ADR-005). 화면은 그 앞에서 아예 못 보내게 한다.
-  const SYNC_IN_PROGRESS_HINT = '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.';
+  const SYNC_IN_PROGRESS_HINT = '코드를 동기화하는 중이에요. 잠시 후 다시 시도해주세요.';
 
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -510,7 +510,7 @@ export const ProjectDetailPage = ({
       await navigator.clipboard.writeText(value);
       toast.success('복사했어요');
     } catch {
-      toast.error('복사에 실패했습니다. 텍스트를 직접 선택하여 복사해주세요.');
+      toast.error('복사하지 못했어요. 텍스트를 직접 선택해서 복사해주세요.');
     }
   };
 
@@ -632,7 +632,7 @@ export const ProjectDetailPage = ({
     if (isPersonalTarget) {
       setStreamChatId(targetChatId);
       setStreamMessageId('');
-      setStreamStatus('요청 중...');
+      setStreamStatus('요청 중…');
       setStreamContent('');
       setStreamSources([]);
       setStreamError(null);
@@ -648,7 +648,7 @@ export const ProjectDetailPage = ({
               if (payload.assistantMessageId) setStreamMessageId(payload.assistantMessageId);
             },
             onStatus: (payload) => {
-              setStreamStatus(payload.message ?? payload.status ?? '진행 중...');
+              setStreamStatus(payload.message ?? payload.status ?? '진행 중…');
             },
             onChunk: (payload) => {
               if (!payload.content && !payload.token) return;
@@ -847,7 +847,7 @@ export const ProjectDetailPage = ({
               void queryClient.invalidateQueries({
                 queryKey: QUERY_KEY.projectChatsByProject(projectId)
               });
-              if (wasActive) toast.success('방장을 양도하고 채팅방을 나왔어요');
+              if (wasActive) toast.success('방장을 넘기고 채팅방을 나왔어요');
               closeTeamChatModal();
             }}
           />
@@ -889,7 +889,7 @@ export const ProjectDetailPage = ({
   if (!projectId) {
     return (
       <InlineAlert tone="danger" title="잘못된 경로">
-        projectId가 없습니다.
+        프로젝트를 찾을 수 없어요.
       </InlineAlert>
     );
   }
@@ -898,7 +898,7 @@ export const ProjectDetailPage = ({
     return (
       <InlineAlert tone="danger" title="프로젝트 조회 실패">
         <div className="flex flex-col items-start gap-2">
-          <p>프로젝트 정보를 불러올 수 없습니다.</p>
+          <p>프로젝트 정보를 불러오지 못했어요.</p>
           <Button
             type="button"
             size="sm"
@@ -921,7 +921,7 @@ export const ProjectDetailPage = ({
       <section className="flex h-full min-h-0 flex-col items-center justify-center bg-surface">
         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
           <Spinner size="lg" tone="brand" />
-          <p className="text-caption text-fg-muted">프로젝트를 불러오는 중...</p>
+          <p className="text-caption text-fg-muted">프로젝트를 불러오는 중…</p>
         </div>
       </section>
     );
@@ -941,7 +941,7 @@ export const ProjectDetailPage = ({
       {isAnalyzing ? (
         <div className="px-4 pt-3" aria-live="polite">
           <InlineAlert tone="info" title="분석 진행 중">
-            동기화 중... ({syncProgress}%)
+            동기화 중… ({syncProgress}%)
           </InlineAlert>
         </div>
       ) : null}
@@ -977,8 +977,8 @@ export const ProjectDetailPage = ({
         ) : null}
         {isTeamChatReadOnly ? (
           <div className="mb-2">
-            <InlineAlert tone="info" title="팀채팅 읽기 전용">
-              팀채팅은 현재 읽기 전용입니다. 작성 기능은 추후 지원 예정입니다.
+            <InlineAlert tone="info" title="팀 채팅 읽기 전용">
+              팀 채팅은 아직 읽기만 할 수 있어요. 작성 기능은 준비 중이에요.
             </InlineAlert>
           </div>
         ) : null}
@@ -991,8 +991,8 @@ export const ProjectDetailPage = ({
         >
           <Spinner size="md" />
           <div className="min-w-0">
-            <p className="font-medium">연결이 끊어졌습니다</p>
-            <p className="text-micro text-fg-muted">재연결 중...</p>
+            <p className="font-medium">연결이 끊겼어요</p>
+            <p className="text-micro text-fg-muted">다시 연결하는 중…</p>
           </div>
         </div>
       ) : null}
@@ -1045,7 +1045,7 @@ export const ProjectDetailPage = ({
                 size="sm"
                 variant="ghost"
                 onClick={() => shareSelection.enter()}
-                title="답변을 골라 팀채팅에 공유합니다"
+                title="답변을 골라 팀 채팅에 공유해요"
               >
                 팀 공유
               </Button>
@@ -1106,13 +1106,13 @@ export const ProjectDetailPage = ({
           ) : (
             <div className="flex min-h-full w-full min-w-0 max-w-[48rem] flex-col gap-6">
               {messages.isLoading ? (
-                <StateMessage kind="loading">메시지를 불러오는 중...</StateMessage>
+                <StateMessage kind="loading">메시지를 불러오는 중…</StateMessage>
               ) : null}
 
               {messages.isError ? (
                 <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
                   <p className="text-caption font-medium text-fg-subtle">
-                    이전 대화를 불러올 수 없습니다.
+                    이전 대화를 불러오지 못했어요.
                   </p>
                   <button
                     type="button"
@@ -1403,11 +1403,11 @@ export const ProjectDetailPage = ({
               isAnalyzing
                 ? '동기화가 끝나면 질문할 수 있어요.'
                 : !activeChatId
-                  ? '새 대화를 시작해보세요...'
+                  ? '새 대화를 시작해 보세요'
                   : isTeamChatReadOnly
-                    ? '팀채팅은 현재 읽기 전용입니다.'
+                    ? '팀 채팅은 아직 읽기만 할 수 있어요.'
                     : isTeamChat
-                      ? '팀에게 메시지 보내기...'
+                      ? '팀에게 메시지 보내기'
                       : '무엇이든 물어보세요!'
             }
             disabled={isTeamChatReadOnly || isAnalyzing}

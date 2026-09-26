@@ -80,14 +80,14 @@ export const mapResponseError = (input: unknown): string => {
   const err = classifyResponseError(input);
   switch (err.kind) {
     case 'server':
-      return '일시적인 오류가 발생했습니다.';
+      return '잠깐 문제가 생겼어요.';
     case 'timeout':
-      return '응답 시간이 초과되었습니다.';
+      return '응답이 너무 오래 걸려요.';
     case 'network':
       return '네트워크 연결을 확인해주세요.';
     case 'sync':
-      return '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.';
+      return '코드를 동기화하는 중이에요. 잠시 후 다시 시도해주세요.';
     default:
-      return `예상치 못한 오류가 발생했습니다. (코드: ${err.code})`;
+      return `예상하지 못한 문제가 생겼어요. (코드: ${err.code})`;
   }
 };

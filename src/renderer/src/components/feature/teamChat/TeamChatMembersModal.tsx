@@ -91,13 +91,13 @@ export const TeamChatMembersModal = ({
             {participants.isLoading ? (
               <li className="px-3 py-6">
                 <StateMessage kind="loading" align="center">
-                  참여자를 불러오는 중...
+                  참여자를 불러오는 중…
                 </StateMessage>
               </li>
             ) : list.length === 0 ? (
               <li className="px-3 py-6">
                 <StateMessage kind="empty" align="center">
-                  참여자가 없습니다.
+                  참여자가 없어요.
                 </StateMessage>
               </li>
             ) : (

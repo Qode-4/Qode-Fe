@@ -101,7 +101,7 @@ export const CreateTeamChatModal = ({
     } catch (error) {
       const info = handleApiError(error);
       if (info.status === 409) {
-        setServerNameError('이미 사용 중인 채팅방 이름입니다.');
+        setServerNameError('이미 쓰고 있는 채팅방 이름이에요.');
         return;
       }
       const friendly = friendlyErrorMessage(error, 'chat.create');
@@ -147,14 +147,14 @@ export const CreateTeamChatModal = ({
               min={MIN_TOTAL - 1}
               max={MAX_MEMBER_IDS}
               searchPlaceholder="이름으로 참여자 찾기"
-              loadingMessage={members.isLoading ? '멤버를 불러오는 중...' : undefined}
-              emptyMessage="초대할 프로젝트 멤버가 없습니다."
+              loadingMessage={members.isLoading ? '멤버를 불러오는 중…' : undefined}
+              emptyMessage="초대할 프로젝트 멤버가 없어요."
               ariaLabel="초대할 참여자 목록"
             />
           )}
           {selectedIds.length + 1 < MIN_TOTAL ? (
             <p className="mt-1 text-caption text-fg-muted">
-              팀채팅은 본인 포함 최소 {MIN_TOTAL}명이 필요합니다.
+              팀 채팅은 본인 포함 최소 {MIN_TOTAL}명이 필요해요.
             </p>
           ) : null}
         </div>

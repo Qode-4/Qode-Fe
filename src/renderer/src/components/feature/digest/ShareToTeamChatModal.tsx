@@ -29,7 +29,7 @@ type Step = 1 | 2 | 3;
 const stepLabels: Record<Step, string> = {
   1: '대화 선택',
   2: '요약 확인',
-  3: '팀채팅 선택'
+  3: '팀 채팅 선택'
 };
 
 const buildPreviewKey = (ids: string[], note: string): string =>
@@ -146,7 +146,7 @@ export const ShareToTeamChatModal = ({
       },
       {
         onSuccess: () => {
-          toast.success('팀채팅에 공유했어요');
+          toast.success('팀 채팅에 공유했어요');
           onShared?.(targetChatId);
           onClose();
         }

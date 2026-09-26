@@ -156,7 +156,7 @@ export const ProjectSwitcher = ({
             {isError ? (
               <div className="px-2 py-2" role="alert">
                 <p className="mb-2 px-2 text-body text-fg-subtle">
-                  프로젝트 목록을 불러올 수 없습니다.
+                  프로젝트 목록을 불러오지 못했어요.
                 </p>
                 <Button
                   type="button"
@@ -172,7 +172,7 @@ export const ProjectSwitcher = ({
               </div>
             ) : projects.length === 0 ? (
               <StateMessage kind="empty" className="px-4 py-3">
-                프로젝트가 없습니다.
+                프로젝트가 없어요.
               </StateMessage>
             ) : (
               projects.map((project) => {

@@ -41,7 +41,7 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
   if (!inviteCode) {
     return (
       <AuthFrame title="잘못된 링크" brand={INVITE_BRAND}>
-        <InlineAlert tone="danger" title="초대 코드가 없습니다">
+        <InlineAlert tone="danger" title="초대 코드가 없어요">
           링크가 올바르게 복사되었는지 확인해주세요.
         </InlineAlert>
       </AuthFrame>
@@ -53,7 +53,7 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
     return (
       <AuthFrame
         title="프로젝트 초대"
-        description="초대를 수락하려면 로그인이 필요합니다."
+        description="초대를 수락하려면 로그인해주세요."
         brand={INVITE_BRAND}
       >
         <div className="space-y-4">
@@ -114,11 +114,11 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
 
             {info.data.isAlreadyMember ? (
               <InlineAlert tone="success" title="이미 참여 중">
-                이미 이 프로젝트 멤버입니다.
+                이미 이 프로젝트 멤버예요.
               </InlineAlert>
             ) : (
               <InlineAlert tone="info" title="참여 가능">
-                초대를 수락하면 프로젝트 멤버로 등록됩니다.
+                초대를 수락하면 프로젝트 멤버가 돼요.
               </InlineAlert>
             )}
 

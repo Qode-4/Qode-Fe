@@ -81,14 +81,14 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     // 서버 createProjectBodySchema 와 같은 한도다(명세 A-3). maxLength 가 51자째를
     // 막아주지만 2자 미만은 입력 단계에서 막을 수 없어 문구로 알린다.
     if (name.trim().length < PROJECT_NAME_MIN)
-      return `프로젝트 이름은 ${PROJECT_NAME_MIN}자 이상이어야 합니다.`;
+      return `프로젝트 이름은 ${PROJECT_NAME_MIN}자 이상이어야 해요.`;
     return '';
   }, [name, touched.name]);
 
   const repoError = useMemo(() => {
     if (!touched.repo) return '';
     if (!activeOauthFlow) return 'GitHub 인증을 시작해주세요.';
-    if (!isAuthorized) return 'GitHub 인증이 완료되어야 합니다.';
+    if (!isAuthorized) return 'GitHub 인증을 먼저 완료해주세요.';
     if (!selectedRepo) return '연결할 저장소를 선택해주세요.';
     return '';
   }, [activeOauthFlow, isAuthorized, selectedRepo, touched.repo]);
@@ -324,7 +324,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                 </div>
                 {!oauthOpenUrl ? (
                   <p className="mt-2 text-caption text-fg-danger">
-                    GitHub 인증 URL이 올바르지 않습니다.
+                    GitHub 인증 URL이 올바르지 않아요.
                   </p>
                 ) : null}
               </div>
@@ -350,14 +350,14 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             </div>
 
             {isAuthorized && repos.isLoading ? (
-              <StateMessage kind="loading">저장소 목록을 불러오는 중...</StateMessage>
+              <StateMessage kind="loading">저장소 목록을 불러오는 중…</StateMessage>
             ) : null}
             {isAuthorized && !repos.isLoading && repoItems.length === 0 ? (
-              <p className="text-caption text-fg-danger">연결 가능한 저장소가 없습니다.</p>
+              <p className="text-caption text-fg-danger">연결할 수 있는 저장소가 없어요.</p>
             ) : null}
             {!isAuthorized ? (
               <p className="text-caption text-fg-muted">
-                GitHub 인증을 완료하면 저장소를 선택할 수 있습니다.
+                GitHub 인증을 완료하면 저장소를 선택할 수 있어요.
               </p>
             ) : null}
 
@@ -430,7 +430,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               }
               title={`초기 동기화 ${syncStatusLabel}`}
             >
-              프로젝트가 생성되었습니다. ID: {createdProjectId}
+              프로젝트를 만들었어요. ID: {createdProjectId}
               {syncStatus.data?.data.latestJob?.errorMessage
                 ? ` (${syncStatus.data.data.latestJob.errorMessage})`
                 : ''}

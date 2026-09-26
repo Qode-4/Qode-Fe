@@ -11,11 +11,11 @@ describe('StateMessage', () => {
   it('empty 는 status 가 아니고, action 이 있으면 다음 행동을 함께 보여준다', () => {
     render(
       <StateMessage kind="empty" action="＋ 를 눌러 코드에 질문해 보세요.">
-        아직 채팅이 없습니다.
+        아직 채팅이 없어요.
       </StateMessage>
     );
     expect(screen.queryByRole('status')).toBeNull();
-    expect(screen.getByText('아직 채팅이 없습니다.')).toBeInTheDocument();
+    expect(screen.getByText('아직 채팅이 없어요.')).toBeInTheDocument();
     expect(screen.getByText('＋ 를 눌러 코드에 질문해 보세요.')).toBeInTheDocument();
   });
 });

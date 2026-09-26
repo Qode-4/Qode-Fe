@@ -1,7 +1,7 @@
 import { Button } from '../../ui/Button';
 import { StateMessage } from '../../ui/StateMessage';
 
-// Step3: 공유할 팀채팅 선택(라디오).
+// Step3: 공유할 팀 채팅 선택(라디오).
 // - 리스트: 현재 프로젝트 내 내가 속한 팀채팅
 // - 로딩 / 실패 / 성공 3상태
 // - 단일 선택. 다중 선택 없음.
@@ -31,7 +31,7 @@ export const Step3TargetRoom = ({
   if (status === 'loading') {
     return (
       <div className="flex min-h-[220px] items-center justify-center">
-        <StateMessage kind="loading">팀채팅 목록을 불러오는 중…</StateMessage>
+        <StateMessage kind="loading">팀 채팅 목록을 불러오는 중…</StateMessage>
       </div>
     );
   }
@@ -40,7 +40,7 @@ export const Step3TargetRoom = ({
     return (
       <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center">
         <p className="text-label text-fg-danger">
-          {errorMessage ?? '팀채팅 목록을 불러오지 못했습니다.'}
+          {errorMessage ?? '팀 채팅 목록을 불러오지 못했어요.'}
         </p>
         {onRetry ? (
           <Button type="button" size="sm" variant="secondary" onClick={onRetry}>
@@ -54,7 +54,7 @@ export const Step3TargetRoom = ({
   if (chats.length === 0) {
     return (
       <div className="flex min-h-[220px] items-center justify-center text-center text-label text-fg-subtle">
-        참여 중인 팀채팅이 없습니다. 먼저 팀채팅을 만들어 주세요.
+        참여 중인 팀 채팅이 없어요. 먼저 팀 채팅을 만들어 주세요.
       </div>
     );
   }
@@ -62,7 +62,7 @@ export const Step3TargetRoom = ({
   return (
     <ul
       role="radiogroup"
-      aria-label="공유할 팀채팅"
+      aria-label="공유할 팀 채팅"
       className="flex flex-col gap-1 rounded-control border border-line bg-surface-muted p-2"
     >
       {chats.map((chat) => {

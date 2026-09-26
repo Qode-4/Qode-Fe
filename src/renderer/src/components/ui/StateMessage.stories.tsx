@@ -18,13 +18,13 @@ export const Loading: Story = {};
 export const EmptyWithAction: Story = {
   args: {
     kind: 'empty',
-    children: '아직 채팅이 없습니다.',
+    children: '아직 채팅이 없어요.',
     action: '＋ 를 눌러 코드에 질문해 보세요.'
   }
 };
 
 /** 할 수 있는 게 없는 빈 상태 — 무엇이 없는지만 */
-export const EmptyOnly: Story = { args: { kind: 'empty', children: '검색 결과가 없습니다.' } };
+export const EmptyOnly: Story = { args: { kind: 'empty', children: '검색 결과가 없어요.' } };
 
 export const Spinners: Story = {
   render: () => (

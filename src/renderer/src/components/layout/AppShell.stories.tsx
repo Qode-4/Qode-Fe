@@ -131,7 +131,7 @@ const meta = {
     children: (
       <div className="h-full p-6">
         <h1 className="text-heading font-semibold text-fg-default">콘텐츠 영역</h1>
-        <p className="mt-2 text-fg-subtle">선택한 프로젝트/채팅의 내용을 렌더링하는 영역입니다.</p>
+        <p className="mt-2 text-fg-subtle">선택한 프로젝트·채팅의 내용이 들어가는 영역이에요.</p>
       </div>
     )
   },

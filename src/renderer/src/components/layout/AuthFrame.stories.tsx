@@ -35,7 +35,7 @@ export const Default: Story = {
 export const WithLongDescription: Story = {
   args: {
     title: '초대 수락',
-    description: '초대 링크를 통해 팀에 참여합니다.\n사전에 가입이 필요할 수 있습니다.'
+    description: '초대 링크로 팀에 참여해요.\n먼저 가입이 필요할 수 있어요.'
   },
   render: (args): React.JSX.Element => (
     <div className="h-screen">
