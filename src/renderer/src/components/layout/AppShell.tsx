@@ -1111,7 +1111,7 @@ export const AppShell = ({
           className={[
             'flex min-h-0 flex-col bg-sidebar touch-pan-y',
             'max-sm:fixed max-sm:inset-y-0 max-sm:left-0 max-sm:z-40 max-sm:w-[280px] max-sm:max-w-[85vw]',
-            'max-sm:shadow-overlay max-sm:transition-transform',
+            'max-sm:shadow-overlay max-sm:transition-transform max-sm:duration-base max-sm:ease-enter',
             isMobile && !mobileDrawerOpen ? 'max-sm:-translate-x-full' : 'max-sm:translate-x-0'
           ].join(' ')}
           onPointerDown={handleDrawerPointerDown}

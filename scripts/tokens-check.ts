@@ -113,6 +113,14 @@ const FORBIDDEN: Array<{ re: RegExp; why: string }> = [
   },
   { re: /font-bold(?![-\w])/, why: '굵기 규칙 — 제목도 semibold(600)까지' },
   {
+    re: /duration-(?:\d+|\[[^\]]*\])(?![-\w])/,
+    why: '숫자 duration — 작은 전환은 기본값(fast), 나타나고 움직이는 것은 duration-base'
+  },
+  {
+    re: /ease-(?:in|out|in-out|linear|\[[^\]]*\])(?![-\w])/,
+    why: '기본 easing — ease-standard / ease-enter / ease-exit 을 쓴다'
+  },
+  {
     re: /(?:text-text-(?:base|subtle|soft)|app-bg|control-line|danger-bg|danger-line|primary-foreground|accent-strong|fill-icon)(?![-\w])/,
     why: '폐기된 토큰 이름'
   }
@@ -275,7 +283,8 @@ const themeKeys = (prefix: string): string[] =>
 for (const [cssPrefix, cnKey] of [
   ['text', 'text'],
   ['radius', 'radius'],
-  ['shadow', 'shadow']
+  ['shadow', 'shadow'],
+  ['ease', 'ease']
 ] as const) {
   const m = cnSrc.match(new RegExp(`${cnKey}: \\[([^\\]]*)\\]`));
   const registered = m ? [...m[1].matchAll(/'([\w-]+)'/g)].map((x) => x[1]) : [];

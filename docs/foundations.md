@@ -326,3 +326,18 @@
 
 - [ ] Storybook·실제 화면에서 §8 변화 육안 확인.
 - [ ] `tokens:check`를 pre-commit 또는 CI에 넣을지 결정 (Phase G).
+
+## 10. 모션 (Phase F, 2026-09-26)
+
+Qode 는 작업 도구라 움직임을 적게 쓴다. 움직임은 **상태가 바뀌었다는 신호**일 때만 — 장식용 반복 애니메이션은 두지 않는다.
+
+| 토큰                                         | 값                      | 쓰는 곳                                                                        |
+| -------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| `--motion-fast` (기본값)                     | 150ms · `ease-standard` | hover 색·셰브런 회전 등 작은 전환. `transition-*` 만 쓰면 자동으로 붙는다      |
+| `duration-base`                              | 200ms (`--motion-base`) | 화면에 나타나고 움직이는 것 — 토스트 등장, 모바일 드로어. `ease-enter` 와 함께 |
+| `ease-standard` / `ease-enter` / `ease-exit` | cubic-bezier            | 기본 / 들어옴 / 나감                                                           |
+
+- 숫자 `duration-300`·임의 `duration-[..]`·Tailwind 기본 `ease-in-out` 은 쓰지 않는다 (`yarn tokens:check` 가 잡는다).
+- 반복 애니메이션은 기다림 표시만: `Spinner`, 진행 바·스트리밍 커서의 `animate-pulse`, `LoadingDots`.
+- **동작 줄이기**(`prefers-reduced-motion`): `main.css` 전역 규칙이 CSS 전환·애니메이션을 0.01ms 로 줄인다. CSS 가 닿지 않는 JS 타이머 애니메이션은 `useReducedMotion()` 으로 멈춘다(`LoadingDots` 는 "…" 고정).
+- 모달(`OverlayModal`)은 등장 애니메이션 없이 바로 뜬다 — 흐름을 멈추는 화면이라 기다리게 하지 않는다.

@@ -26,3 +26,6 @@ export const useMediaQuery = (query: string): boolean => {
 };
 
 export const useIsMobile = (): boolean => useMediaQuery(MOBILE_MEDIA_QUERY);
+
+/** OS 의 '동작 줄이기' 설정. CSS 규칙이 닿지 않는 JS 애니메이션(타이머)은 이 값으로 멈춘다. */
+export const useReducedMotion = (): boolean => useMediaQuery('(prefers-reduced-motion: reduce)');

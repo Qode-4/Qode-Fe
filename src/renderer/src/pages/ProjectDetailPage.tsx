@@ -52,6 +52,7 @@ import { Spinner } from '../components/ui/Spinner';
 import { StateMessage } from '../components/ui/StateMessage';
 import { cleanAnswerSources, mergeSources } from '../lib/inlineSources';
 import { useToast } from '../hooks/useToast';
+import { useReducedMotion } from '../hooks/useMediaQuery';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
 import { mapResponseError } from '../lib/response-errors';
@@ -148,16 +149,19 @@ const isDigestTeamMessage = (message: unknown): boolean => {
 
 const LoadingDots = (): React.JSX.Element => {
   const [dots, setDots] = useState('.');
+  // 동작 줄이기 설정이면 점을 돌리지 않는다 — 전역 reduced-motion CSS 는 JS 타이머에 닿지 않는다
+  const reducedMotion = useReducedMotion();
   useEffect(() => {
+    if (reducedMotion) return;
     const id = window.setInterval(() => {
       setDots((prev) => (prev.length >= 3 ? '.' : `${prev}.`));
     }, 500);
     return () => window.clearInterval(id);
-  }, []);
+  }, [reducedMotion]);
   // 접미사 폭이 튀지 않게 3자리 고정 폭 확보 후 왼쪽 정렬 렌더.
   return (
     <span aria-hidden className="inline-block w-[1.5em] text-left">
-      {dots}
+      {reducedMotion ? '…' : dots}
     </span>
   );
 };
