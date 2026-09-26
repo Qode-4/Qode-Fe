@@ -4,17 +4,21 @@
  * 1. main.css 의 semantic 색을 값으로 풀어 fg × bg 대비 매트릭스를 docs/tokens/contrast-matrix.md 로 생성한다.
  * 2. REQUIRED 에 적힌 의도한 조합이 WCAG AA 기준 미달이면 실패한다.
  * 3. 렌더러 소스에서 토큰이 아닌 클래스(raw 팔레트·기본 크기·기본 radius·임의값)를 찾으면 실패한다.
+ * 4. cn.ts 토큰 목록이 main.css 와 같은지 본다.
+ * 5. 컴포넌트 registry(docs/registry.md)를 생성하고 meta 누락을 검사한다 (scripts/registry.ts).
  *
  * 실행: yarn tokens:check
  */
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from 'node:fs';
 import { join, relative, dirname } from 'node:path';
+import { buildRegistry } from './registry';
 
 const ROOT = join(__dirname, '..');
 const CSS_PATH = join(ROOT, 'src/renderer/src/assets/main.css');
 const SRC_DIR = join(ROOT, 'src/renderer/src');
 const CN_PATH = join(ROOT, 'src/renderer/src/lib/cn.ts');
 const MATRIX_PATH = join(ROOT, 'docs/tokens/contrast-matrix.md');
+const REGISTRY_PATH = join(ROOT, 'docs/registry.md');
 
 const TEXT = 4.5;
 const UI = 3;
@@ -245,8 +249,14 @@ for (const [cssPrefix, cnKey] of [
   if (stale.length) failures.push(`cn.ts ${cnKey} 에 없는 토큰: ${stale.join(', ')}`);
 }
 
+// ── 5. 컴포넌트 registry ─────────────────────────────────────────────────
+const registry = buildRegistry(ROOT);
+writeFileSync(REGISTRY_PATH, registry.markdown);
+failures.push(...registry.failures);
+
 // ── 결과 ───────────────────────────────────────────────────────────────
 console.log(`contrast matrix → ${relative(ROOT, MATRIX_PATH)}`);
+console.log(`registry → ${relative(ROOT, REGISTRY_PATH)}`);
 if (failures.length) {
   console.error(`\n✖ tokens:check ${failures.length}건\n`);
   for (const f of failures) console.error(`  ${f}`);

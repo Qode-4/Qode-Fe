@@ -6,3 +6,4 @@ tsconfig.json
 tsconfig.*.json
 # yarn tokens:check 가 생성 — 스크립트 출력 그대로 둔다
 docs/tokens/contrast-matrix.md
+docs/registry.md
