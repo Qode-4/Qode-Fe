@@ -14,6 +14,11 @@ type Props = {
   children: ReactNode;
 };
 
+/**
+ * ToastProvider — 토스트 상태와 화면 오른쪽 위 쌓기 영역.
+ * ✅ Use: 앱 루트(main.tsx)에서 한 번만 감싼다. 토스트는 useToast() 로 띄운다.
+ * ❌ Don't: 화면·모달마다 다시 감싸지 않는다(토스트가 두 벌 뜬다). 스토리·테스트는 예외.
+ */
 export const ToastProvider = ({ children }: Props): React.JSX.Element => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const timersRef = useRef<Map<string, number>>(new Map());
