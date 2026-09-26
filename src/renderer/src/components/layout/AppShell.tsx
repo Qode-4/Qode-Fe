@@ -44,7 +44,6 @@ import type {
 } from '../../api/generated/data-contracts';
 import { QUERY_KEY } from '../../api/queryKeys';
 import { tokenStorage } from '../../api/tokenStorage';
-import overflowIcon from '../../assets/overflow-icon.png';
 import { navigate } from '../../lib/hashRouter';
 import { formatRelativeTime } from '../../lib/relativeTime';
 import { getStoredUiFontSize, persistUiFontSize, type UiFontSize } from '../../lib/uiFontSize';
@@ -53,9 +52,12 @@ import { Button } from '../ui/Button';
 import { ChatItemMenu, type ChatItemMenuAction } from '../ui/ChatItemMenu';
 import { DrawerHeader } from '../ui/DrawerHeader';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
 import { cn } from '../../lib/cn';
+import { Avatar } from '../ui/Avatar';
+import { TextField } from '../ui/TextField';
 
 type Props = {
   me?: GetAuthData | null;
@@ -94,8 +96,6 @@ type ProjectMenuAction = {
 type SectionMenuAction = { key: 'rename' | 'createFolder' | 'delete'; label: string };
 type SettingsActionKind = 'profile' | 'logout';
 type SettingsMenuAction = { key: SettingsActionKind; label: string; iconName: IconName };
-type AvatarSize = 'sm' | 'md';
-
 const VIEWPORT_MARGIN = 8;
 const SETTINGS_MENU_WIDTH = 196;
 const PROFILE_DIALOG_WIDTH = 240;
@@ -105,11 +105,6 @@ const PROFILE_DIALOG_GAP = 17;
 // sm(640) 미만: 팝오버/메뉴는 바텀시트 (모달 풀스크린은 OverlayModal 자체에서 처리).
 const MOBILE_SHEET_CLASS =
   'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-shell border-t border-line bg-surface p-2 shadow-overlay';
-
-const avatarSizeClassMap: Record<AvatarSize, string> = {
-  sm: 'size-7 text-caption',
-  md: 'size-10 text-body'
-};
 
 const drawerTypography = {
   sectionTitle: 'text-caption',
@@ -126,56 +121,6 @@ const drawerTypography = {
   fontSizeLabel: 'text-micro',
   fontSizeOption: 'text-micro'
 } as const;
-
-type AvatarVariant = 'default' | 'brand';
-
-const UserAvatar = ({
-  name,
-  avatarUrl,
-  size,
-  variant = 'default'
-}: {
-  name: string;
-  avatarUrl?: string | null;
-  size: AvatarSize;
-  variant?: AvatarVariant;
-}): React.JSX.Element => {
-  const initial = name.trim().charAt(0).toUpperCase() || '?';
-  const sizeClassName = avatarSizeClassMap[size];
-  // avatarUrl이 바뀌면 실패 플래그를 초기화한다 — 이전 URL 실패가 새 URL을 가리면 안 된다.
-  // useEffect 대신 렌더 중 파생 상태 조정 패턴 (React 공식 권장).
-  const [imgFailed, setImgFailed] = useState(false);
-  const [prevAvatarUrl, setPrevAvatarUrl] = useState(avatarUrl);
-  if (avatarUrl !== prevAvatarUrl) {
-    setPrevAvatarUrl(avatarUrl);
-    setImgFailed(false);
-  }
-
-  if (avatarUrl && !imgFailed) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={`${name} 프로필 이미지`}
-        onError={() => setImgFailed(true)}
-        className={`inline-flex shrink-0 rounded-full border border-line object-cover ${sizeClassName}`}
-      />
-    );
-  }
-
-  const fallbackClassName =
-    variant === 'brand'
-      ? 'bg-primary-soft font-semibold text-fg-primary'
-      : 'border border-line bg-surface-muted font-medium text-fg-muted';
-
-  return (
-    <div
-      className={`inline-flex shrink-0 items-center justify-center rounded-full ${fallbackClassName} ${sizeClassName}`}
-      aria-hidden="true"
-    >
-      {initial}
-    </div>
-  );
-};
 
 // 팀당 최대 인원. 서버(project.service.ts MAX_TEAM_MEMBERS)와 같은 값이어야 한다.
 // 화면은 안내만 하고 실제 차단은 서버가 한다 — A-2 BR-A2-04.
@@ -1353,17 +1298,14 @@ export const AppShell = ({
                 >
                   내 채팅
                 </p>
-                <button
-                  type="button"
+                <IconButton
+                  size="sm"
+                  name="Add_round_light"
                   aria-label="새 채팅 만들기"
                   disabled={!selectedProjectId}
-                  className="inline-flex items-center justify-center rounded-inline p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={onCreatePersonalChat}
-                >
-                  <span aria-hidden="true" className="text-title leading-none">
-                    +
-                  </span>
-                </button>
+                  className="text-fg-muted hover:text-fg-subtle"
+                />
               </div>
               {chatsIsError ? (
                 <div
@@ -1500,17 +1442,14 @@ export const AppShell = ({
                   팀 채팅
                 </p>
                 {API_CAPABILITIES.teamChatWritable ? (
-                  <button
-                    type="button"
+                  <IconButton
+                    size="sm"
+                    name="Add_round_light"
                     aria-label="새 팀 채팅 만들기"
                     disabled={!selectedProjectId}
-                    className="inline-flex items-center justify-center rounded-inline p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={onCreateTeamChat}
-                  >
-                    <span aria-hidden="true" className="text-title leading-none">
-                      +
-                    </span>
-                  </button>
+                    className="text-fg-muted hover:text-fg-subtle"
+                  />
                 ) : null}
               </div>
 
@@ -1625,39 +1564,32 @@ export const AppShell = ({
               className="flex items-center gap-2 border-t border-line pt-3 pr-0 pb-4 pl-1"
               aria-label="프로필"
             >
-              <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" variant="brand" />
+              <Avatar name={userName} src={userAvatarUrl} size="md" tone="brand" />
               <p className="min-w-0 flex-1 truncate text-body font-semibold text-fg-default">
                 {userName}
               </p>
-              <button
-                type="button"
-                data-settings-trigger
+              <IconButton
+                size="md"
+                name="More_vertical_light"
                 aria-label="더보기"
+                data-settings-trigger
                 onClick={handleSettingsTriggerClick}
-                className="p-2"
-              >
-                <img src={overflowIcon} alt="더보기-아이콘" className="w-6" />
-              </button>
+                className="text-fg-muted"
+              />
             </div>
           </div>
         </aside>
 
         <main className="flex min-h-0 flex-col overflow-hidden bg-canvas p-3 pl-0 max-sm:p-0">
           <header className="sticky top-0 z-20 hidden items-center gap-1 bg-canvas px-1 py-1 max-sm:flex">
-            <button
-              type="button"
+            <IconButton
+              size="md"
+              name="Menu_light"
               aria-label="사이드바 열기"
               aria-expanded={mobileDrawerOpen}
               aria-controls="app-mobile-drawer"
               onClick={() => setMobileDrawerOpen(true)}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-fg-default hover:bg-surface-muted active:bg-line"
-            >
-              <span aria-hidden className="flex flex-col gap-[3px]">
-                <span className="block h-[2px] w-5 rounded-full bg-current" />
-                <span className="block h-[2px] w-5 rounded-full bg-current" />
-                <span className="block h-[2px] w-5 rounded-full bg-current" />
-              </span>
-            </button>
+            />
             <p className="min-w-0 flex-1 truncate text-center text-label font-semibold text-fg-default">
               {(() => {
                 const active =
@@ -1667,29 +1599,16 @@ export const AppShell = ({
                 return projects.find((p) => p.id === selectedProjectId)?.name ?? 'Qode';
               })()}
             </p>
-            <button
-              type="button"
+            <IconButton
+              size="md"
+              name="Add_round_light"
               aria-label="새 개인 채팅"
+              disabled={!selectedProjectId}
               onClick={() => {
                 setMobileDrawerOpen(false);
                 onCreatePersonalChat?.();
               }}
-              disabled={!selectedProjectId}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-fg-default hover:bg-surface-muted active:bg-line disabled:opacity-40"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M10 4 L10 16 M4 10 L16 10" />
-              </svg>
-            </button>
+            />
           </header>
           {selectedProjectId && selectedProjectSyncStatus.isError ? (
             <div className="px-6 pt-3 max-sm:px-3" role="alert" aria-live="assertive">
@@ -1723,7 +1642,7 @@ export const AppShell = ({
               onKeyDown={handleSettingsMenuKeyDown}
             >
               <div className="flex items-center gap-2 p-2">
-                <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" />
+                <Avatar name={userName} src={userAvatarUrl} size="md" />
                 <div className="min-w-0">
                   <p
                     className={[
@@ -1840,25 +1759,18 @@ export const AppShell = ({
             await createFolder();
           }}
         >
-          <label className="block" htmlFor="folder-create-input">
-            <span className="mb-1 block text-caption font-medium text-fg-muted">이름</span>
-            <input
-              id="folder-create-input"
-              className={[
-                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
-                folderCreateTouched && !folderCreateValue.trim()
-                  ? 'border-danger'
-                  : 'border-line-strong focus:border-line-primary'
-              ].join(' ')}
-              value={folderCreateValue}
-              onChange={(e) => setFolderCreateValue(e.target.value)}
-              onBlur={() => setFolderCreateTouched(true)}
-              autoFocus
-            />
-            {folderCreateTouched && !folderCreateValue.trim() ? (
-              <span className="mt-1 block text-caption text-fg-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="folder-create-input"
+            label="이름"
+            value={folderCreateValue}
+            onChange={(e) => setFolderCreateValue(e.target.value)}
+            onBlur={() => setFolderCreateTouched(true)}
+            autoFocus
+            error={
+              folderCreateTouched && !folderCreateValue.trim() ? '이름을 입력해주세요.' : undefined
+            }
+          />
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeFolderCreateModal}>
@@ -1883,25 +1795,20 @@ export const AppShell = ({
             await createSection();
           }}
         >
-          <label className="block" htmlFor="section-create-input">
-            <span className="mb-1 block text-caption font-medium text-fg-muted">이름</span>
-            <input
-              id="section-create-input"
-              className={[
-                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
-                sectionCreateTouched && !sectionCreateValue.trim()
-                  ? 'border-danger'
-                  : 'border-line-strong focus:border-line-primary'
-              ].join(' ')}
-              value={sectionCreateValue}
-              onChange={(e) => setSectionCreateValue(e.target.value)}
-              onBlur={() => setSectionCreateTouched(true)}
-              autoFocus
-            />
-            {sectionCreateTouched && !sectionCreateValue.trim() ? (
-              <span className="mt-1 block text-caption text-fg-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="section-create-input"
+            label="이름"
+            value={sectionCreateValue}
+            onChange={(e) => setSectionCreateValue(e.target.value)}
+            onBlur={() => setSectionCreateTouched(true)}
+            autoFocus
+            error={
+              sectionCreateTouched && !sectionCreateValue.trim()
+                ? '이름을 입력해주세요.'
+                : undefined
+            }
+          />
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionCreateModal}>
@@ -1926,25 +1833,20 @@ export const AppShell = ({
             await applySectionRename();
           }}
         >
-          <label className="block" htmlFor="section-rename-input">
-            <span className="mb-1 block text-caption font-medium text-fg-muted">이름</span>
-            <input
-              id="section-rename-input"
-              className={[
-                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
-                sectionRenameTouched && !sectionRenameValue.trim()
-                  ? 'border-danger'
-                  : 'border-line-strong focus:border-line-primary'
-              ].join(' ')}
-              value={sectionRenameValue}
-              onChange={(e) => setSectionRenameValue(e.target.value)}
-              onBlur={() => setSectionRenameTouched(true)}
-              autoFocus
-            />
-            {sectionRenameTouched && !sectionRenameValue.trim() ? (
-              <span className="mt-1 block text-caption text-fg-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="section-rename-input"
+            label="이름"
+            value={sectionRenameValue}
+            onChange={(e) => setSectionRenameValue(e.target.value)}
+            onBlur={() => setSectionRenameTouched(true)}
+            autoFocus
+            error={
+              sectionRenameTouched && !sectionRenameValue.trim()
+                ? '이름을 입력해주세요.'
+                : undefined
+            }
+          />
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionRenameModal}>
@@ -1989,7 +1891,7 @@ export const AppShell = ({
 
               <div className="px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="md" />
+                  <Avatar name={userName} src={userAvatarUrl} size="xl" />
                   <div className="min-w-0 flex-1">
                     <input
                       value={userName}
@@ -2155,25 +2057,16 @@ export const AppShell = ({
             applyProjectRename();
           }}
         >
-          <label className="block" htmlFor="project-rename-input">
-            <span className="mb-1 block text-caption font-medium text-fg-muted">이름</span>
-            <input
-              id="project-rename-input"
-              className={[
-                'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
-                renameTouched && !renameValue.trim()
-                  ? 'border-danger'
-                  : 'border-line-strong focus:border-line-primary'
-              ].join(' ')}
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              onBlur={() => setRenameTouched(true)}
-              autoFocus
-            />
-            {renameTouched && !renameValue.trim() ? (
-              <span className="mt-1 block text-caption text-fg-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="project-rename-input"
+            label="이름"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onBlur={() => setRenameTouched(true)}
+            autoFocus
+            error={renameTouched && !renameValue.trim() ? '이름을 입력해주세요.' : undefined}
+          />
 
           {renameInfo ? (
             <div className="mt-3">
@@ -2361,7 +2254,7 @@ export const AppShell = ({
                     className="grid grid-cols-[minmax(0,1fr)_120px_160px] max-sm:grid-cols-1 max-sm:gap-y-2 items-center border-b border-line-soft px-3 py-3 last:border-b-0"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size="sm" />
+                      <Avatar name={member.name} src={member.avatarUrl} size="md" />
                       <div className="min-w-0">
                         <div className="truncate text-label font-semibold text-fg-default">
                           {member.name}
@@ -2431,15 +2324,15 @@ export const AppShell = ({
                   연결된 레포지토리 정보가 없습니다.
                 </div>
               )}
-              <button
-                type="button"
+              <IconButton
+                variant="outline"
+                size="md"
+                name="Copy_light"
+                aria-label="URL 복사"
                 disabled={!sourceGitUrl}
                 onClick={() => void copySourceGitUrl()}
-                aria-label="URL 복사"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control border border-line bg-surface text-fg-default transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Icon name="Copy_light" size="sm" />
-              </button>
+                className="size-10"
+              />
               {sourceGitUrl ? (
                 <a
                   href={sourceGitUrl}

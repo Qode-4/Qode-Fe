@@ -51,7 +51,7 @@ import { cn } from '../../lib/cn';
 
 ---
 
-## 2. 인벤토리 (`components/ui/`, 18개)
+## 2. 인벤토리 (`components/ui/`, 19개)
 
 2차(2026-09-26)에서 모든 컴포넌트 상단에 사용 규칙 JSDoc 을 달고, 스토리를 전부 채웠다. 판정은 실제 화면(Storybook + 앱 스크린샷)을 보며 컴포넌트별로 정했다.
 
@@ -76,12 +76,18 @@ import { cn } from '../../lib/cn';
 | ProjectSwitcher | 1      | ✅     | Improve → 키보드(menu 패턴: ↑↓·Home·End·Esc) + 테스트                 |
 | SuggestionCard  | 1      | ✅     | Improve → 눌러도 동작 없던 버튼을 예시 목록으로, 빈 화면 주 버튼 정리 |
 
-### 추출 후보 (ui 밖에 중복 구현)
+### 추출·흡수 (3차 완료)
 
-| 후보       | 현재 위치                                                             | 메모                                                              |
-| ---------- | --------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| AI 아바타  | ProjectDetailPage ×2, DigestSourceViewBody (Qode 심볼 원형)           | 크기(size-6 / size-7)만 다름 — `Logo variant="mark"` 로 흡수 가능 |
-| UserAvatar | AppShell 내부, ProjectDetailPage `Avatar`, DigestSharedCard 이니셜 원 | 이니셜 원 3벌                                                     |
+| 대상                     | 처리                                                |
+| ------------------------ | --------------------------------------------------- |
+| AI·사람 아바타 10곳      | `ui/Avatar` 로 추출(kind·size·tone·ring·text)       |
+| 모달·설정 폼 입력창 8개  | `TextField size="sm"` 으로 흡수                     |
+| AppShell 아이콘 버튼 6개 | `IconButton` 으로 흡수(⋮·☰ 아이콘 레지스트리 추가) |
+| CreateChatModal          | 삭제                                                |
+
+---------- | --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| AI 아바타 | ProjectDetailPage ×2, DigestSourceViewBody (Qode 심볼 원형) | 크기(size-6 / size-7)만 다름 — `Logo variant="mark"` 로 흡수 가능 |
+| UserAvatar | AppShell 내부, ProjectDetailPage `Avatar`, DigestSharedCard 이니셜 원 | 이니셜 원 3벌 |
 
 ### Deprecate
 
@@ -108,9 +114,14 @@ import { cn } from '../../lib/cn';
 - [x] 사이드바 로고·AI 아바타 이미지를 `favicon.ico` 대신 번들 PNG 로.
 - [x] 18개 전부 상단 JSDoc(Use / Don't · variant · size).
 
-### 다음 차수 후보
+### 3차 — 흡수
 
-- [ ] 아바타 추출 (AI 아바타 → `Logo variant="mark"`, 이니셜 아바타 → `ui/Avatar`)
-- [ ] 모달 입력창 ~12개를 `TextField size="sm"` 으로 흡수(겉모습 동일, 코드만 줄어듦)
-- [ ] AppShell 의 손 구현 아이콘 버튼을 `IconButton` 으로 흡수
-- [ ] CreateChatModal 삭제
+- [x] CreateChatModal 삭제.
+- [x] 모달·설정 폼 입력창 8개 → `TextField size="sm"`. 이 과정에서 TextField 오류 테두리 대비(1.61 → 5.18:1) 수정.
+- [x] 원형 아바타 10곳 → `ui/Avatar`. 사진 실패 시 이니셜 전환.
+- [x] AppShell 아이콘 버튼 6개 → `IconButton`. md 아이콘 16 → 20px.
+
+### 남은 것 (Phase C 밖)
+
+- 읽기 전용 + 복사 버튼 입력(Git 주소·초대 링크), 검색창, 인라인 이름 편집은 성격이 달라 흡수하지 않음 — 반복되면 Phase D 패턴으로.
+- 숨겨진 섹션 영역의 버튼 2개는 화면에 없어 손대지 않음.

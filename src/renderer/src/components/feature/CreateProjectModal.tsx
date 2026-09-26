@@ -18,6 +18,7 @@ import { navigate } from '../../lib/hashRouter';
 import { Button } from '../ui/Button';
 import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
+import { TextField } from '../ui/TextField';
 
 type Props = {
   open: boolean;
@@ -239,36 +240,28 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               </span>
             </div>
 
-            <label className="block" htmlFor="create-project-name">
-              <span className="mb-1 block text-caption font-medium text-fg-muted">이름</span>
-              <input
-                id="create-project-name"
-                className={[
-                  'h-10 w-full rounded-control border bg-surface px-3 text-body text-fg-default outline-none',
-                  nameError ? 'border-danger' : 'border-line-strong focus:border-line-primary'
-                ].join(' ')}
-                value={name}
-                maxLength={PROJECT_NAME_MAX}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="예) Qode-Fe"
-                autoFocus
-              />
-              {nameError ? (
-                <span className="mt-1 block text-caption text-fg-danger">{nameError}</span>
-              ) : null}
-            </label>
+            <TextField
+              size="sm"
+              id="create-project-name"
+              label="이름"
+              value={name}
+              maxLength={PROJECT_NAME_MAX}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="예) Qode-Fe"
+              autoFocus
+              error={nameError || undefined}
+            />
 
-            <label className="mt-3 block" htmlFor="create-project-description">
-              <span className="mb-1 block text-caption font-medium text-fg-muted">설명 (선택)</span>
-              <input
-                id="create-project-description"
-                className="h-10 w-full rounded-control border border-line-strong bg-surface px-3 text-body text-fg-default outline-none focus:border-line-primary"
-                value={description}
-                maxLength={PROJECT_DESCRIPTION_MAX}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="예) 고객 대시보드 개선 프로젝트"
-              />
-            </label>
+            <TextField
+              size="sm"
+              id="create-project-description"
+              label="설명 (선택)"
+              className="mt-3"
+              value={description}
+              maxLength={PROJECT_DESCRIPTION_MAX}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="예) 고객 대시보드 개선 프로젝트"
+            />
           </section>
 
           <section className="rounded-card border border-line bg-surface-muted p-3">

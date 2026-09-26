@@ -53,7 +53,7 @@ import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
 import { mapResponseError } from '../lib/response-errors';
 import { mapSyncError } from '../lib/sync-errors';
-import qodeMark from '../public/qode_logo_small.png';
+import { Avatar } from '../components/ui/Avatar';
 
 type TeamChatMenuAction = 'rename' | 'invite' | 'members' | 'delete' | 'leave' | 'create';
 
@@ -156,14 +156,6 @@ const LoadingDots = (): React.JSX.Element => {
     <span aria-hidden className="inline-block w-[1.5em] text-left">
       {dots}
     </span>
-  );
-};
-
-const Avatar = ({ name }: { name: string }): React.JSX.Element => {
-  return (
-    <div className="inline-flex size-6 items-center justify-center rounded-full border border-line bg-surface-muted text-caption font-medium text-fg-muted">
-      {name.charAt(0).toUpperCase()}
-    </div>
   );
 };
 
@@ -1195,7 +1187,7 @@ export const ProjectDetailPage = ({
 
                   return (
                     <div key={messageId} className="flex items-end gap-2">
-                      <Avatar name={senderName} />
+                      <Avatar name={senderName} size="sm" />
                       <div className="flex flex-col gap-0.5 w-full">
                         <p className="text-micro font-medium text-fg-muted">{senderName}</p>
                         <div className="w-fit max-w-[70%] rounded-panel border border-line bg-surface px-3 py-2.5 text-body leading-[1.6] text-fg-default max-sm:max-w-[85%]">
@@ -1258,17 +1250,7 @@ export const ProjectDetailPage = ({
                     onClick={showCheckbox ? () => shareSelection.toggle(messageId) : undefined}
                   >
                     <div className="mb-2 flex items-center gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface"
-                      >
-                        <img
-                          src={qodeMark}
-                          alt=""
-                          aria-hidden="true"
-                          className="size-4 object-contain"
-                        />
-                      </span>
+                      <Avatar kind="ai" size="md" />
                       <span className="text-label font-semibold text-fg-default">Qode AI</span>
                     </div>
                     {hasVisibleBody ? <MarkdownAnswer content={cleanContent} /> : null}
@@ -1325,17 +1307,7 @@ export const ProjectDetailPage = ({
               {showStream && activeChatId && isPersonalChat ? (
                 <article className="min-w-0 rounded-panel bg-surface p-3" aria-live="polite">
                   <div className="mb-2 flex items-center gap-2">
-                    <span
-                      aria-hidden="true"
-                      className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface"
-                    >
-                      <img
-                        src={qodeMark}
-                        alt=""
-                        aria-hidden="true"
-                        className="size-4 object-contain"
-                      />
-                    </span>
+                    <Avatar kind="ai" size="md" />
                     <span className="text-label font-semibold text-fg-default">Qode AI</span>
                     <span className="text-micro text-fg-muted">
                       · {streamStatus || '스트리밍 중'}

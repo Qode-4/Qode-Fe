@@ -93,7 +93,7 @@ export const TextField = ({
             sizeMap[size].input,
             showToggle && sizeMap[size].toggle,
             error
-              ? 'border-line-danger bg-danger-soft focus:border-danger'
+              ? 'border-danger bg-danger-soft'
               : 'border-line-strong bg-surface focus:border-line-primary'
           )}
           aria-invalid={Boolean(error)}

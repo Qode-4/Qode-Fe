@@ -54,7 +54,7 @@ const REQUIRED: Array<{ fg: string; bg: string[]; min: number }> = [
   // 비텍스트 UI: 입력 경계, 선택 테두리·포커스 링, 오류 경계
   { fg: 'line-strong', bg: ['canvas', 'surface'], min: UI },
   { fg: 'line-primary', bg: ['canvas', 'surface'], min: UI },
-  { fg: 'danger', bg: ['canvas', 'surface'], min: UI }
+  { fg: 'danger', bg: ['canvas', 'surface', 'danger-soft'], min: UI }
 ];
 
 /** 매트릭스의 배경 열. scrim·scrollbar 는 글자가 올라가지 않아 제외한다. */
