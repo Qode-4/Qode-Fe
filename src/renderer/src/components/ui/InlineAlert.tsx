@@ -15,7 +15,11 @@ const toneMap: Record<NonNullable<Props['tone']>, string> = {
 
 export const InlineAlert = ({ tone = 'info', title, children }: Props): React.JSX.Element => {
   return (
-    <div className={cn('rounded-panel border px-3.5 py-3 text-label', toneMap[tone])} role="alert">
+    <div
+      className={cn('rounded-panel border px-3.5 py-3 text-label', toneMap[tone])}
+      // 오류만 즉시 끼어들어 읽고, 안내·성공은 하던 낭독이 끝난 뒤 읽는다.
+      role={tone === 'danger' ? 'alert' : 'status'}
+    >
       {title ? <div className="mb-0.5 font-semibold">{title}</div> : null}
       <div className="leading-5">{children}</div>
     </div>
