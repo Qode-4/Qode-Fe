@@ -1,3 +1,4 @@
+import { Button } from '../components/ui/Button';
 import { SuggestionCard } from '../components/ui/SuggestionCard';
 
 const defaultPrompts = [
@@ -8,11 +9,10 @@ const defaultPrompts = [
 ];
 
 type Props = {
-  projectCount: number;
   onOpenCreateProject: () => void;
 };
 
-export const ProjectsPage = ({ projectCount, onOpenCreateProject }: Props): React.JSX.Element => {
+export const ProjectsPage = ({ onOpenCreateProject }: Props): React.JSX.Element => {
   return (
     <section className="flex h-full min-h-[640px] flex-col items-center justify-center bg-surface px-4 text-center max-sm:min-h-0 max-sm:px-3 max-sm:py-8">
       <div className="w-full max-w-[406px]">
@@ -22,19 +22,18 @@ export const ProjectsPage = ({ projectCount, onOpenCreateProject }: Props): Reac
           코드에 질문하세요.
         </h1>
 
-        <div className="mt-8 space-y-1">
+        <p className="mt-8 mb-2 text-left text-caption text-fg-muted">
+          프로젝트를 연결하면 이런 걸 물어볼 수 있어요
+        </p>
+        <ul className="space-y-1">
           {defaultPrompts.map((prompt) => (
             <SuggestionCard key={prompt} text={prompt} />
           ))}
-        </div>
+        </ul>
 
-        <button
-          type="button"
-          onClick={onOpenCreateProject}
-          className="mt-5 text-micro font-medium text-fg-primary underline-offset-2 hover:underline"
-        >
-          새 프로젝트 만들기 ({projectCount})
-        </button>
+        <Button type="button" className="mt-6 w-full" onClick={onOpenCreateProject}>
+          새 프로젝트 만들기
+        </Button>
       </div>
     </section>
   );

@@ -290,10 +290,7 @@ const App = (): React.JSX.Element => {
       ) : null}
 
       {matchPath(location.path, '/projects').matched ? (
-        <ProjectsPage
-          projectCount={projects.data?.data.length ?? 0}
-          onOpenCreateProject={() => setCreateProjectModalOpen(true)}
-        />
+        <ProjectsPage onOpenCreateProject={() => setCreateProjectModalOpen(true)} />
       ) : null}
       {projectMatch.matched ? (
         <ProjectDetailPage
