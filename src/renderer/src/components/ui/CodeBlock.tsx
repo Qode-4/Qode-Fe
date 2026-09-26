@@ -7,6 +7,12 @@ type Props = {
   code: string;
 };
 
+/**
+ * CodeBlock — 줄번호·복사 버튼이 있는 코드 블록(다크).
+ * ✅ Use: 여러 줄 코드. 보통 MarkdownAnswer 가 코드 펜스를 알아서 바꿔 준다.
+ * ❌ Don't: 한 줄 안의 짧은 코드는 인라인 <code>.
+ *          긴 줄은 블록 안에서 가로 스크롤 — 부모를 밀지 않게 부모에 min-w-0.
+ */
 export const CodeBlock = ({ language, code }: Props): React.JSX.Element => {
   const toast = useToast();
 
