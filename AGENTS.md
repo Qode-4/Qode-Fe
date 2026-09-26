@@ -13,10 +13,11 @@ yarn test                 # vitest
 yarn build                # typecheck + electron-vite build
 yarn web:build            # 웹 정적 빌드 → src/renderer/dist
 yarn storybook            # 컴포넌트 샌드박스 (포트 6006)
+yarn tokens:check         # 토큰·대비·패턴 규칙 검사 + docs/registry.md 생성
 yarn swagger:local        # OpenAPI → src/renderer/src/api/generated 재생성
 ```
 
-테스트는 `yarn test`(vitest, `*.test.ts(x)`). 검증 수단은 `lint` + `typecheck` + `test` + `build` + Storybook.
+테스트는 `yarn test`(vitest, `*.test.ts(x)`). 검증 수단은 `lint` + `typecheck` + `test` + `build` + `tokens:check` + Storybook.
 
 `yarn swagger:local`은 package.json에서 EC2 주소를 가리킨다. 로컬 백엔드(`../Qode-Server`)
 스펙으로 생성하려면 스크립트의 `-p` URL을 `http://localhost:3000/docs/json`으로 바꿔서 실행한다.
@@ -82,6 +83,15 @@ vanilla-extract 플러그인이 세 곳(electron.vite, renderer vite, storybook)
 
 아이콘은 SVGR(`?react`)로 불러 `components/icons/iconRegistry.ts`에 등록하고 `<Icon name="..." />`로 쓴다.
 새 아이콘은 `icons/raw/`에 넣고 레지스트리에 추가해야 타입에 잡힌다.
+
+### 디자인 시스템 (Quire) — UI 작업 전에 읽을 것
+
+1. [`docs/registry.md`](docs/registry.md) — 컴포넌트별 쓸 때·피할 때·옵션. 새로 만들기 전에 여기서 찾는다.
+2. [`docs/patterns/`](docs/patterns/README.md) — 확인·에러·피드백·빈 상태·로딩의 결정 트리.
+3. [`docs/foundations.md`](docs/foundations.md) — 토큰의 의미. 정체성·원칙은 [`SYSTEM.md`](SYSTEM.md).
+4. 끝나면 [`docs/ai-review-checklist.md`](docs/ai-review-checklist.md) 로 검수하고 `yarn tokens:check` 를 돌린다.
+
+새 ui 컴포넌트는 JSDoc(✅ Use / ❌ Don't) + `Name.meta.ts` + 스토리를 함께 만든다. `docs/registry.md` 는 생성 파일이라 직접 고치지 않는다.
 
 ### 컴포넌트 배치
 
