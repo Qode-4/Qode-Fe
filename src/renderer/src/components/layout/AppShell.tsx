@@ -44,7 +44,6 @@ import type {
 } from '../../api/generated/data-contracts';
 import { QUERY_KEY } from '../../api/queryKeys';
 import { tokenStorage } from '../../api/tokenStorage';
-import overflowIcon from '../../assets/overflow-icon.png';
 import { navigate } from '../../lib/hashRouter';
 import { formatRelativeTime } from '../../lib/relativeTime';
 import { getStoredUiFontSize, persistUiFontSize, type UiFontSize } from '../../lib/uiFontSize';
@@ -53,6 +52,7 @@ import { Button } from '../ui/Button';
 import { ChatItemMenu, type ChatItemMenuAction } from '../ui/ChatItemMenu';
 import { DrawerHeader } from '../ui/DrawerHeader';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
 import { cn } from '../../lib/cn';
@@ -1298,17 +1298,14 @@ export const AppShell = ({
                 >
                   내 채팅
                 </p>
-                <button
-                  type="button"
+                <IconButton
+                  size="sm"
+                  name="Add_round_light"
                   aria-label="새 채팅 만들기"
                   disabled={!selectedProjectId}
-                  className="inline-flex items-center justify-center rounded-inline p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={onCreatePersonalChat}
-                >
-                  <span aria-hidden="true" className="text-title leading-none">
-                    +
-                  </span>
-                </button>
+                  className="text-fg-muted hover:text-fg-subtle"
+                />
               </div>
               {chatsIsError ? (
                 <div
@@ -1445,17 +1442,14 @@ export const AppShell = ({
                   팀 채팅
                 </p>
                 {API_CAPABILITIES.teamChatWritable ? (
-                  <button
-                    type="button"
+                  <IconButton
+                    size="sm"
+                    name="Add_round_light"
                     aria-label="새 팀 채팅 만들기"
                     disabled={!selectedProjectId}
-                    className="inline-flex items-center justify-center rounded-inline p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={onCreateTeamChat}
-                  >
-                    <span aria-hidden="true" className="text-title leading-none">
-                      +
-                    </span>
-                  </button>
+                    className="text-fg-muted hover:text-fg-subtle"
+                  />
                 ) : null}
               </div>
 
@@ -1574,35 +1568,28 @@ export const AppShell = ({
               <p className="min-w-0 flex-1 truncate text-body font-semibold text-fg-default">
                 {userName}
               </p>
-              <button
-                type="button"
-                data-settings-trigger
+              <IconButton
+                size="md"
+                name="More_vertical_light"
                 aria-label="더보기"
+                data-settings-trigger
                 onClick={handleSettingsTriggerClick}
-                className="p-2"
-              >
-                <img src={overflowIcon} alt="더보기-아이콘" className="w-6" />
-              </button>
+                className="text-fg-muted"
+              />
             </div>
           </div>
         </aside>
 
         <main className="flex min-h-0 flex-col overflow-hidden bg-canvas p-3 pl-0 max-sm:p-0">
           <header className="sticky top-0 z-20 hidden items-center gap-1 bg-canvas px-1 py-1 max-sm:flex">
-            <button
-              type="button"
+            <IconButton
+              size="md"
+              name="Menu_light"
               aria-label="사이드바 열기"
               aria-expanded={mobileDrawerOpen}
               aria-controls="app-mobile-drawer"
               onClick={() => setMobileDrawerOpen(true)}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-fg-default hover:bg-surface-muted active:bg-line"
-            >
-              <span aria-hidden className="flex flex-col gap-[3px]">
-                <span className="block h-[2px] w-5 rounded-full bg-current" />
-                <span className="block h-[2px] w-5 rounded-full bg-current" />
-                <span className="block h-[2px] w-5 rounded-full bg-current" />
-              </span>
-            </button>
+            />
             <p className="min-w-0 flex-1 truncate text-center text-label font-semibold text-fg-default">
               {(() => {
                 const active =
@@ -1612,29 +1599,16 @@ export const AppShell = ({
                 return projects.find((p) => p.id === selectedProjectId)?.name ?? 'Qode';
               })()}
             </p>
-            <button
-              type="button"
+            <IconButton
+              size="md"
+              name="Add_round_light"
               aria-label="새 개인 채팅"
+              disabled={!selectedProjectId}
               onClick={() => {
                 setMobileDrawerOpen(false);
                 onCreatePersonalChat?.();
               }}
-              disabled={!selectedProjectId}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-fg-default hover:bg-surface-muted active:bg-line disabled:opacity-40"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M10 4 L10 16 M4 10 L16 10" />
-              </svg>
-            </button>
+            />
           </header>
           {selectedProjectId && selectedProjectSyncStatus.isError ? (
             <div className="px-6 pt-3 max-sm:px-3" role="alert" aria-live="assertive">
@@ -2350,15 +2324,15 @@ export const AppShell = ({
                   연결된 레포지토리 정보가 없습니다.
                 </div>
               )}
-              <button
-                type="button"
+              <IconButton
+                variant="outline"
+                size="md"
+                name="Copy_light"
+                aria-label="URL 복사"
                 disabled={!sourceGitUrl}
                 onClick={() => void copySourceGitUrl()}
-                aria-label="URL 복사"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control border border-line bg-surface text-fg-default transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Icon name="Copy_light" size="sm" />
-              </button>
+                className="size-10"
+              />
               {sourceGitUrl ? (
                 <a
                   href={sourceGitUrl}
