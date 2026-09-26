@@ -13,6 +13,13 @@ const toneMap: Record<NonNullable<Props['tone']>, string> = {
   success: 'border-line-success bg-success-soft text-fg-success'
 };
 
+/**
+ * InlineAlert — 화면 안에 머무는 상태 안내.
+ * ✅ Use: 폼·섹션 안 오류와 복구 방법, 계속 보여야 하는 안내.
+ *         재시도는 안에 <Button size="sm" variant="secondary">.
+ * ❌ Don't: 잠깐 알리고 사라져도 되는 결과는 <Toast>.
+ * tone: danger 오류(원인+다음 행동) · info 안내 · success 오래 남겨야 할 완료
+ */
 export const InlineAlert = ({ tone = 'info', title, children }: Props): React.JSX.Element => {
   return (
     <div

@@ -20,6 +20,16 @@ type Props = {
   footer?: ReactNode;
 };
 
+/**
+ * OverlayModal — 흐름을 멈추고 집중이 필요한 작업.
+ * ✅ Use: 만들기·이름 바꾸기처럼 입력 몇 개로 끝나는 작업,
+ *         되돌릴 수 없는 액션의 확인.
+ * ❌ Don't: 결과 알림은 <Toast>, 화면 안 오류는 <InlineAlert>.
+ *          모달 위에 모달을 띄우지 않는다.
+ * footer: 오른쪽 끝에 [취소 secondary] [주 액션 primary] 순서.
+ * size: sm 440 확인·짧은 입력 · md 520 기본 폼
+ *       · lg 640 여러 단계 폼 · xl 720 긴 답변·코드 보기
+ */
 export const OverlayModal = ({
   open,
   onClose,
