@@ -7,6 +7,7 @@ import { friendlyErrorMessage } from '../../../api/errorMessages';
 import { Button } from '../../ui/Button';
 import { InlineAlert } from '../../ui/InlineAlert';
 import { OverlayModal } from '../../ui/OverlayModal';
+import { StateMessage } from '../../ui/StateMessage';
 import { ParticipantListItem } from './ParticipantListItem';
 import { sortParticipants } from './sortParticipants';
 
@@ -101,12 +102,16 @@ export const TransferOwnershipModal = ({
             className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-control border border-line bg-surface p-1"
           >
             {participants.isLoading ? (
-              <li className="px-3 py-6 text-center text-caption text-fg-muted">
-                참여자를 불러오는 중...
+              <li className="px-3 py-6">
+                <StateMessage kind="loading" align="center">
+                  참여자를 불러오는 중...
+                </StateMessage>
               </li>
             ) : candidates.length === 0 ? (
-              <li className="px-3 py-6 text-center text-caption text-fg-muted">
-                양도할 수 있는 다른 참여자가 없습니다.
+              <li className="px-3 py-6">
+                <StateMessage kind="empty" align="center">
+                  양도할 수 있는 다른 참여자가 없습니다.
+                </StateMessage>
               </li>
             ) : (
               candidates.map((participant) => {

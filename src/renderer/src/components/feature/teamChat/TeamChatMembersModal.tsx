@@ -7,6 +7,7 @@ import { friendlyErrorMessage } from '../../../api/errorMessages';
 import { Button } from '../../ui/Button';
 import { InlineAlert } from '../../ui/InlineAlert';
 import { OverlayModal } from '../../ui/OverlayModal';
+import { StateMessage } from '../../ui/StateMessage';
 import { ParticipantListItem } from './ParticipantListItem';
 import { sortParticipants } from './sortParticipants';
 
@@ -88,12 +89,16 @@ export const TeamChatMembersModal = ({
             className="max-h-[320px] overflow-y-auto rounded-control border border-line bg-surface p-1"
           >
             {participants.isLoading ? (
-              <li className="px-3 py-6 text-center text-caption text-fg-muted">
-                참여자를 불러오는 중...
+              <li className="px-3 py-6">
+                <StateMessage kind="loading" align="center">
+                  참여자를 불러오는 중...
+                </StateMessage>
               </li>
             ) : list.length === 0 ? (
-              <li className="px-3 py-6 text-center text-caption text-fg-muted">
-                참여자가 없습니다.
+              <li className="px-3 py-6">
+                <StateMessage kind="empty" align="center">
+                  참여자가 없습니다.
+                </StateMessage>
               </li>
             ) : (
               list.map((participant) => {

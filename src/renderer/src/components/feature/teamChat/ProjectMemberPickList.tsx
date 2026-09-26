@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Avatar } from '../../ui/Avatar';
+import { StateMessage } from '../../ui/StateMessage';
 
 export type PickListMember = {
   id: string;
@@ -15,6 +16,8 @@ type Props = {
   min?: number;
   max?: number;
   emptyMessage?: string;
+  /** 목록을 불러오는 중일 때 빈 상태 대신 보여줄 문구 */
+  loadingMessage?: string;
   searchPlaceholder?: string;
   ariaLabel?: string;
 };
@@ -26,6 +29,7 @@ export const ProjectMemberPickList = ({
   onToggle,
   max,
   emptyMessage = '검색 결과가 없습니다.',
+  loadingMessage,
   searchPlaceholder = '이름 검색',
   ariaLabel = '멤버 선택 목록'
 }: Props): React.JSX.Element => {
@@ -63,8 +67,18 @@ export const ProjectMemberPickList = ({
         aria-multiselectable
         className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-control border border-line bg-surface"
       >
-        {visibleMembers.length === 0 ? (
-          <li className="px-3 py-6 text-center text-caption text-fg-muted">{emptyMessage}</li>
+        {loadingMessage ? (
+          <li className="px-3 py-6">
+            <StateMessage kind="loading" align="center">
+              {loadingMessage}
+            </StateMessage>
+          </li>
+        ) : visibleMembers.length === 0 ? (
+          <li className="px-3 py-6">
+            <StateMessage kind="empty" align="center">
+              {emptyMessage}
+            </StateMessage>
+          </li>
         ) : (
           visibleMembers.map((member) => {
             const isSelected = selectedSet.has(member.id);

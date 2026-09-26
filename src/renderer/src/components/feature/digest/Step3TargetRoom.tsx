@@ -1,4 +1,5 @@
 import { Button } from '../../ui/Button';
+import { StateMessage } from '../../ui/StateMessage';
 
 // Step3: 공유할 팀채팅 선택(라디오).
 // - 리스트: 현재 프로젝트 내 내가 속한 팀채팅
@@ -29,8 +30,8 @@ export const Step3TargetRoom = ({
 }: Props): React.JSX.Element => {
   if (status === 'loading') {
     return (
-      <div className="flex min-h-[220px] items-center justify-center text-label text-fg-subtle">
-        팀채팅 목록을 불러오는 중…
+      <div className="flex min-h-[220px] items-center justify-center">
+        <StateMessage kind="loading">팀채팅 목록을 불러오는 중…</StateMessage>
       </div>
     );
   }

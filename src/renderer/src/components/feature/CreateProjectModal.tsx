@@ -18,6 +18,7 @@ import { Button } from '../ui/Button';
 import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
 import { TextField } from '../ui/TextField';
+import { StateMessage } from '../ui/StateMessage';
 
 type Props = {
   open: boolean;
@@ -349,7 +350,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             </div>
 
             {isAuthorized && repos.isLoading ? (
-              <p className="text-caption text-fg-muted">저장소 목록을 불러오는 중...</p>
+              <StateMessage kind="loading">저장소 목록을 불러오는 중...</StateMessage>
             ) : null}
             {isAuthorized && !repos.isLoading && repoItems.length === 0 ? (
               <p className="text-caption text-fg-danger">연결 가능한 저장소가 없습니다.</p>

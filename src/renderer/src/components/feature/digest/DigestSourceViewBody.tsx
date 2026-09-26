@@ -4,6 +4,7 @@ import { MarkdownAnswer } from '../../ui/MarkdownAnswer';
 import { SourceList } from '../../ui/SourceList';
 import { cleanAnswerSources, mergeSources } from '../../../lib/inlineSources';
 import { Avatar } from '../../ui/Avatar';
+import { StateMessage } from '../../ui/StateMessage';
 
 // DigestSourceView 모달의 본문. 컨테이너와 분리해 스토리에서 fake data 로 직접 렌더할 수 있게 함.
 
@@ -57,7 +58,9 @@ export const DigestSourceViewBody = ({
 
       <div className="rounded-control border border-line bg-surface-muted p-4">
         {status === 'loading' ? (
-          <p className="py-8 text-center text-label text-fg-subtle">원본 대화를 불러오는 중…</p>
+          <StateMessage kind="loading" align="center" className="py-8">
+            원본 대화를 불러오는 중…
+          </StateMessage>
         ) : null}
 
         {status === 'error' ? (
@@ -74,7 +77,9 @@ export const DigestSourceViewBody = ({
         ) : null}
 
         {status === 'ready' && pairs.length === 0 ? (
-          <p className="py-8 text-center text-label text-fg-subtle">공유된 대화가 없습니다.</p>
+          <StateMessage kind="empty" align="center" className="py-8">
+            공유된 대화가 없습니다.
+          </StateMessage>
         ) : null}
 
         {status === 'ready' && pairs.length > 0 ? (

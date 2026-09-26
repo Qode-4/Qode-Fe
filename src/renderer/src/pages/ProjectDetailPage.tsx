@@ -48,6 +48,8 @@ import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { MarkdownAnswer } from '../components/ui/MarkdownAnswer';
 import { SourceList } from '../components/ui/SourceList';
+import { Spinner } from '../components/ui/Spinner';
+import { StateMessage } from '../components/ui/StateMessage';
 import { cleanAnswerSources, mergeSources } from '../lib/inlineSources';
 import { useToast } from '../hooks/useToast';
 import type { RouteLocation } from '../lib/hashRouter';
@@ -893,14 +895,15 @@ export const ProjectDetailPage = ({
       <InlineAlert tone="danger" title="프로젝트 조회 실패">
         <div className="flex flex-col items-start gap-2">
           <p>프로젝트 정보를 불러올 수 없습니다.</p>
-          <button
+          <Button
             type="button"
+            size="sm"
+            variant="secondary"
             onClick={() => void project.refetch()}
-            disabled={project.isFetching}
-            className="rounded-control border border-line-danger bg-surface px-3 py-1 text-caption font-medium text-fg-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
+            isLoading={project.isFetching}
           >
-            {project.isFetching ? '다시 시도 중...' : '다시 시도'}
-          </button>
+            다시 시도
+          </Button>
         </div>
       </InlineAlert>
     );
@@ -913,11 +916,8 @@ export const ProjectDetailPage = ({
     return (
       <section className="flex h-full min-h-0 flex-col items-center justify-center bg-surface">
         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
-          <div
-            aria-hidden="true"
-            className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-line-primary"
-          />
-          <p className="text-caption font-medium text-fg-muted">프로젝트를 불러오는 중...</p>
+          <Spinner size="lg" tone="brand" />
+          <p className="text-caption text-fg-muted">프로젝트를 불러오는 중...</p>
         </div>
       </section>
     );
@@ -985,10 +985,7 @@ export const ProjectDetailPage = ({
           aria-live="polite"
           className="mx-4 mb-2 flex items-center gap-2 rounded-panel border border-line bg-surface-muted px-3 py-2 text-caption text-fg-subtle"
         >
-          <span
-            aria-hidden="true"
-            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-line-strong border-t-transparent"
-          />
+          <Spinner size="md" />
           <div className="min-w-0">
             <p className="font-medium">연결이 끊어졌습니다</p>
             <p className="text-micro text-fg-muted">재연결 중...</p>
@@ -1105,7 +1102,7 @@ export const ProjectDetailPage = ({
           ) : (
             <div className="flex min-h-full w-full min-w-0 max-w-[48rem] flex-col gap-6">
               {messages.isLoading ? (
-                <p className="text-caption font-medium text-fg-muted">메시지를 불러오는 중...</p>
+                <StateMessage kind="loading">메시지를 불러오는 중...</StateMessage>
               ) : null}
 
               {messages.isError ? (

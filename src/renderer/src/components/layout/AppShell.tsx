@@ -59,6 +59,7 @@ import { cn } from '../../lib/cn';
 import { Avatar } from '../ui/Avatar';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { TextField } from '../ui/TextField';
+import { StateMessage } from '../ui/StateMessage';
 
 type Props = {
   me?: GetAuthData | null;
@@ -1221,14 +1222,9 @@ export const AppShell = ({
               {sectionsCollapsed ? null : (
                 <>
                   {sectionsErrorMessage ? null : sectionsLoading ? (
-                    <div
-                      className={[
-                        'flex h-24 items-center justify-center text-center font-normal leading-[1.6] text-fg-muted',
-                        drawerTypography.emptyState
-                      ].join(' ')}
-                    >
+                    <StateMessage kind="loading" align="center" className="h-24">
                       섹션을 불러오는 중입니다...
-                    </div>
+                    </StateMessage>
                   ) : sections.length > 0 ? (
                     <nav aria-label="섹션 목록" className="mt-0.5">
                       {sections.map((section) => (
@@ -1367,14 +1363,13 @@ export const AppShell = ({
                   </button>
                 </div>
               ) : !chatsIsLoading && personalChats.length === 0 ? (
-                <p
-                  className={[
-                    'mt-1 px-3 py-2 font-normal text-fg-subtle',
-                    drawerTypography.emptyState
-                  ].join(' ')}
+                <StateMessage
+                  kind="empty"
+                  className="mt-1 px-3 py-2"
+                  action={selectedProjectId ? '＋ 를 눌러 코드에 질문해 보세요.' : undefined}
                 >
                   아직 채팅이 없습니다.
-                </p>
+                </StateMessage>
               ) : null}
               <nav aria-label="내 채팅 목록" className="mt-0.5">
                 {personalChats.map((chat) => {
@@ -1513,14 +1508,17 @@ export const AppShell = ({
                   </button>
                 </div>
               ) : !chatsIsLoading && teamChats.length === 0 ? (
-                <p
-                  className={[
-                    'mt-1 px-3 py-2 font-normal text-fg-subtle',
-                    drawerTypography.emptyState
-                  ].join(' ')}
+                <StateMessage
+                  kind="empty"
+                  className="mt-1 px-3 py-2"
+                  action={
+                    API_CAPABILITIES.teamChatWritable && onCreateTeamChat && selectedProjectId
+                      ? '＋ 를 눌러 팀원과 대화를 시작해 보세요.'
+                      : undefined
+                  }
                 >
                   아직 채팅이 없습니다.
-                </p>
+                </StateMessage>
               ) : null}
               <nav aria-label="팀 채팅 목록" className="mt-0.5">
                 {teamChats.map((chat) => {
@@ -1828,7 +1826,7 @@ export const AppShell = ({
               취소
             </Button>
             <Button type="submit" size="sm" isLoading={postFolder.isPending}>
-              {postFolder.isPending ? '추가 중...' : '추가'}
+              추가
             </Button>
           </div>
         </form>
@@ -1874,7 +1872,7 @@ export const AppShell = ({
               취소
             </Button>
             <Button type="submit" size="sm" isLoading={postSection.isPending}>
-              {postSection.isPending ? '추가 중...' : '추가'}
+              추가
             </Button>
           </div>
         </form>
@@ -1920,7 +1918,7 @@ export const AppShell = ({
               취소
             </Button>
             <Button type="submit" size="sm" isLoading={patchSection.isPending}>
-              {patchSection.isPending ? '저장 중...' : '저장'}
+              저장
             </Button>
           </div>
         </form>
@@ -2234,10 +2232,10 @@ export const AppShell = ({
                 <Button
                   type="button"
                   size="sm"
-                  disabled={postInviteReissue.isPending}
+                  isLoading={postInviteReissue.isPending}
                   onClick={() => void reissueInviteLink()}
                 >
-                  {postInviteReissue.isPending ? '만드는 중...' : '새 링크 만들기'}
+                  새 링크 만들기
                 </Button>
               </div>
             </div>
@@ -2299,7 +2297,9 @@ export const AppShell = ({
               </div>
 
               {modalProjectMembers.isLoading ? (
-                <div className="px-3 py-3 text-label text-fg-subtle">멤버를 불러오는 중...</div>
+                <StateMessage kind="loading" className="px-3 py-3">
+                  멤버를 불러오는 중...
+                </StateMessage>
               ) : null}
 
               {modalProjectMembers.data?.data.map((member) => {

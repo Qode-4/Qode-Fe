@@ -147,9 +147,8 @@ export const CreateTeamChatModal = ({
               min={MIN_TOTAL - 1}
               max={MAX_MEMBER_IDS}
               searchPlaceholder="이름으로 참여자 찾기"
-              emptyMessage={
-                members.isLoading ? '멤버를 불러오는 중...' : '초대할 프로젝트 멤버가 없습니다.'
-              }
+              loadingMessage={members.isLoading ? '멤버를 불러오는 중...' : undefined}
+              emptyMessage="초대할 프로젝트 멤버가 없습니다."
               ariaLabel="초대할 참여자 목록"
             />
           )}

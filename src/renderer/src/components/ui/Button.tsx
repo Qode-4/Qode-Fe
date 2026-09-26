@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '../../lib/cn';
+import { Spinner } from './Spinner';
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -53,10 +54,7 @@ export const Button = ({
     >
       {isLoading ? (
         <>
-          <span
-            aria-hidden="true"
-            className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
-          />
+          <Spinner size="md" />
           <span className="sr-only">로딩 중</span>
         </>
       ) : null}

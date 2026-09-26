@@ -12,6 +12,7 @@ import { tokenStorage } from './api/tokenStorage';
 import { CreateProjectModal } from './components/feature/CreateProjectModal';
 import { AppShell } from './components/layout/AppShell';
 import { InlineAlert } from './components/ui/InlineAlert';
+import { Spinner } from './components/ui/Spinner';
 import { useToast } from './hooks/useToast';
 import { buildPath, matchPath, navigate, resolveNextPath } from './lib/hashRouter';
 import { applyUiFontSize, getStoredUiFontSize } from './lib/uiFontSize';
@@ -227,7 +228,7 @@ const App = (): React.JSX.Element => {
             어서오세요, {loginTransitionUserName}님!
           </h1>
           <p className="mt-2 text-label text-fg-subtle">잠시만요, 준비하고 있어요...</p>
-          <div className="mx-auto mt-5 h-9 w-9 animate-spin rounded-full border-2 border-line border-t-line-primary" />
+          <Spinner size="lg" tone="brand" className="mx-auto mt-5 block" />
         </div>
       </div>
     );
