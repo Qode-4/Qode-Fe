@@ -55,6 +55,7 @@ import { DrawerHeader } from '../ui/DrawerHeader';
 import { Icon } from '../ui/Icon';
 import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
+import { cn } from '../../lib/cn';
 
 type Props = {
   me?: GetAuthData | null;
@@ -1478,12 +1479,7 @@ export const AppShell = ({
                         <ChatItemMenu
                           triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
                           ariaLabel={`${chat.name} 채팅 작업 메뉴`}
-                          triggerClassName={[
-                            'inline-flex h-6 w-6 items-center justify-center rounded-inline transition-colors',
-                            isActive
-                              ? 'text-fg-default hover:bg-line'
-                              : 'text-fg-muted hover:bg-line'
-                          ].join(' ')}
+                          triggerClassName={cn('hover:bg-line', isActive && 'text-fg-default')}
                           actions={menuActions}
                         />
                       </div>
@@ -1613,12 +1609,7 @@ export const AppShell = ({
                           <ChatItemMenu
                             triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
                             ariaLabel={`${chat.name} 채팅 작업 메뉴`}
-                            triggerClassName={[
-                              'inline-flex h-6 w-6 items-center justify-center rounded-inline transition-colors',
-                              isActive
-                                ? 'text-fg-default hover:bg-line'
-                                : 'text-fg-muted hover:bg-line'
-                            ].join(' ')}
+                            triggerClassName={cn('hover:bg-line', isActive && 'text-fg-default')}
                             actions={teamMenuActions}
                           />
                         </div>
@@ -1767,7 +1758,7 @@ export const AppShell = ({
                   ].join(' ')}
                   onClick={() => handleSettingsAction(it.key)}
                 >
-                  <Icon name={it.iconName} size={16} decorative className="text-fg-subtle" />
+                  <Icon name={it.iconName} size="sm" decorative className="text-fg-subtle" />
                   <span>{it.label}</span>
                 </button>
               ))}
@@ -1841,7 +1832,7 @@ export const AppShell = ({
         open={Boolean(folderCreateModalSectionId)}
         onClose={closeFolderCreateModal}
         title="폴더 추가"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={async (e) => {
@@ -1884,7 +1875,7 @@ export const AppShell = ({
         open={sectionCreateModalOpen}
         onClose={closeSectionCreateModal}
         title="섹션 추가"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={async (e) => {
@@ -1927,7 +1918,7 @@ export const AppShell = ({
         open={Boolean(sectionRenameModalSectionId)}
         onClose={closeSectionRenameModal}
         title="섹션 이름 변경"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={async (e) => {
@@ -2156,7 +2147,7 @@ export const AppShell = ({
         open={projectModal?.kind === 'rename'}
         onClose={closeProjectModal}
         title="프로젝트 이름 바꾸기"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={(e) => {
@@ -2205,7 +2196,7 @@ export const AppShell = ({
         open={projectModal?.kind === 'invite'}
         onClose={closeProjectModal}
         title="멤버 추가하기"
-        widthClassName="max-w-[620px]"
+        size="lg"
       >
         <>
           <div className="flex items-end justify-between gap-3">
@@ -2321,7 +2312,7 @@ export const AppShell = ({
         open={projectModal?.kind === 'members'}
         onClose={closeProjectModal}
         title="멤버들"
-        widthClassName="max-w-[680px]"
+        size="lg"
       >
         <>
           {memberActionError ? (
@@ -2420,7 +2411,7 @@ export const AppShell = ({
         open={projectModal?.kind === 'source'}
         onClose={closeProjectModal}
         title="소스"
-        widthClassName="max-w-[620px]"
+        size="lg"
       >
         <>
           <div className="mt-3">

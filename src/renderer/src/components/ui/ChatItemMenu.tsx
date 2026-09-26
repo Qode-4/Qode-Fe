@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { IconName } from '../icons/iconTypes';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { Icon } from './Icon';
+import { IconButton } from './IconButton';
 import { cn } from '../../lib/cn';
 
 export type ChatItemMenuAction = {
@@ -18,6 +19,9 @@ type Props = {
   actions: ChatItemMenuAction[];
   ariaLabel?: string;
   triggerAriaLabel: string;
+  /** sm 24px 목록 줄 안(기본) · md 36px 헤더 */
+  triggerSize?: 'sm' | 'md';
+  /** 색만 덮어쓸 때(예: 활성 행). 크기·모양은 triggerSize 로 */
   triggerClassName?: string;
 };
 
@@ -26,10 +30,18 @@ const MENU_WIDTH = 200;
 const ITEM_HEIGHT = 32;
 const MENU_PADDING_Y = 8;
 
+/**
+ * ChatItemMenu — ⋯ 버튼으로 여는 항목별 작업 메뉴.
+ * ✅ Use: 목록 항목(채팅·카드) 하나에 딸린 작업 2~5개.
+ * ❌ Don't: 화면 전체 작업은 헤더 버튼. 작업이 1개면 메뉴 없이 <IconButton>.
+ *          위험 작업(danger)은 맨 아래. 비활성은 이유를 label 에 적는다.
+ * triggerSize: sm 목록 줄 안(기본) · md 헤더
+ */
 export const ChatItemMenu = ({
   actions,
   ariaLabel = '채팅 작업 메뉴',
   triggerAriaLabel,
+  triggerSize = 'sm',
   triggerClassName
 }: Props): React.JSX.Element => {
   const [open, setOpen] = useState(false);
@@ -100,23 +112,23 @@ export const ChatItemMenu = ({
 
   return (
     <>
-      <button
+      <IconButton
         ref={triggerRef}
-        type="button"
+        variant="ghost"
+        size={triggerSize}
+        name="More_horizontal_light"
         aria-label={triggerAriaLabel}
         aria-haspopup="menu"
         aria-expanded={open}
         data-chat-item-menu-trigger
-        className={triggerClassName}
+        className={cn('text-fg-muted hover:text-fg-default', triggerClassName)}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           if (open) closeMenu();
           else openMenu();
         }}
-      >
-        <Icon name="More_horizontal_light" size="sm" decorative />
-      </button>
+      />
 
       {open && pos
         ? createPortal(

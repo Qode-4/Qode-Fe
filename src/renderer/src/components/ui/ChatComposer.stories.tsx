@@ -77,7 +77,8 @@ export const MaxLength: Story = {
 export const Syncing: Story = {
   args: {
     value: '',
-    placeholder: '동기화 중... (42%)',
+    placeholder: '동기화가 끝나면 질문할 수 있어요.',
+    status: '코드를 동기화하는 중이에요 · 42%',
     disabled: true,
     canSend: false,
     sendDisabledReason: '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.'
@@ -87,4 +88,10 @@ export const Syncing: Story = {
       <ChatComposer {...args} onChange={() => undefined} onSend={() => undefined} />
     </div>
   )
+};
+
+/** 입력 중에 동기화가 시작돼도 상태가 계속 보인다(placeholder 는 사라짐). */
+export const SyncingWithDraft: Story = {
+  ...Syncing,
+  args: { ...Syncing.args, value: '이 프로젝트에서 유튜브 임베딩 어떻게 해?' }
 };

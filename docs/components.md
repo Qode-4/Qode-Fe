@@ -53,32 +53,35 @@ import { cn } from '../../lib/cn';
 
 ## 2. 인벤토리 (`components/ui/`, 18개)
 
-| 컴포넌트         | 사용처 | 스토리 | 판정        | 메모                                                                           |
-| ---------------- | ------ | ------ | ----------- | ------------------------------------------------------------------------------ |
-| Button           | 20     | ✅     | Keep        | 컨벤션 기준                                                                    |
-| OverlayModal     | 13     | ✅     | Keep        |                                                                                |
-| InlineAlert      | 12     | ✅     | Keep        |                                                                                |
-| Icon             | 6      | ✅     | Keep        |                                                                                |
-| SourceList       | 4      | ✅     | Keep (신규) | 이번에 추출                                                                    |
-| MarkdownAnswer   | 4      | ❌     | Keep        | 스토리 보충 필요                                                               |
-| ChatItemMenu     | 3      | ❌     | Keep        | 스토리 보충 필요                                                               |
-| Link             | 3      | ✅     | Keep        |                                                                                |
-| TextField        | 2      | ✅     | **Improve** | 인증 화면만 씀. 모달 입력창 약 12개가 손으로 구현 → 모달용 크기·라벨 옵션 검토 |
-| Toast / Provider | 2      | ❌     | Keep        | 스토리 보충 필요                                                               |
-| IconButton       | 1      | ✅     | **Improve** | AppShell 의 손 구현 `<button>` 23개 중 아이콘 버튼을 흡수할 수 있게 API 점검   |
-| ChatComposer     | 1      | ✅     | Keep        | 단일 용도                                                                      |
-| CodeBlock        | 1      | ❌     | Keep        | 스토리 보충 필요                                                               |
-| DrawerHeader     | 1      | ✅     | Keep        |                                                                                |
-| Logo             | 1      | ✅     | Keep        |                                                                                |
-| ProjectSwitcher  | 1      | ✅     | Keep        |                                                                                |
-| SuggestionCard   | 1      | ✅     | Keep        |                                                                                |
+2차(2026-09-26)에서 모든 컴포넌트 상단에 사용 규칙 JSDoc 을 달고, 스토리를 전부 채웠다. 판정은 실제 화면(Storybook + 앱 스크린샷)을 보며 컴포넌트별로 정했다.
+
+| 컴포넌트        | 사용처 | 스토리 | 판정 → 처리                                                           |
+| --------------- | ------ | ------ | --------------------------------------------------------------------- |
+| Button          | 20     | ✅     | Keep — 컨벤션 기준                                                    |
+| OverlayModal    | 13     | ✅     | Improve → 폭 8가지를 `size` sm·md·lg·xl 로 통일                       |
+| InlineAlert     | 12     | ✅     | Improve → 안내·성공은 `role=status`, 오류만 `alert`                   |
+| Icon            | 6      | ✅     | Keep — 숫자 크기 1곳을 `sm` 으로                                      |
+| SourceList      | 4      | ✅     | Keep (1차 신규)                                                       |
+| MarkdownAnswer  | 4      | ✅     | Keep — 스토리 추가                                                    |
+| ChatItemMenu    | 3      | ✅     | Improve → ⋯ 버튼을 IconButton 으로 내장, `triggerSize`. 스토리 추가   |
+| Link            | 3      | ✅     | Improve → hover 밑줄 변화, 포커스 링 추가                             |
+| TextField       | 2      | ✅     | Improve → `size` sm(40px, 모달)·md(44px, 인증)                        |
+| Toast           | 2      | ✅     | Improve → `shadow-overlay`. 스토리 추가                               |
+| ToastProvider   | 1      | —      | Keep — 앱 루트 한 번(기반 컴포넌트)                                   |
+| IconButton      | 1      | ✅     | Improve → `variant` ghost·outline × `size` sm·md 로 재정리            |
+| ChatComposer    | 1      | ✅     | Improve → 진행 상태 `status` 줄(placeholder 대신)                     |
+| CodeBlock       | 1      | ✅     | Keep — 스토리 추가                                                    |
+| DrawerHeader    | 1      | ✅     | Keep — 안 쓰는 `logo` prop 제거                                       |
+| Logo            | 3      | ✅     | Improve → `variant` lockup·mark·wordmark × `size`, 손 조립 3곳 흡수   |
+| ProjectSwitcher | 1      | ✅     | Improve → 키보드(menu 패턴: ↑↓·Home·End·Esc) + 테스트                 |
+| SuggestionCard  | 1      | ✅     | Improve → 눌러도 동작 없던 버튼을 예시 목록으로, 빈 화면 주 버튼 정리 |
 
 ### 추출 후보 (ui 밖에 중복 구현)
 
-| 후보       | 현재 위치                                                             | 메모                         |
-| ---------- | --------------------------------------------------------------------- | ---------------------------- |
-| AI 아바타  | ProjectDetailPage, DigestSourceViewBody, DrawerHeader (favicon 원형)  | 크기(size-6 / size-7)만 다름 |
-| UserAvatar | AppShell 내부, ProjectDetailPage `Avatar`, DigestSharedCard 이니셜 원 | 이니셜 원 3벌                |
+| 후보       | 현재 위치                                                             | 메모                                                              |
+| ---------- | --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| AI 아바타  | ProjectDetailPage ×2, DigestSourceViewBody (Qode 심볼 원형)           | 크기(size-6 / size-7)만 다름 — `Logo variant="mark"` 로 흡수 가능 |
+| UserAvatar | AppShell 내부, ProjectDetailPage `Avatar`, DigestSharedCard 이니셜 원 | 이니셜 원 3벌                                                     |
 
 ### Deprecate
 
@@ -90,14 +93,24 @@ import { cn } from '../../lib/cn';
 
 ## 3. 실행 기록
 
+### 1차 (PR #54)
+
 - [x] `lib/cn.ts` — clsx + tailwind-merge, Quire 토큰 등록, 테스트. `tokens:check` 에 동기화 검사.
 - [x] `ui/` 15개 컴포넌트 className 조립을 `cn()` 으로 통일.
-- [x] `ui/SourceList` — 같은 파일 묶음, 4곳 교체(메인 채팅·원본 대화·팀 공유 카드·공유 미리보기), 테스트·스토리.
+- [x] `ui/SourceList` — 같은 파일 묶음, 4곳 교체, 테스트·스토리. 본문 참조 표기를 SourceList 로 옮겨 중복 제거.
+
+### 2차 — 사용 규칙 (4묶음, 화면 보며 결정)
+
+- [x] 1묶음(버튼·입력): IconButton 재정리, Link hover, TextField size, ChatComposer status.
+- [x] 2묶음(알림·오버레이): OverlayModal size, InlineAlert role, Toast 그림자, ChatItemMenu 트리거.
+- [x] 3묶음(콘텐츠): 스토리 보충, SuggestionCard 예시화 + 빈 화면 주 버튼, Icon 숫자 크기 정리.
+- [x] 4묶음(레이아웃): Logo 조합, ProjectSwitcher 키보드, DrawerHeader 정리.
+- [x] 사이드바 로고·AI 아바타 이미지를 `favicon.ico` 대신 번들 PNG 로.
+- [x] 18개 전부 상단 JSDoc(Use / Don't · variant · size).
 
 ### 다음 차수 후보
 
-- [ ] 아바타 추출 (AI 아바타 + 이니셜 아바타 → `ui/Avatar`)
-- [ ] IconButton·TextField 개선 후 AppShell·모달의 손 구현 흡수
+- [ ] 아바타 추출 (AI 아바타 → `Logo variant="mark"`, 이니셜 아바타 → `ui/Avatar`)
+- [ ] 모달 입력창 ~12개를 `TextField size="sm"` 으로 흡수(겉모습 동일, 코드만 줄어듦)
+- [ ] AppShell 의 손 구현 아이콘 버튼을 `IconButton` 으로 흡수
 - [ ] CreateChatModal 삭제
-- [ ] 스토리 보충: MarkdownAnswer, ChatItemMenu, Toast, CodeBlock
-- [ ] 나머지 `ui/` 컴포넌트 상단 JSDoc(Use / Don't)

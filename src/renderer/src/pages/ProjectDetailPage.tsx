@@ -53,6 +53,7 @@ import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
 import { mapResponseError } from '../lib/response-errors';
 import { mapSyncError } from '../lib/sync-errors';
+import qodeMark from '../public/qode_logo_small.png';
 
 type TeamChatMenuAction = 'rename' | 'invite' | 'members' | 'delete' | 'leave' | 'create';
 
@@ -1262,7 +1263,7 @@ export const ProjectDetailPage = ({
                         className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface"
                       >
                         <img
-                          src="/favicon.ico"
+                          src={qodeMark}
                           alt=""
                           aria-hidden="true"
                           className="size-4 object-contain"
@@ -1329,7 +1330,7 @@ export const ProjectDetailPage = ({
                       className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface"
                     >
                       <img
-                        src="/favicon.ico"
+                        src={qodeMark}
                         alt=""
                         aria-hidden="true"
                         className="size-4 object-contain"
@@ -1421,7 +1422,7 @@ export const ProjectDetailPage = ({
             value={draft}
             placeholder={
               isAnalyzing
-                ? `동기화 중... (${syncProgress}%)`
+                ? '동기화가 끝나면 질문할 수 있어요.'
                 : !activeChatId
                   ? '새 대화를 시작해보세요...'
                   : isTeamChatReadOnly
@@ -1440,6 +1441,7 @@ export const ProjectDetailPage = ({
                   : undefined
             }
             isSending={isSending}
+            status={isAnalyzing ? `코드를 동기화하는 중이에요 · ${syncProgress}%` : undefined}
             onChange={setDraft}
             onSend={() => {
               void sendMessage();

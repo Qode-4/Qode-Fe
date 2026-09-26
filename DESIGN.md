@@ -169,7 +169,7 @@
 
 - 좌측 240px 사이드바(`bg-sidebar`, **우측 경계선 없음**) + 우측 메인 영역(`bg-canvas p-3 pl-0`). 메인 자식이 흰색 rounded-16 카드로 감싸진다.
 - 사이드바 내부 구조 (위→아래):
-  1. `DrawerHeader` — 두 줄. 첫 줄: `[favicon 20px] [QodeLogo.svg h-4]`. 둘째 줄: `[ProjectSwitcher 트리거][설정 아이콘 IconButton]`. 여백 `gap-2 pt-4 px-3 pb-3`.
+  1. `DrawerHeader` — 두 줄. 첫 줄: `<Logo variant="lockup" size="sm" />`. 둘째 줄: `[ProjectSwitcher 트리거][설정 IconButton outline md]`. 여백 `gap-2 pt-4 px-3 pb-3`.
   2. Sync 버튼 (OWNER 에게만) — `w-full h-9 rounded-control border border-line bg-surface`, 좌측 아이콘+`동기화`, 우측 상태 텍스트(`text-micro text-fg-muted`). 채팅창 본문에는 동기화 시각을 추가로 표시하지 않는다.
   3. `내 채팅` 섹션 헤더 + 채팅 리스트. 활성 항목: `bg-primary-soft rounded-control` + `text-fg-default font-medium`. **좌측 stripe 없음**.
   4. `팀 채팅` 섹션 헤더 + 채팅 리스트 (capability 따라 표시).
@@ -178,8 +178,8 @@
 
 ### DrawerHeader
 
-- 첫 줄에 브랜드 마크: `/favicon.ico` (원형 20px) + `/QodeLogo.svg` (h-4 오토 폭). SVG 로고를 직접 텍스트로 대체하지 않는다.
-- 둘째 줄은 `flex items-center gap-2` — `ProjectSwitcher` 가 flex-1, 설정 IconButton 은 `size-9 rounded-control border border-line bg-surface`.
+- 첫 줄에 브랜드: `<Logo variant="lockup" size="sm" />`(심볼 20px + 글자 16px). 심볼·글자를 `<img>` 로 따로 조립하거나 텍스트로 대체하지 않는다. 이미지는 번들 import 로만(절대 경로 금지 — Electron `file://`).
+- 둘째 줄은 `flex items-center gap-2` — `ProjectSwitcher` 가 flex-1, 설정 버튼은 `<IconButton variant="outline" size="md">`.
 
 ### ProjectSwitcher
 
@@ -187,6 +187,7 @@
 - 좌측에 **선택된 프로젝트 첫 글자 아바타**: `size-5 rounded-control border border-line bg-surface text-caption font-semibold text-fg-subtle`. (드롭다운 항목 아바타와 동일 스타일.)
 - 우측 ▾ 셰브런: 열림 시 180° 회전 + `text-fg-subtle`.
 - 드롭다운: 트리거 아래 8px, `w-full min-w-[220px] rounded-control border border-line bg-surface py-1`. 항목 padding `px-2 py-1.5` 로 트리거 아이콘 위치와 정렬 유지. 현재 선택 항목은 `bg-surface-muted`. 하단 `+ 새 프로젝트` 링크 유지.
+- 키보드: menu 패턴. 트리거 Enter/Space/↓ 로 열면 현재 프로젝트에 포커스, ↑↓·Home·End 이동, Esc 로 닫고 트리거로 포커스 복귀. 프로젝트는 `menuitemradio` + `aria-checked`.
 
 ### Button (`Button.tsx`)
 
@@ -203,8 +204,10 @@
 
 ### IconButton / TextField / OverlayModal
 
-- 같은 토큰·포커스·disabled 규칙을 재사용한다.
-- 입력창 border 는 `line-strong` (#61646b). 아이콘 버튼은 장식 border (`line`) 사용.
+- 같은 토큰·포커스·disabled 규칙을 재사용한다. 각 컴포넌트 파일 상단 JSDoc 이 언제 쓰고 피하는지의 기준이다.
+- **IconButton**: `variant` ghost(기본, 목록·카드 안) / outline(헤더처럼 단독) × `size` sm 24px(목록 줄 안 ⋯·+) / md 36px(기본). `aria-label` 필수.
+- **TextField**: `size` md 44px(인증 화면) / sm 40px(모달·설정 안). 입력창 border 는 `line-strong`, focus 는 `line-primary`, 오류는 `danger`.
+- **OverlayModal**: 폭은 `size` 로만 — sm 440 확인·짧은 입력 / md 520 기본 폼 / lg 640 여러 단계 폼 / xl 720 긴 답변·코드 보기. 임의 `max-w-[..]` 를 쓰지 않는다. footer 는 오른쪽 끝 [취소 secondary][주 액션 primary].
 
 ### LoginPage / SignupPage (인증 화면)
 
@@ -219,6 +222,7 @@
 - textarea: 컨테이너 내부, `flex-1 border-0 bg-transparent text-label leading-[1.6]`. 브라우저 기본 outline 은 `style={{ outline: 'none', boxShadow: 'none' }}` 로 제거. 컨테이너의 focus-within 배경 전환이 접근성 focus 표시를 대체한다.
 - 전송 버튼: **textarea 옆** (아래가 아님). `size-8` 정사각형 `rounded-control bg-primary`, disabled 시 `bg-line`. 이전 시안의 48px 아래 배치는 폐기.
 - 2000자 초과 경고는 컨테이너 밖 아래에 `text-caption text-fg-danger` 로 필요할 때만 노출한다.
+- 진행 상태(동기화 등)는 `status` prop 으로 입력창 **위**에 스피너 + 문구로 항상 보이게 한다. placeholder 에 상태를 넣지 않는다(글자를 치면 사라진다).
 
 ### 채팅 메시지 렌더링
 
@@ -231,7 +235,7 @@
 
 - 완료 카드: `article rounded-panel bg-surface p-3`. **테두리 없음**. 헤더 아래 여백 12px.
 - 스트리밍 카드: 완료 카드와 시각적으로 같다. 테두리를 두지 않는다. 상태 라벨은 헤더 오른쪽에 `· 요청 중...` / `· 스트리밍 중` 형태로 붙인다.
-- **AI 아바타** — `inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface` + 내부 `/favicon.ico` 이미지 (size-4). 이전 시안의 오렌지 채움 `Q` 원은 폐기.
+- **AI 아바타** — `inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-line-primary bg-surface` + 내부 Qode 심볼(`qode_logo_small.png`, 번들 import, size-4). 이전 시안의 오렌지 채움 `Q` 원은 폐기.
 - 라벨: `text-label font-semibold text-fg-default` = `Qode AI`.
 - 스트리밍 표시:
   - `postPersonalMessage.isPending` 이 true 인 동안만 스트리밍 카드 렌더. onDone 즉시 hide.
@@ -279,6 +283,8 @@
 
 - 오류 원인과 복구 행동을 함께 안내한다. 오렌지를 성공·실패 공통 상태색으로 사용하지 않는다.
 - 재시도 버튼은 alert 안에 `Button size="sm" variant="secondary"` 로 붙인다.
+- **어디에 띄울지**: 방금 한 동작의 결과, 놓쳐도 되는 것 → Toast(오른쪽 위, 몇 초 뒤 사라짐, `shadow-overlay`). 읽고 행동해야 하는 오류·계속 보여야 하는 안내 → InlineAlert(그 화면·폼 안). 입력 몇 개로 끝나는 작업·되돌릴 수 없는 확인 → OverlayModal. 목록 항목 하나에 딸린 작업 2~5개 → ChatItemMenu.
+- 스크린리더: 오류만 `role="alert"`(즉시), 안내·성공은 `role="status"`.
 
 ### UserAvatar (`AppShell.tsx` 내부)
 
@@ -373,7 +379,7 @@
 - [ ] 사이드바 섹션이 숨겨져 있고, sync 버튼이 w-full + 인라인 상태 텍스트로 표시된다.
 - [ ] `내 채팅` · `팀 채팅` 헤더는 `+` 버튼만 있고 접기 화살표·`+ 추가` 링크가 없다.
 - [ ] 사이드바 하단 프로필 행은 아바타·이름·`⋮` 만 노출한다. Border-t 가 좌우 여백을 두고 시작한다.
-- [ ] 완료 답변·스트리밍 답변 모두 오렌지 테두리 원 + favicon 아바타 + `Qode AI` 라벨을 쓴다.
+- [ ] 완료 답변·스트리밍 답변 모두 오렌지 테두리 원 + Qode 심볼 아바타 + `Qode AI` 라벨을 쓴다.
 - [ ] 참조 소스는 `SourceList` 로만 표시한다(같은 파일 묶음, 파일명 강조 + 흐린 폴더 + 오른쪽 줄 범위).
 - [ ] 답변 하단 액션은 `복사`·`팀 공유`·`팀 채팅 생성` 3개 순서 유지, capability 에 맞춘 비활성 + 툴팁.
 - [ ] 인증 화면 버튼·입력창은 `rounded-control` (6px), 알약 없음.

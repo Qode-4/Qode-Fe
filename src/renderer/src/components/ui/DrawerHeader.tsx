@@ -1,13 +1,13 @@
-import type { MouseEventHandler, ReactNode } from 'react';
+import type { MouseEventHandler } from 'react';
 import type { ProjectsListData } from '../../api/generated/data-contracts';
 import type { IconName } from '../icons/iconTypes';
 import { IconButton } from './IconButton';
+import { Logo } from './Logo';
 import { ProjectSwitcher } from './ProjectSwitcher';
 import { cn } from '../../lib/cn';
 
 type Props = {
   className?: string;
-  logo?: ReactNode;
   projects?: ProjectsListData['data'];
   selectedProjectId?: string;
   onOpenCreateProject?: () => void;
@@ -20,9 +20,13 @@ type Props = {
   onSettingsClick?: MouseEventHandler<HTMLButtonElement>;
 };
 
+/**
+ * DrawerHeader — 사이드바 머리: 브랜드 + 프로젝트 선택 + 프로젝트 설정.
+ * ✅ Use: AppShell 사이드바 맨 위 한 곳.
+ * ❌ Don't: 다른 화면 헤더로 재사용하지 않는다(프로젝트 맥락 전용).
+ */
 export const DrawerHeader = ({
   className,
-  logo,
   projects = [],
   selectedProjectId,
   onOpenCreateProject,
@@ -37,17 +41,7 @@ export const DrawerHeader = ({
   return (
     <header className={cn('flex w-full flex-col gap-2 px-3 pt-4 pb-3', className)}>
       <div className="flex items-center gap-1.5 px-1 py-1">
-        {logo ?? (
-          <>
-            <img
-              src="/favicon.ico"
-              alt=""
-              aria-hidden="true"
-              className="inline-block size-5 shrink-0 rounded-full"
-            />
-            <img src="/QodeLogo.svg" alt="Qode" className="inline-block h-4 w-auto shrink-0" />
-          </>
-        )}
+        <Logo variant="lockup" size="sm" />
       </div>
       <div className="flex min-w-0 items-center gap-2">
         <ProjectSwitcher
@@ -60,7 +54,7 @@ export const DrawerHeader = ({
           onRetry={onRetryProjects}
         />
         <IconButton
-          className="size-9 shrink-0 rounded-control border border-line bg-surface"
+          variant="outline"
           size="md"
           name={settingsIconName}
           aria-label={settingsAriaLabel}

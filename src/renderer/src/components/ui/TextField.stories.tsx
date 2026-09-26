@@ -13,7 +13,7 @@ const meta = {
   },
   parameters: {
     controls: {
-      include: ['label', 'hint', 'error', 'placeholder', 'disabled', 'type', 'value']
+      include: ['label', 'size', 'hint', 'error', 'placeholder', 'disabled', 'type', 'value']
     }
   },
   argTypes: {
@@ -60,6 +60,17 @@ const StatefulExample = (): React.JSX.Element => {
       />
     </div>
   );
+};
+
+/** md = 인증 화면, sm = 모달·설정 안 입력 */
+export const Sizes: Story = {
+  render: (args): React.JSX.Element => (
+    <div className="flex w-[360px] flex-col gap-4">
+      <TextField {...args} size="md" label="md · 인증 화면" />
+      <TextField {...args} size="sm" label="sm · 모달 안 입력" />
+      <TextField {...args} size="sm" label="sm · 오류" error="이름을 입력해주세요." />
+    </div>
+  )
 };
 
 export const Interactive: Story = {

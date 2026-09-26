@@ -28,6 +28,13 @@ const closeButtonClassMap: Record<ToastTone, string> = {
   info: 'text-fg-muted hover:text-fg-subtle'
 };
 
+/**
+ * Toast — 잠깐 떴다 사라지는 결과 알림(오른쪽 위). useToast() 로 띄운다.
+ * ✅ Use: 복사·저장처럼 방금 한 동작의 결과.
+ * ❌ Don't: 읽고 행동해야 하는 오류는 <InlineAlert> — 토스트는 사라진다.
+ *          한 동작에 토스트 하나.
+ * tone: success 완료(3초) · info 안내(4초) · danger 실패(원인+다음 행동, 5초)
+ */
 export const Toast = ({ toast, onDismiss }: Props): React.JSX.Element => {
   const [visible, setVisible] = useState(false);
 
@@ -42,7 +49,7 @@ export const Toast = ({ toast, onDismiss }: Props): React.JSX.Element => {
       role={toast.tone === 'danger' ? 'alert' : 'status'}
       aria-live={toast.tone === 'danger' ? 'assertive' : 'polite'}
       className={cn(
-        'pointer-events-auto flex w-[320px] items-start gap-2 rounded-panel border px-3.5 py-3 text-label shadow-none transition-all duration-200',
+        'pointer-events-auto flex w-[320px] items-start gap-2 rounded-panel border px-3.5 py-3 text-label shadow-overlay transition-all duration-200',
         toneClassMap[toast.tone],
         visible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
       )}

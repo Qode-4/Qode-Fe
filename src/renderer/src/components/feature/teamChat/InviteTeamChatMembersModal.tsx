@@ -119,12 +119,7 @@ export const InviteTeamChatMembersModal = ({
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={handleClose}
-      title="참여자 초대"
-      widthClassName="max-w-[520px]"
-    >
+    <OverlayModal open={open} onClose={handleClose} title="참여자 초대" size="md">
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div>
           <div className="mb-1 flex items-center justify-between">

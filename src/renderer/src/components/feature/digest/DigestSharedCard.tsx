@@ -82,7 +82,6 @@ export const DigestSharedCard = ({
                 actions={menuActions}
                 ariaLabel="공유 카드 메뉴"
                 triggerAriaLabel="공유 카드 메뉴 열기"
-                triggerClassName="rounded-control p-1 text-fg-muted hover:bg-surface-muted"
               />
             </div>
           ) : null}

@@ -2,22 +2,40 @@ import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { cn } from '../../lib/cn';
 
+const sizeMap = {
+  sm: 'max-w-[440px]',
+  md: 'max-w-[520px]',
+  lg: 'max-w-[640px]',
+  xl: 'max-w-[720px]'
+} as const;
+
 type Props = {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
-  widthClassName?: string;
+  /** sm 440 확인·짧은 입력 · md 520 기본 폼 · lg 640 여러 단계 폼 · xl 720 긴 내용 보기 */
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   // 헤더/바디와 별도의 고정 푸터. body 스크롤과 분리돼 항상 도달 가능.
   footer?: ReactNode;
 };
 
+/**
+ * OverlayModal — 흐름을 멈추고 집중이 필요한 작업.
+ * ✅ Use: 만들기·이름 바꾸기처럼 입력 몇 개로 끝나는 작업,
+ *         되돌릴 수 없는 액션의 확인.
+ * ❌ Don't: 결과 알림은 <Toast>, 화면 안 오류는 <InlineAlert>.
+ *          모달 위에 모달을 띄우지 않는다.
+ * footer: 오른쪽 끝에 [취소 secondary] [주 액션 primary] 순서.
+ * size: sm 440 확인·짧은 입력 · md 520 기본 폼
+ *       · lg 640 여러 단계 폼 · xl 720 긴 답변·코드 보기
+ */
 export const OverlayModal = ({
   open,
   onClose,
   title,
   children,
-  widthClassName = 'max-w-[520px]',
+  size = 'md',
   footer
 }: Props): React.JSX.Element | null => {
   const titleId = useId();
@@ -125,7 +143,10 @@ export const OverlayModal = ({
         // 인라인 style 로 확정 지정해 Tailwind 아비트러리 값이 discover 실패하는 케이스를 방어.
         // 모바일은 h-full 로 풀스크린이므로 max-height 를 걸지 않는다.
         style={isMobile ? undefined : { maxHeight: '90dvh' }}
-        className={`flex w-full ${widthClassName} flex-col overflow-hidden rounded-shell border border-line-strong bg-surface shadow-none max-sm:h-full max-sm:max-w-none max-sm:rounded-none`}
+        className={cn(
+          'flex w-full flex-col overflow-hidden rounded-shell border border-line-strong bg-surface shadow-none max-sm:h-full max-sm:max-w-none max-sm:rounded-none',
+          sizeMap[size]
+        )}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

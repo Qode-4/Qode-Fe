@@ -38,7 +38,7 @@ export const CreateChatModal = ({
   };
 
   return (
-    <OverlayModal open={open} onClose={resetAndClose} title={title} widthClassName="max-w-[460px]">
+    <OverlayModal open={open} onClose={resetAndClose} title={title} size="sm">
       <form
         onSubmit={(e) => {
           e.preventDefault();

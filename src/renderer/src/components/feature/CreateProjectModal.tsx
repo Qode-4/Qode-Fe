@@ -198,12 +198,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={closeAndReset}
-      title="새 프로젝트"
-      widthClassName="max-w-[620px]"
-    >
+    <OverlayModal open={open} onClose={closeAndReset} title="새 프로젝트" size="lg">
       <form
         onSubmit={(e) => {
           e.preventDefault();

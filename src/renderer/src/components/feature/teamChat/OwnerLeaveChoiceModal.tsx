@@ -16,12 +16,7 @@ export const OwnerLeaveChoiceModal = ({
   onChooseTransfer
 }: Props): React.JSX.Element | null => {
   return (
-    <OverlayModal
-      open={open}
-      onClose={onClose}
-      title="방장이 나가기 전에 선택해주세요"
-      widthClassName="max-w-[440px]"
-    >
+    <OverlayModal open={open} onClose={onClose} title="방장이 나가기 전에 선택해주세요" size="sm">
       <p className="text-label leading-[1.6] text-fg-default">
         방장이 채팅방을 나가려면 채팅방을 삭제하거나, 다른 참여자에게 방장을 양도해야 합니다.
       </p>

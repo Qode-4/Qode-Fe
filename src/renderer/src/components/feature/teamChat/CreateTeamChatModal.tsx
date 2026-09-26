@@ -112,12 +112,7 @@ export const CreateTeamChatModal = ({
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={handleClose}
-      title="새 팀 채팅"
-      widthClassName="max-w-[520px]"
-    >
+    <OverlayModal open={open} onClose={handleClose} title="새 팀 채팅" size="md">
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <label className="block" htmlFor="create-team-chat-name">
           <span className="mb-1 block text-caption font-medium text-fg-muted">채팅방 이름</span>

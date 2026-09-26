@@ -160,7 +160,7 @@ export const ShareToTeamChatModal = ({
       open={open}
       onClose={onClose}
       title="팀에 공유하기"
-      widthClassName="max-w-[640px]"
+      size="lg"
       footer={
         <FooterActions
           step={step}
