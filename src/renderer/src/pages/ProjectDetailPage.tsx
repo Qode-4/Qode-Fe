@@ -42,6 +42,7 @@ import { useDeleteDigestCard } from '../api/auth/useDigestAPI';
 import { useShareSelectionState } from '../hooks/useShareSelectionState';
 import type { IconName } from '../components/icons/iconTypes';
 import { Button } from '../components/ui/Button';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
@@ -270,6 +271,8 @@ export const ProjectDetailPage = ({
   // 기존 단일 메시지 공유 훅(usePostMessageShare)은 useChatsAPI 에 남아 있지만 이 페이지에선 안 씀.
   const shareSelection = useShareSelectionState();
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  // 공유 취소는 되돌릴 수 없어서 확인을 거친다 (docs/patterns/confirm.md)
+  const [shareDeleteId, setShareDeleteId] = useState<string | null>(null);
   const [shareModalInitialIds, setShareModalInitialIds] = useState<Set<string>>(new Set());
   // 팀채팅에 도착한 공유 카드의 "공유 취소" 처리(공유자 본인만 노출).
   const deleteDigestCard = useDeleteDigestCard({ chatId: activeChatId || '__empty__' });
@@ -1143,19 +1146,7 @@ export const ProjectDetailPage = ({
                           })
                         }
                         isDeleting={deleteDigestCard.isPending}
-                        onDeleteShare={
-                          isMineShare
-                            ? () => {
-                                deleteDigestCard.mutate(
-                                  { messageId },
-                                  {
-                                    onSuccess: () => toast.success('공유를 취소했어요'),
-                                    onError: (error) => toast.error(handleApiError(error).message)
-                                  }
-                                );
-                              }
-                            : undefined
-                        }
+                        onDeleteShare={isMineShare ? () => setShareDeleteId(messageId) : undefined}
                       />
                     );
                   }
@@ -1423,6 +1414,34 @@ export const ProjectDetailPage = ({
       )}
 
       {teamChatModalNode}
+      <ConfirmDialog
+        open={shareDeleteId !== null}
+        title="공유를 취소할까요?"
+        description="팀 채팅에서 이 공유 카드가 사라져요."
+        confirmLabel="공유 취소"
+        error={
+          deleteDigestCard.error
+            ? friendlyErrorMessage(deleteDigestCard.error).description
+            : undefined
+        }
+        isProcessing={deleteDigestCard.isPending}
+        onClose={() => {
+          deleteDigestCard.reset();
+          setShareDeleteId(null);
+        }}
+        onConfirm={() => {
+          if (!shareDeleteId) return;
+          deleteDigestCard.mutate(
+            { messageId: shareDeleteId },
+            {
+              onSuccess: () => {
+                toast.success('공유를 취소했어요');
+                setShareDeleteId(null);
+              }
+            }
+          );
+        }}
+      />
 
       {shareModalOpen && activeChatId && chatName && isPersonalChat ? (
         <ShareToTeamChatModal
