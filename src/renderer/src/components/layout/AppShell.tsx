@@ -1758,7 +1758,7 @@ export const AppShell = ({
                   ].join(' ')}
                   onClick={() => handleSettingsAction(it.key)}
                 >
-                  <Icon name={it.iconName} size={16} decorative className="text-fg-subtle" />
+                  <Icon name={it.iconName} size="sm" decorative className="text-fg-subtle" />
                   <span>{it.label}</span>
                 </button>
               ))}
