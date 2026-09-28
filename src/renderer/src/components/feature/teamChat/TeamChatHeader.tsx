@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useGetTeamChatParticipants } from '../../../api/auth/useTeamChatAPI';
 import { ChatItemMenu, type ChatItemMenuAction } from '../../ui/ChatItemMenu';
 import { sortParticipants } from './sortParticipants';
+import { Avatar } from '../../ui/Avatar';
 
 type Props = {
   chatId: string;
@@ -15,12 +16,6 @@ type Props = {
 };
 
 const AVATAR_STACK_LIMIT = 4;
-
-const initialOf = (name?: string | null): string => {
-  const trimmed = (name ?? '').trim();
-  if (!trimmed) return '?';
-  return trimmed.charAt(0).toUpperCase();
-};
 
 // 활성 팀채팅 상단에 이름·참여자 수·참여자 아바타 스택·⋯ 액션 메뉴를 렌더한다.
 // 메뉴 항목은 viewer 의 방장 여부에 따라 rename/delete 를 조건부 노출하고, invite/members/leave
@@ -103,42 +98,34 @@ export const TeamChatHeader = ({
   return (
     <div className="flex items-center justify-between gap-3 bg-surface px-6 py-3 max-sm:justify-end max-sm:px-3 max-sm:py-2">
       <div className="flex min-w-0 items-baseline gap-2 max-sm:hidden">
-        <h1 className="truncate text-ui-20 font-semibold text-text-base">{chatName}</h1>
+        <h1 className="truncate text-title font-semibold text-fg-default">{chatName}</h1>
         {participants.length > 0 ? (
-          <span className="shrink-0 text-ui-12 text-text-soft">· {participants.length}명 참여</span>
+          <span className="shrink-0 text-caption text-fg-muted">
+            · {participants.length}명 참여
+          </span>
         ) : null}
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
         <div className="flex items-center -space-x-2" aria-hidden="true">
-          {preview.map((participant) =>
-            participant.avatarUrl ? (
-              <img
-                key={participant.userId}
-                src={participant.avatarUrl}
-                alt=""
-                className="size-7 rounded-full border-2 border-surface object-cover"
-              />
-            ) : (
-              <span
-                key={participant.userId}
-                className="inline-flex size-7 items-center justify-center rounded-full border-2 border-surface bg-primary-soft text-ui-10 font-semibold text-primary"
-              >
-                {initialOf(participant.userName)}
-              </span>
-            )
-          )}
-          {remaining > 0 ? (
-            <span className="inline-flex size-7 items-center justify-center rounded-full border-2 border-surface bg-surface-muted text-ui-10 font-medium text-text-soft">
-              +{remaining}
-            </span>
-          ) : null}
+          {preview.map((participant) => (
+            <Avatar
+              key={participant.userId}
+              name={participant.userName}
+              src={participant.avatarUrl}
+              size="md"
+              tone="brand"
+              ring
+            />
+          ))}
+          {remaining > 0 ? <Avatar text={`+${remaining}`} size="md" tone="neutral" ring /> : null}
         </div>
 
         <ChatItemMenu
           triggerAriaLabel={`${chatName} 채팅 메뉴 열기`}
           ariaLabel={`${chatName} 채팅 작업 메뉴`}
-          triggerClassName="inline-flex h-8 w-8 items-center justify-center rounded-md text-text-subtle transition-colors hover:bg-surface-muted"
+          triggerSize="md"
+          triggerClassName="text-fg-subtle"
           actions={actions}
         />
       </div>

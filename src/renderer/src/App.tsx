@@ -4,7 +4,6 @@ import { useGetAuthMe } from './api/auth/useAuthAPI';
 import { useGetProjectChats, type ProjectChatItem } from './api/auth/useChatsAPI';
 import { useGetProject, useGetProjects } from './api/auth/useProjectsAPI';
 import { useGetProjectSections } from './api/auth/useSectionsAPI';
-import { authTransitionStorage } from './api/authTransitionStorage';
 import { handleApiError } from './api/axios';
 import type { ProjectsListData } from './api/generated/data-contracts';
 import { QUERY_KEY } from './api/queryKeys';
@@ -38,7 +37,6 @@ const App = (): React.JSX.Element => {
   const me = useGetAuthMe({ enabled: !isAuthRoute });
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
   const projects = useGetProjects({ search: '', enabled: Boolean(token) });
-  const loginTransitionUserName = authTransitionStorage.getLoginTransitionUserName();
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -165,13 +163,6 @@ const App = (): React.JSX.Element => {
     }
   }, [token, isInviteRoute, projects.isSuccess, projects.data]);
 
-  useEffect(() => {
-    if (!loginTransitionUserName) return;
-    if (!token || me.isSuccess || me.isError) {
-      authTransitionStorage.clearLoginTransitionUserName();
-    }
-  }, [loginTransitionUserName, token, me.isSuccess, me.isError]);
-
   // 삭제된 프로젝트로 들어오면(404): 알림, 목록 캐시에서 제거, 기본 프로젝트로 fallback
   const handledDeletedProjectIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -184,7 +175,7 @@ const App = (): React.JSX.Element => {
 
     handledDeletedProjectIdRef.current = selectedProjectId;
 
-    toast.error('해당 프로젝트가 삭제되었습니다.');
+    toast.info('이 프로젝트는 삭제됐어요.');
     queryClient.setQueriesData<ProjectsListData>({ queryKey: ['projects'] }, (old) => {
       if (!old) return old;
       return { ...old, data: old.data.filter((p) => p.id !== selectedProjectId) };
@@ -213,22 +204,8 @@ const App = (): React.JSX.Element => {
 
   if (!token) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-500">
+      <div className="flex h-full items-center justify-center text-label text-fg-muted">
         Redirecting...
-      </div>
-    );
-  }
-
-  if (me.isLoading && loginTransitionUserName) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-5xl font-semibold tracking-tight text-text-base">
-            어서오세요, {loginTransitionUserName}님!
-          </h1>
-          <p className="mt-2 text-sm text-text-subtle">잠시만요, 준비하고 있어요...</p>
-          <div className="mx-auto mt-5 h-9 w-9 animate-spin rounded-full border-2 border-line border-t-primary" />
-        </div>
       </div>
     );
   }
@@ -248,7 +225,7 @@ const App = (): React.JSX.Element => {
   if (location.path === '/' || location.path === '') {
     navigate('/projects', { replace: true });
     return (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-500">
+      <div className="flex h-full items-center justify-center text-label text-fg-muted">
         Redirecting...
       </div>
     );
@@ -290,10 +267,7 @@ const App = (): React.JSX.Element => {
       ) : null}
 
       {matchPath(location.path, '/projects').matched ? (
-        <ProjectsPage
-          projectCount={projects.data?.data.length ?? 0}
-          onOpenCreateProject={() => setCreateProjectModalOpen(true)}
-        />
+        <ProjectsPage onOpenCreateProject={() => setCreateProjectModalOpen(true)} />
       ) : null}
       {projectMatch.matched ? (
         <ProjectDetailPage
@@ -306,9 +280,9 @@ const App = (): React.JSX.Element => {
         />
       ) : null}
       {!matchPath(location.path, '/projects').matched && !projectMatch.matched ? (
-        <div className="rounded-xl border border-line bg-surface p-6">
-          <h1 className="text-2xl font-semibold text-text-base">Not Found</h1>
-          <p className="mt-2 text-sm text-text-subtle">{location.path}</p>
+        <div className="rounded-panel border border-line bg-surface p-6">
+          <h1 className="text-heading font-semibold text-fg-default">Not Found</h1>
+          <p className="mt-2 text-label text-fg-subtle">{location.path}</p>
         </div>
       ) : null}
       <CreateProjectModal

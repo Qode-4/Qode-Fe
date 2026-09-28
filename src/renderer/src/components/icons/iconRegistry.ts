@@ -4,7 +4,9 @@ import Copy_light from './raw/Copy_light.svg?react';
 import File_dock_light from './raw/File_dock_light.svg?react';
 import Folder_light from './raw/Folder_light.svg?react';
 import Group_light from './raw/Group_light.svg?react';
+import Menu_light from './raw/Menu_light.svg?react';
 import More_horizontal_light from './raw/More_horizontal_light.svg?react';
+import More_vertical_light from './raw/More_vertical_light.svg?react';
 import Pencil_light from './raw/Pencil_light.svg?react';
 import Refresh_light from './raw/Refresh_light.svg?react';
 import Send_hor_fill from './raw/Send_hor_fill.svg?react';
@@ -22,7 +24,9 @@ export const ICON_REGISTRY = {
   File_dock_light,
   Folder_light,
   Group_light,
+  Menu_light,
   More_horizontal_light,
+  More_vertical_light,
   Pencil_light,
   Refresh_light,
   Send_hor_fill,

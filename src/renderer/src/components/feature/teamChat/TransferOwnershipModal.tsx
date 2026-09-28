@@ -4,10 +4,10 @@ import {
   usePostTeamChatOwnershipTransfer
 } from '../../../api/auth/useTeamChatAPI';
 import { friendlyErrorMessage } from '../../../api/errorMessages';
-import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../ui/Button';
 import { InlineAlert } from '../../ui/InlineAlert';
 import { OverlayModal } from '../../ui/OverlayModal';
+import { StateMessage } from '../../ui/StateMessage';
 import { ParticipantListItem } from './ParticipantListItem';
 import { sortParticipants } from './sortParticipants';
 
@@ -33,7 +33,6 @@ export const TransferOwnershipModal = ({
     enabled: open && Boolean(chatId)
   });
   const transfer = usePostTeamChatOwnershipTransfer({ chatId, projectId });
-  const toast = useToast();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -72,20 +71,14 @@ export const TransferOwnershipModal = ({
     } catch (error) {
       const friendly = friendlyErrorMessage(error);
       setServerError(friendly.description);
-      toast.error(friendly);
     }
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={handleClose}
-      title="방장 양도"
-      widthClassName="max-w-[440px]"
-    >
+    <OverlayModal open={open} onClose={handleClose} title="방장 넘기기" size="sm">
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <p className="text-ui-14 leading-[1.6] text-text-base">
-          새 방장을 선택하세요. 양도가 완료되면 회원님은 자동으로 채팅방에서 나가게 됩니다.
+        <p className="text-label leading-[1.6] text-fg-default">
+          새 방장을 선택해주세요. 방장을 넘기면 채팅방에서 자동으로 나가요.
         </p>
 
         {participants.isError ? (
@@ -104,17 +97,21 @@ export const TransferOwnershipModal = ({
           </InlineAlert>
         ) : (
           <ul
-            role="radiogroup"
+            role={candidates.length > 0 && !participants.isLoading ? 'radiogroup' : undefined}
             aria-label="새 방장 후보"
-            className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-md border border-line bg-surface p-1"
+            className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-control border border-line bg-surface p-1"
           >
             {participants.isLoading ? (
-              <li className="px-3 py-6 text-center text-ui-12 text-text-soft">
-                참여자를 불러오는 중...
+              <li className="px-3 py-6">
+                <StateMessage kind="loading" align="center">
+                  참여자를 불러오는 중…
+                </StateMessage>
               </li>
             ) : candidates.length === 0 ? (
-              <li className="px-3 py-6 text-center text-ui-12 text-text-soft">
-                양도할 수 있는 다른 참여자가 없습니다.
+              <li className="px-3 py-6">
+                <StateMessage kind="empty" align="center">
+                  방장을 넘길 수 있는 다른 참여자가 없어요.
+                </StateMessage>
               </li>
             ) : (
               candidates.map((participant) => {
@@ -127,6 +124,7 @@ export const TransferOwnershipModal = ({
                     avatarUrl={participant.avatarUrl}
                     role={participant.memberRole}
                     emphasized={isSelected}
+                    itemRole="none"
                     action={
                       <input
                         type="radio"
@@ -146,7 +144,7 @@ export const TransferOwnershipModal = ({
         )}
 
         {serverError ? (
-          <InlineAlert tone="danger" title="양도 실패">
+          <InlineAlert tone="danger" title="방장을 넘기지 못했어요">
             {serverError}
           </InlineAlert>
         ) : null}
@@ -162,7 +160,7 @@ export const TransferOwnershipModal = ({
             취소
           </Button>
           <Button type="submit" size="sm" disabled={!canSubmit} isLoading={transfer.isPending}>
-            양도하기
+            넘기기
           </Button>
         </div>
       </form>

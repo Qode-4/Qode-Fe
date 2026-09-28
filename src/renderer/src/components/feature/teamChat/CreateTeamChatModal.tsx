@@ -3,11 +3,11 @@ import { useGetProjectMembers } from '../../../api/auth/useProjectsAPI';
 import { usePostTeamChat } from '../../../api/auth/useTeamChatAPI';
 import { handleApiError } from '../../../api/axios';
 import { friendlyErrorMessage } from '../../../api/errorMessages';
-import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../ui/Button';
 import { InlineAlert } from '../../ui/InlineAlert';
 import { OverlayModal } from '../../ui/OverlayModal';
 import { ProjectMemberPickList, type PickListMember } from './ProjectMemberPickList';
+import { TextField } from '../../ui/TextField';
 
 type Props = {
   open: boolean;
@@ -32,7 +32,6 @@ export const CreateTeamChatModal = ({
 }: Props): React.JSX.Element | null => {
   const members = useGetProjectMembers({ projectId, enabled: open && Boolean(projectId) });
   const createChat = usePostTeamChat({ projectId });
-  const toast = useToast();
 
   const [name, setName] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -102,50 +101,36 @@ export const CreateTeamChatModal = ({
     } catch (error) {
       const info = handleApiError(error);
       if (info.status === 409) {
-        setServerNameError('이미 사용 중인 채팅방 이름입니다.');
+        setServerNameError('이미 쓰고 있는 채팅방 이름이에요.');
         return;
       }
       const friendly = friendlyErrorMessage(error, 'chat.create');
       setServerGenericError(friendly.description);
-      toast.error(friendly);
     }
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={handleClose}
-      title="새 팀 채팅"
-      widthClassName="max-w-[520px]"
-    >
+    <OverlayModal open={open} onClose={handleClose} title="새 팀 채팅" size="md">
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <label className="block" htmlFor="create-team-chat-name">
-          <span className="mb-1 block text-ui-12 font-medium text-text-soft">채팅방 이름</span>
-          <input
-            id="create-team-chat-name"
-            className={[
-              'h-10 w-full rounded-md border bg-surface px-3 text-ui-14 text-text-base outline-none',
-              displayedNameError ? 'border-danger' : 'border-control-line focus:border-primary'
-            ].join(' ')}
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setServerNameError(null);
-            }}
-            placeholder="새 팀 채팅"
-            autoFocus
-            maxLength={100}
-            aria-invalid={Boolean(displayedNameError)}
-          />
-          {displayedNameError ? (
-            <span className="mt-1 block text-ui-12 text-danger">{displayedNameError}</span>
-          ) : null}
-        </label>
+        <TextField
+          size="sm"
+          id="create-team-chat-name"
+          label="채팅방 이름"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            setServerNameError(null);
+          }}
+          placeholder="새 팀 채팅"
+          autoFocus
+          maxLength={100}
+          error={displayedNameError || undefined}
+        />
 
         <div>
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-ui-12 font-medium text-text-soft">참여자 초대</span>
-            <span className="text-ui-11 text-text-soft">
+            <span className="text-caption font-medium text-fg-muted">참여자 초대</span>
+            <span className="text-micro text-fg-muted">
               선택 {selectedIds.length} · 총 {totalCount}/{MAX_TOTAL} (본인 포함)
             </span>
           </div>
@@ -162,15 +147,14 @@ export const CreateTeamChatModal = ({
               min={MIN_TOTAL - 1}
               max={MAX_MEMBER_IDS}
               searchPlaceholder="이름으로 참여자 찾기"
-              emptyMessage={
-                members.isLoading ? '멤버를 불러오는 중...' : '초대할 프로젝트 멤버가 없습니다.'
-              }
+              loadingMessage={members.isLoading ? '멤버를 불러오는 중…' : undefined}
+              emptyMessage="초대할 프로젝트 멤버가 없어요."
               ariaLabel="초대할 참여자 목록"
             />
           )}
           {selectedIds.length + 1 < MIN_TOTAL ? (
-            <p className="mt-1 text-ui-12 text-text-soft">
-              팀채팅은 본인 포함 최소 {MIN_TOTAL}명이 필요합니다.
+            <p className="mt-1 text-caption text-fg-muted">
+              팀 채팅은 본인 포함 최소 {MIN_TOTAL}명이 필요해요.
             </p>
           ) : null}
         </div>

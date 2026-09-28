@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import qodeMark from '../../public/qode_logo_small.png';
 import { Logo } from '../ui/Logo';
 
 type BrandContent = {
@@ -33,15 +32,14 @@ export const AuthFrame = ({
     <div className="flex h-full min-h-full items-stretch bg-surface">
       <aside className="hidden flex-1 flex-col justify-between bg-primary-soft px-14 py-16 lg:flex">
         <div className="flex items-center gap-2">
-          <img src={qodeMark} alt="" aria-hidden="true" className="h-8 w-8" />
-          <Logo ariaLabel="Qode" className="h-[22px] w-[34px]" />
+          <Logo variant="lockup" size="md" />
         </div>
 
         <div className="space-y-4">
-          <h2 className="whitespace-pre-line text-ui-32 font-bold leading-[1.35] text-text-base">
+          <h2 className="whitespace-pre-line text-display font-semibold leading-[1.35] text-fg-default">
             {brand.title}
           </h2>
-          <p className="whitespace-pre-line text-base font-medium leading-[1.6] text-text-subtle">
+          <p className="whitespace-pre-line text-body font-medium leading-[1.6] text-fg-subtle">
             {brand.description}
           </p>
         </div>
@@ -49,7 +47,7 @@ export const AuthFrame = ({
         {brand.features && brand.features.length > 0 ? (
           <ul className="space-y-2.5">
             {brand.features.map((feat) => (
-              <li key={feat} className="flex items-center gap-2.5 text-sm text-text-subtle">
+              <li key={feat} className="flex items-center gap-2.5 text-label text-fg-subtle">
                 <span
                   aria-hidden="true"
                   className="inline-block h-1.5 w-1.5 rounded-full bg-primary"
@@ -66,20 +64,19 @@ export const AuthFrame = ({
       <main className="flex flex-1 items-center justify-center bg-surface px-4 py-6 sm:px-8 sm:py-10">
         <div className="w-full max-w-[400px] space-y-6">
           <div className="flex items-center gap-2 lg:hidden">
-            <img src={qodeMark} alt="" aria-hidden="true" className="h-8 w-8" />
-            <Logo ariaLabel="Qode" className="h-[22px] w-[34px]" />
+            <Logo variant="lockup" size="md" />
           </div>
 
           <div className="space-y-1.5">
-            <h1 className="text-ui-24 font-bold text-text-base">{title}</h1>
+            <h1 className="text-heading font-semibold text-fg-default">{title}</h1>
             {description ? (
-              <p className="whitespace-pre-line text-sm text-text-subtle">{description}</p>
+              <p className="whitespace-pre-line text-label text-fg-subtle">{description}</p>
             ) : null}
           </div>
 
           {children}
 
-          {footer ? <div className="text-center text-sm text-text-subtle">{footer}</div> : null}
+          {footer ? <div className="text-center text-label text-fg-subtle">{footer}</div> : null}
         </div>
       </main>
     </div>

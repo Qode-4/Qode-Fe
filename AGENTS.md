@@ -9,13 +9,15 @@ yarn dev                  # Electron 개발 모드 (main + preload + renderer HM
 yarn web:dev              # 렌더러만 브라우저에서 (src/renderer/vite.config.ts)
 yarn lint                 # ESLint
 yarn typecheck            # tsc: node(main/preload) + web(renderer) 두 프로젝트 모두
+yarn test                 # vitest
 yarn build                # typecheck + electron-vite build
 yarn web:build            # 웹 정적 빌드 → src/renderer/dist
 yarn storybook            # 컴포넌트 샌드박스 (포트 6006)
+yarn tokens:check         # 토큰·대비·패턴 규칙 검사 + docs/registry.md 생성
 yarn swagger:local        # OpenAPI → src/renderer/src/api/generated 재생성
 ```
 
-테스트 러너는 없다. 검증 수단은 `lint` + `typecheck` + Storybook.
+테스트는 `yarn test`(vitest, `*.test.ts(x)`). 검증 수단은 `lint` + `typecheck` + `test` + `build` + `tokens:check` + Storybook.
 
 `yarn swagger:local`은 package.json에서 EC2 주소를 가리킨다. 로컬 백엔드(`../Qode-Server`)
 스펙으로 생성하려면 스크립트의 `-p` URL을 `http://localhost:3000/docs/json`으로 바꿔서 실행한다.
@@ -82,6 +84,16 @@ vanilla-extract 플러그인이 세 곳(electron.vite, renderer vite, storybook)
 아이콘은 SVGR(`?react`)로 불러 `components/icons/iconRegistry.ts`에 등록하고 `<Icon name="..." />`로 쓴다.
 새 아이콘은 `icons/raw/`에 넣고 레지스트리에 추가해야 타입에 잡힌다.
 
+### 디자인 시스템 (Quire) — UI 작업 전에 읽을 것
+
+1. [`docs/registry.md`](docs/registry.md) — 컴포넌트별 쓸 때·피할 때·옵션. 새로 만들기 전에 여기서 찾는다.
+2. [`docs/patterns/`](docs/patterns/README.md) — 확인·에러·피드백·빈 상태·로딩의 결정 트리.
+3. [`docs/foundations.md`](docs/foundations.md) — 토큰(색·글자·모서리·모션)의 의미. 정체성·원칙은 [`SYSTEM.md`](SYSTEM.md).
+   화면 문구는 [`docs/copy.md`](docs/copy.md) — 해요체, `…`, 용어집.
+4. 끝나면 [`docs/ai-review-checklist.md`](docs/ai-review-checklist.md) 로 검수하고 `yarn tokens:check` 를 돌린다.
+
+새 ui 컴포넌트는 JSDoc(✅ Use / ❌ Don't) + `Name.meta.ts` + 스토리를 함께 만든다. `docs/registry.md` 는 생성 파일이라 직접 고치지 않는다.
+
 ### 컴포넌트 배치
 
 `ui/`(범용, Storybook 스토리 동반) → `layout/`(AppShell·AuthFrame·ProjectTabs) → `feature/`(도메인 모달·테이블) → `pages/`.
@@ -92,6 +104,12 @@ vanilla-extract 플러그인이 세 곳(electron.vite, renderer vite, storybook)
 - pre-commit: `lint-staged` + `typecheck`
 - pre-push: `build` (즉 typecheck가 두 번 돌아 푸시가 느리다)
 - commit-msg: 브랜치 이름의 숫자를 이슈 번호로 뽑아 커밋 제목 끝에 ` (#123)` 자동 추가
+
+## CI
+
+`.github/workflows/ci.yml` — develop·main 으로 가는 PR 마다 lint · typecheck · test · tokens:check · build.
+`tokens:check` 가 다시 만든 `docs/registry.md`·`docs/tokens/contrast-matrix.md` 가 커밋본과 다르면 실패하니 함께 커밋한다.
+토큰·컴포넌트·패턴을 새로 만들거나 바꿀 때는 [`docs/process/change-flow.md`](docs/process/change-flow.md), 문서끼리 어긋나면 [`docs/process/sot-priority.md`](docs/process/sot-priority.md).
 
 ## 배포
 

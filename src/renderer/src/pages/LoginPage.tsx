@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { usePostAuthLogin } from '../api/auth/useAuthAPI';
-import { authTransitionStorage } from '../api/authTransitionStorage';
 import { handleApiError } from '../api/axios';
 import { tokenStorage } from '../api/tokenStorage';
 import { AuthFrame } from '../components/layout/AuthFrame';
@@ -25,8 +24,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
   const next = resolveNextPath(location.query.next);
   const login = usePostAuthLogin();
 
-  const handleLoginSuccess = (userName: string) => {
-    authTransitionStorage.setLoginTransitionUserName(userName);
+  const handleLoginSuccess = () => {
     if (!tokenStorage.getAccessToken()) return;
     navigate(next);
   };
@@ -41,7 +39,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
     if (!email) e.email = '이메일을 입력해주세요.';
-    else if (!isEmail(email)) e.email = '이메일 형식이 올바르지 않습니다.';
+    else if (!isEmail(email)) e.email = '이메일 형식이 올바르지 않아요.';
     if (!password) e.password = '비밀번호를 입력해주세요.';
     return e;
   }, [email, password]);
@@ -61,7 +59,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
   return (
     <AuthFrame
       title="로그인"
-      description="큐오드에 오신 걸 환영합니다."
+      description="큐오드에 오신 걸 환영해요."
       footer={
         QUICK_LOGIN_ENABLED ? undefined : (
           <>
@@ -81,7 +79,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
               login.mutate(
                 { email: QUICK_LOGIN_EMAIL, password: QUICK_LOGIN_PASSWORD },
                 {
-                  onSuccess: (data) => handleLoginSuccess(data.user.name)
+                  onSuccess: handleLoginSuccess
                 }
               );
             }}
@@ -106,7 +104,7 @@ export const LoginPage = ({ location }: Props): React.JSX.Element => {
             login.mutate(
               { email, password },
               {
-                onSuccess: (data) => handleLoginSuccess(data.user.name)
+                onSuccess: handleLoginSuccess
               }
             );
           }}

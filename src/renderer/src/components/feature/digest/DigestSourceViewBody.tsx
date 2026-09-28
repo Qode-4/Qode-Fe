@@ -1,6 +1,10 @@
 import type { DigestSourcePair, DigestSourceResponse } from '../../../api/contracts/digest';
 import { Button } from '../../ui/Button';
 import { MarkdownAnswer } from '../../ui/MarkdownAnswer';
+import { SourceList } from '../../ui/SourceList';
+import { cleanAnswerSources, mergeSources } from '../../../lib/inlineSources';
+import { Avatar } from '../../ui/Avatar';
+import { StateMessage } from '../../ui/StateMessage';
 
 // DigestSourceView 모달의 본문. 컨테이너와 분리해 스토리에서 fake data 로 직접 렌더할 수 있게 함.
 
@@ -46,21 +50,23 @@ export const DigestSourceViewBody = ({
       {sharerName || sharedAt ? <MetaLine sharerName={sharerName} sharedAt={sharedAt} /> : null}
 
       {note ? (
-        <div className="rounded-md border border-primary/40 bg-primary-soft px-3 py-2 text-ui-12 text-text-base">
-          <span className="mr-1 font-semibold text-primary">공유자 메모</span>
+        <div className="rounded-control border border-line-primary/40 bg-primary-soft px-3 py-2 text-caption text-fg-default">
+          <span className="mr-1 font-semibold text-fg-primary">공유자 메모</span>
           {note}
         </div>
       ) : null}
 
-      <div className="rounded-md border border-line bg-surface-muted p-4">
+      <div className="rounded-control border border-line bg-surface-muted p-4">
         {status === 'loading' ? (
-          <p className="py-8 text-center text-sm text-text-subtle">원본 대화를 불러오는 중…</p>
+          <StateMessage kind="loading" align="center" className="py-8">
+            원본 대화를 불러오는 중…
+          </StateMessage>
         ) : null}
 
         {status === 'error' ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <p className="text-sm text-danger">
-              {errorMessage ?? '원본 대화를 불러오지 못했습니다.'}
+            <p className="text-label text-fg-danger">
+              {errorMessage ?? '원본 대화를 불러오지 못했어요.'}
             </p>
             {onRetry ? (
               <Button type="button" size="sm" variant="secondary" onClick={onRetry}>
@@ -71,7 +77,9 @@ export const DigestSourceViewBody = ({
         ) : null}
 
         {status === 'ready' && pairs.length === 0 ? (
-          <p className="py-8 text-center text-sm text-text-subtle">공유된 대화가 없습니다.</p>
+          <StateMessage kind="empty" align="center" className="py-8">
+            공유된 대화가 없어요.
+          </StateMessage>
         ) : null}
 
         {status === 'ready' && pairs.length > 0 ? (
@@ -103,11 +111,11 @@ const MetaLine = ({
 }): React.JSX.Element => {
   const date = sharedAt ? formatDate(sharedAt) : '';
   return (
-    <p className="text-ui-12 text-text-soft">
-      {sharerName ? <span className="font-medium text-text-base">{sharerName}</span> : null}
+    <p className="text-caption text-fg-muted">
+      {sharerName ? <span className="font-medium text-fg-default">{sharerName}</span> : null}
       {sharerName && date ? <span> · </span> : null}
       {date ? <span>{date}</span> : null}
-      <span className="ml-1 text-text-subtle">이(가) 공유한 대화</span>
+      <span className="ml-1 text-fg-subtle">이(가) 공유한 대화</span>
     </p>
   );
 };
@@ -127,76 +135,50 @@ const readFirst = (obj: unknown, ...keys: string[]): unknown => {
 const PairView = ({ pair }: { pair: DigestSourcePair }): React.JSX.Element => {
   const questionContent = String(readFirst(pair, 'question', 'question_content') ?? '');
   const answerContent = String(readFirst(pair, 'answer', 'answer_content') ?? '');
+  // 메인 채팅과 같은 규칙으로 본문의 참조 표기를 SourceList 로 옮긴다.
+  const answer = cleanAnswerSources(answerContent);
   const rawSources = readFirst(pair, 'sources', 'answer_sources');
   const answerSources = Array.isArray(rawSources) ? rawSources : [];
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-[12px] bg-primary-soft px-3 py-3 text-ui-14 font-medium leading-[1.6] text-text-base">
-          {questionContent || <span className="text-text-subtle">(질문 없음)</span>}
+        <div className="max-w-[85%] rounded-panel bg-primary-soft px-3 py-3 text-label font-medium leading-[1.6] text-fg-default">
+          {questionContent || <span className="text-fg-subtle">(질문 없음)</span>}
         </div>
       </div>
 
-      <article className="rounded-[12px] bg-surface p-3">
+      <article className="min-w-0 rounded-panel bg-surface p-3">
         <div className="mb-2 flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="inline-flex size-6 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
-          >
-            <img src="/favicon.ico" alt="" aria-hidden="true" className="size-3.5 object-contain" />
-          </span>
-          <span className="text-ui-12 font-semibold text-text-base">Qode AI</span>
+          <Avatar kind="ai" size="sm" />
+          <span className="text-caption font-semibold text-fg-default">Qode AI</span>
         </div>
 
-        {answerContent ? <MarkdownAnswer content={answerContent} /> : null}
+        {answer.content ? <MarkdownAnswer content={answer.content} /> : null}
 
-        {answerSources.length > 0 ? (
-          <section className="mt-2 rounded-[8px] border border-line bg-surface-muted p-2">
-            <h4 className="mb-1 text-ui-10 font-semibold text-text-soft">
-              참조 코드 {answerSources.length}개
-            </h4>
-            <div
-              style={{
-                maxHeight: 'min(180px, 26dvh)',
-                maskImage:
-                  'linear-gradient(to bottom, transparent 0, black 10px, black calc(100% - 10px), transparent 100%)',
-                WebkitMaskImage:
-                  'linear-gradient(to bottom, transparent 0, black 10px, black calc(100% - 10px), transparent 100%)'
-              }}
-              className="overflow-y-auto py-1 pr-1"
-            >
-              <ul className="space-y-0.5 text-ui-10 text-text-soft">
-                {answerSources.map((s, idx) => {
-                  const src = s as {
-                    filePath?: string;
-                    file_path?: string;
-                    startLine?: number | null;
-                    start_line?: number | null;
-                    endLine?: number | null;
-                    end_line?: number | null;
-                  };
-                  const path = src.filePath ?? src.file_path ?? '';
-                  const start = src.startLine ?? src.start_line ?? null;
-                  const end = src.endLine ?? src.end_line ?? null;
-                  return (
-                    <li
-                      key={`${path}-${start ?? 0}-${idx}`}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <code className="min-w-0 flex-1 truncate rounded bg-surface px-1 py-0.5">
-                        {path}
-                      </code>
-                      <span className="shrink-0">
-                        ({start ?? '-'}-{end ?? '-'})
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </section>
-        ) : null}
+        <SourceList
+          sources={mergeSources(
+            answerSources.map((s) => {
+              const src = s as {
+                filePath?: string;
+                file_path?: string;
+                startLine?: number | null;
+                start_line?: number | null;
+                endLine?: number | null;
+                end_line?: number | null;
+              };
+              return {
+                filePath: src.filePath ?? src.file_path ?? '',
+                startLine: src.startLine ?? src.start_line ?? null,
+                endLine: src.endLine ?? src.end_line ?? null,
+                snippet: ''
+              };
+            }),
+            answer.sources
+          )}
+          maxHeight="min(180px, 26dvh)"
+          className="mt-2"
+        />
       </article>
     </div>
   );

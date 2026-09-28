@@ -6,6 +6,7 @@ import { AuthFrame } from '../components/layout/AuthFrame';
 import { Button } from '../components/ui/Button';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { Link } from '../components/ui/Link';
+import { StateMessage } from '../components/ui/StateMessage';
 import { buildPath, matchPath, navigate } from '../lib/hashRouter';
 import type { RouteLocation } from '../lib/hashRouter';
 
@@ -40,7 +41,7 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
   if (!inviteCode) {
     return (
       <AuthFrame title="잘못된 링크" brand={INVITE_BRAND}>
-        <InlineAlert tone="danger" title="초대 코드가 없습니다">
+        <InlineAlert tone="danger" title="초대 코드가 없어요">
           링크가 올바르게 복사되었는지 확인해주세요.
         </InlineAlert>
       </AuthFrame>
@@ -52,13 +53,13 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
     return (
       <AuthFrame
         title="프로젝트 초대"
-        description="초대를 수락하려면 로그인이 필요합니다."
+        description="초대를 수락하려면 로그인해주세요."
         brand={INVITE_BRAND}
       >
         <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm">
-            <span className="text-text-subtle">초대 코드</span>
-            <span className="font-semibold text-text-base">{inviteCode}</span>
+          <div className="flex items-center justify-between rounded-panel border border-line bg-surface-muted px-4 py-3 text-label">
+            <span className="text-fg-subtle">초대 코드</span>
+            <span className="font-semibold text-fg-default">{inviteCode}</span>
           </div>
           <div className="flex flex-col gap-2">
             <Button onClick={() => navigate(buildPath('/login', { next }))} className="w-full">
@@ -81,8 +82,10 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
     <AuthFrame title="프로젝트 초대" description={`코드: ${inviteCode}`} brand={INVITE_BRAND}>
       <div className="space-y-4">
         {info.isLoading ? (
-          <div className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-sm text-text-subtle">
-            초대 정보를 불러오는 중…
+          <div className="rounded-panel border border-line bg-surface px-4 py-6">
+            <StateMessage kind="loading" align="center">
+              초대 정보를 불러오는 중…
+            </StateMessage>
           </div>
         ) : null}
 
@@ -93,29 +96,29 @@ export const InvitePage = ({ location }: Props): React.JSX.Element => {
         ) : null}
 
         {info.data ? (
-          <div className="space-y-3 rounded-xl border border-line bg-surface p-4">
+          <div className="space-y-3 rounded-panel border border-line bg-surface p-4">
             <div className="flex items-center gap-3">
               <span
                 aria-hidden="true"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-accent-strong"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-label font-semibold text-fg-primary"
               >
                 {info.data.project.name.charAt(0)}
               </span>
               <div className="min-w-0">
-                <div className="truncate text-base font-semibold text-text-base">
+                <div className="truncate text-body font-semibold text-fg-default">
                   {info.data.project.name}
                 </div>
-                <div className="text-xs text-text-soft">역할: {info.data.role}</div>
+                <div className="text-caption text-fg-muted">역할: {info.data.role}</div>
               </div>
             </div>
 
             {info.data.isAlreadyMember ? (
               <InlineAlert tone="success" title="이미 참여 중">
-                이미 이 프로젝트 멤버입니다.
+                이미 이 프로젝트 멤버예요.
               </InlineAlert>
             ) : (
               <InlineAlert tone="info" title="참여 가능">
-                초대를 수락하면 프로젝트 멤버로 등록됩니다.
+                초대를 수락하면 프로젝트 멤버가 돼요.
               </InlineAlert>
             )}
 

@@ -4,7 +4,7 @@ import { OverlayModal } from '../../ui/OverlayModal';
 import { DigestSourceViewBody } from './DigestSourceViewBody';
 
 const sampleSource: DigestSourceResponse = {
-  note: '결제 흐름 정리했어요. 확인 부탁드립니다.',
+  note: '결제 흐름 정리했어요. 확인 부탁해요.',
   sharedAt: '2026-09-19T14:32:00Z',
   pairs: [
     {
@@ -43,7 +43,7 @@ const sampleSource: DigestSourceResponse = {
 type BodyStoryArgs = React.ComponentProps<typeof DigestSourceViewBody>;
 
 const Wrap = (args: BodyStoryArgs): React.JSX.Element => (
-  <OverlayModal open onClose={() => undefined} title="원본 대화" widthClassName="max-w-[720px]">
+  <OverlayModal open onClose={() => undefined} title="원본 대화" size="xl">
     <DigestSourceViewBody {...args} />
   </OverlayModal>
 );
@@ -95,7 +95,7 @@ export const ErrorState: Story = {
   args: {
     status: 'error',
     source: undefined,
-    errorMessage: '원본 대화가 삭제되었거나 접근할 수 없습니다.',
+    errorMessage: '원본 대화가 삭제됐거나 볼 수 없어요.',
     sharerName: '정예지',
     sharedAt: '2026-09-19T14:32:00Z',
     onRetry: () => undefined,

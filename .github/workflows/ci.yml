@@ -1,0 +1,59 @@
+name: CI
+
+# develop·main 으로 가는 PR 마다 검수 5종을 돌린다 (AGENTS.md "명령어", docs/process/change-flow.md).
+# 로컬 git hook 은 lint·typecheck·build 만 돌고, 건너뛸 수도 있어서 여기서 다시 막는다.
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # 검사용 빌드라 실제 API 주소가 필요 없다. index.html 의 %VITE_API_HOST% 치환만 채운다.
+      VITE_API_BASE_URL: http://localhost:3000
+      VITE_API_HOST: localhost:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Yarn via Corepack
+        run: |
+          corepack enable
+          corepack prepare yarn@3.6.3 --activate
+
+      - name: Install dependencies
+        run: corepack yarn install --immutable
+
+      - name: Lint
+        run: corepack yarn lint
+
+      - name: Typecheck
+        run: corepack yarn typecheck
+
+      - name: Test
+        run: corepack yarn test
+
+      - name: Tokens check
+        run: corepack yarn tokens:check
+
+      # tokens:check 가 다시 만든 docs/registry.md·contrast-matrix.md 가 커밋본과 다르면
+      # meta·토큰을 고치고 생성 파일을 커밋하지 않은 것이다.
+      - name: Generated docs are committed
+        run: git diff --exit-code -- docs/registry.md docs/tokens/contrast-matrix.md
+
+      - name: Build
+        run: corepack yarn build

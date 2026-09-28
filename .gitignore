@@ -64,3 +64,4 @@ web-dist.tar.gz
 #ai
 /.omx
 /.omc
+storybook-static

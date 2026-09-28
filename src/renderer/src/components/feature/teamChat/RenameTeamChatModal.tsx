@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { usePatchTeamChatName } from '../../../api/auth/useTeamChatAPI';
 import { handleApiError } from '../../../api/axios';
 import { friendlyErrorMessage } from '../../../api/errorMessages';
-import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../ui/Button';
 import { OverlayModal } from '../../ui/OverlayModal';
+import { TextField } from '../../ui/TextField';
 
 type Props = {
   open: boolean;
@@ -24,7 +24,6 @@ export const RenameTeamChatModal = ({
   onRenamed
 }: Props): React.JSX.Element | null => {
   const patchName = usePatchTeamChatName({ projectId });
-  const toast = useToast();
   const [name, setName] = useState(currentName);
   const [touched, setTouched] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -69,7 +68,7 @@ export const RenameTeamChatModal = ({
     } catch (error) {
       const info = handleApiError(error);
       if (info.status === 409) {
-        setServerError('이미 사용 중인 채팅방 이름입니다.');
+        setServerError('이미 쓰고 있는 채팅방 이름이에요.');
         return;
       }
       if (info.status === 403) {
@@ -78,40 +77,26 @@ export const RenameTeamChatModal = ({
       }
       const friendly = friendlyErrorMessage(error, 'chat.rename');
       setServerError(friendly.description);
-      toast.error(friendly);
     }
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={handleClose}
-      title="채팅방 이름 바꾸기"
-      widthClassName="max-w-[420px]"
-    >
+    <OverlayModal open={open} onClose={handleClose} title="채팅방 이름 바꾸기" size="sm">
       <form onSubmit={handleSubmit}>
-        <label className="block" htmlFor="rename-team-chat-name">
-          <span className="mb-1 block text-ui-12 font-medium text-text-soft">채팅방 이름</span>
-          <input
-            id="rename-team-chat-name"
-            className={[
-              'h-10 w-full rounded-md border bg-surface px-3 text-ui-14 text-text-base outline-none',
-              displayedError ? 'border-danger' : 'border-control-line focus:border-primary'
-            ].join(' ')}
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setServerError(null);
-            }}
-            placeholder={currentName}
-            autoFocus
-            maxLength={100}
-            aria-invalid={Boolean(displayedError)}
-          />
-          {displayedError ? (
-            <span className="mt-1 block text-ui-12 text-danger">{displayedError}</span>
-          ) : null}
-        </label>
+        <TextField
+          size="sm"
+          id="rename-team-chat-name"
+          label="채팅방 이름"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            setServerError(null);
+          }}
+          placeholder={currentName}
+          autoFocus
+          maxLength={100}
+          error={displayedError || undefined}
+        />
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button

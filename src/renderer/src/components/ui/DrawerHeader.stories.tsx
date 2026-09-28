@@ -20,7 +20,6 @@ const meta = {
     onOpenCreateProject: () => undefined
   },
   argTypes: {
-    logo: { control: false },
     projects: { control: false },
     settingsIconName: {
       options: ICON_NAMES,

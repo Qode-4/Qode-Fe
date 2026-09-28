@@ -2153,6 +2153,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@storybook/addon-a11y@npm:^8.6.14":
+  version: 8.6.18
+  resolution: "@storybook/addon-a11y@npm:8.6.18"
+  dependencies:
+    "@storybook/addon-highlight": 8.6.18
+    "@storybook/global": ^5.0.0
+    "@storybook/test": 8.6.18
+    axe-core: ^4.2.0
+  peerDependencies:
+    storybook: ^8.6.18
+  checksum: 63e975c6f0f4c6f6d87fb65730a7ff5388895c0b105f6f649d31cd995d42dd9fa7072ada30a3c705077c0fc1d4f22d10fc3eec73c646af1654931803c376cd3d
+  languageName: node
+  linkType: hard
+
 "@storybook/addon-actions@npm:8.6.18":
   version: 8.6.18
   resolution: "@storybook/addon-actions@npm:8.6.18"
@@ -3985,6 +3999,13 @@ __metadata:
   version: 1.13.2
   resolution: "aws4@npm:1.13.2"
   checksum: 9ac924e4a91c088b4928ea86b68d8c4558b0e6289ccabaae0e3e96a611bd75277c2eab6e3965821028768700516f612b929a5ce822f33a8771f74ba2a8cedb9c
+  languageName: node
+  linkType: hard
+
+"axe-core@npm:^4.2.0":
+  version: 4.13.0
+  resolution: "axe-core@npm:4.13.0"
+  checksum: 7788457bf83dfe91feebfb9229705e56fee2e188df95a67b936afd4c6da7aba5be049c50f87ee789a034983c7c5d922bcbd270a8c341afbd3ddb3823935c1659
   languageName: node
   linkType: hard
 
@@ -9290,6 +9311,7 @@ __metadata:
     "@electron-toolkit/preload": ^3.0.2
     "@electron-toolkit/tsconfig": ^2.0.0
     "@electron-toolkit/utils": ^4.0.0
+    "@storybook/addon-a11y": ^8.6.14
     "@storybook/addon-essentials": ^8.6.14
     "@storybook/addon-interactions": ^8.6.14
     "@storybook/react-vite": ^8.6.14
@@ -9308,6 +9330,7 @@ __metadata:
     "@vitejs/plugin-react": ^5.1.1
     autoprefixer: ^10.4.24
     axios: ^1.13.5
+    clsx: ^2.1.1
     electron: ^39.2.6
     electron-builder: ^26.0.12
     electron-vite: ^5.0.0
@@ -9330,6 +9353,7 @@ __metadata:
     socket.io-client: ^4.8.3
     storybook: ^8.6.14
     swagger-typescript-api: ^13.0.3
+    tailwind-merge: ^3.7.0
     tailwindcss: ^4.1.18
     tsx: ^4.23.13
     typescript: ^5.9.3
@@ -10773,6 +10797,13 @@ __metadata:
   version: 3.6.0
   resolution: "tailwind-merge@npm:3.6.0"
   checksum: 617e86a01d99f17e02706cc2219bd203d1910b95a05f41fe1e5548b58a7975043ce5b6ef86d4cdcf10fa3c8362b796b9822de2f62024c69d5479e96d6e5be63f
+  languageName: node
+  linkType: hard
+
+"tailwind-merge@npm:^3.7.0":
+  version: 3.7.0
+  resolution: "tailwind-merge@npm:3.7.0"
+  checksum: 9fde6a8881ea481c68fed030fa37f99e41f32b82610e9b4e3fd2de51f729f12efb4a7e7addae0b681dba328fa8a49c0448d7317594bf640f3611e08b5af1d275
   languageName: node
   linkType: hard
 

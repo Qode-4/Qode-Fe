@@ -119,17 +119,12 @@ export const InviteTeamChatMembersModal = ({
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={handleClose}
-      title="참여자 초대"
-      widthClassName="max-w-[520px]"
-    >
+    <OverlayModal open={open} onClose={handleClose} title="참여자 초대" size="md">
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div>
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-ui-12 font-medium text-text-soft">프로젝트 멤버</span>
-            <span className="text-ui-11 text-text-soft">
+            <span className="text-caption font-medium text-fg-muted">프로젝트 멤버</span>
+            <span className="text-micro text-fg-muted">
               선택 {selectedIds.length} / 남은 자리 {remainingSlots}
             </span>
           </div>
@@ -150,18 +145,17 @@ export const InviteTeamChatMembersModal = ({
               onToggle={toggle}
               max={remainingSlots}
               searchPlaceholder="이름으로 참여자 찾기"
-              emptyMessage={
-                members.isLoading || participants.isLoading
-                  ? '멤버를 불러오는 중...'
-                  : '초대할 수 있는 프로젝트 멤버가 없습니다.'
+              loadingMessage={
+                members.isLoading || participants.isLoading ? '멤버를 불러오는 중…' : undefined
               }
+              emptyMessage="초대할 수 있는 프로젝트 멤버가 없어요."
               ariaLabel="초대 가능한 프로젝트 멤버"
             />
           )}
 
           {remainingSlots === 0 ? (
-            <p className="mt-1 text-ui-12 text-text-soft">
-              채팅방 최대 인원({MAX_TOTAL}명)에 도달했습니다.
+            <p className="mt-1 text-caption text-fg-muted">
+              채팅방 최대 인원({MAX_TOTAL}명)에 도달했어요.
             </p>
           ) : null}
         </div>

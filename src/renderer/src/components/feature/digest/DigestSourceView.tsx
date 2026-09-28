@@ -36,7 +36,7 @@ export const DigestSourceView = ({
       open={open}
       onClose={onClose}
       title={headerChatName ? `원본 대화 · ${headerChatName}` : '원본 대화'}
-      widthClassName="max-w-[720px]"
+      size="xl"
     >
       <DigestSourceViewBody
         status={status}

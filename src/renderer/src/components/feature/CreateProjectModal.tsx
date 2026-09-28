@@ -8,7 +8,6 @@ import { useGetProjectSyncStatus, usePostProjects } from '../../api/auth/useProj
 import { handleApiError } from '../../api/axios';
 import { friendlyErrorMessage } from '../../api/errorMessages';
 import type { GithubOauthDeviceStartCreateData } from '../../api/generated/data-contracts';
-import { useToast } from '../../hooks/useToast';
 import {
   clearCachedOauthFlow,
   readCachedOauthFlow,
@@ -18,6 +17,8 @@ import { navigate } from '../../lib/hashRouter';
 import { Button } from '../ui/Button';
 import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
+import { TextField } from '../ui/TextField';
+import { StateMessage } from '../ui/StateMessage';
 
 type Props = {
   open: boolean;
@@ -30,7 +31,6 @@ const PROJECT_NAME_MAX = 50;
 const PROJECT_DESCRIPTION_MAX = 200;
 
 export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element | null => {
-  const toast = useToast();
   const create = usePostProjects();
   const startGithubOauth = usePostGithubOauthDeviceStart();
 
@@ -81,14 +81,14 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     // 서버 createProjectBodySchema 와 같은 한도다(명세 A-3). maxLength 가 51자째를
     // 막아주지만 2자 미만은 입력 단계에서 막을 수 없어 문구로 알린다.
     if (name.trim().length < PROJECT_NAME_MIN)
-      return `프로젝트 이름은 ${PROJECT_NAME_MIN}자 이상이어야 합니다.`;
+      return `프로젝트 이름은 ${PROJECT_NAME_MIN}자 이상이어야 해요.`;
     return '';
   }, [name, touched.name]);
 
   const repoError = useMemo(() => {
     if (!touched.repo) return '';
     if (!activeOauthFlow) return 'GitHub 인증을 시작해주세요.';
-    if (!isAuthorized) return 'GitHub 인증이 완료되어야 합니다.';
+    if (!isAuthorized) return 'GitHub 인증을 먼저 완료해주세요.';
     if (!selectedRepo) return '연결할 저장소를 선택해주세요.';
     return '';
   }, [activeOauthFlow, isAuthorized, selectedRepo, touched.repo]);
@@ -168,8 +168,8 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
 
   const stepTone = (ready: boolean): string =>
     ready
-      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-      : 'border-line bg-surface-muted text-text-soft';
+      ? 'border-line-success bg-success-soft text-fg-success'
+      : 'border-line bg-surface-muted text-fg-muted';
 
   const closeAndReset = (): void => {
     setName('');
@@ -180,6 +180,8 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
     setCreatedProjectId('');
     autoHandledFlowRef.current = null;
     startedFlowRef.current = null;
+    startGithubOauth.reset();
+    create.reset();
     onClose();
   };
 
@@ -190,20 +192,12 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
         setSelectedRepoFullName('');
         saveCachedOauthFlow(data);
         startedFlowRef.current = data.data.flowId;
-      },
-      onError: (error) => {
-        toast.error(friendlyErrorMessage(error, 'github.connect'));
       }
     });
   };
 
   return (
-    <OverlayModal
-      open={open}
-      onClose={closeAndReset}
-      title="새 프로젝트"
-      widthClassName="max-w-[620px]"
-    >
+    <OverlayModal open={open} onClose={closeAndReset} title="새 프로젝트" size="lg">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -225,65 +219,54 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             {
               onSuccess: (data) => {
                 setCreatedProjectId(data.data.id);
-              },
-              onError: (error) => {
-                toast.error(friendlyErrorMessage(error, 'project.create'));
               }
             }
           );
         }}
       >
         <div className="space-y-4">
-          <section className="rounded-lg border border-line bg-surface p-3">
+          <section className="rounded-card border border-line bg-surface p-3">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-text-base">1. 프로젝트 정보</p>
+              <p className="text-label font-semibold text-fg-default">1. 프로젝트 정보</p>
               <span
-                className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(hasProjectInfo)}`}
+                className={`rounded-full border px-2 py-0.5 text-micro font-semibold ${stepTone(hasProjectInfo)}`}
               >
                 {hasProjectInfo ? '완료' : '필수 입력'}
               </span>
             </div>
 
-            <label className="block" htmlFor="create-project-name">
-              <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
-              <input
-                id="create-project-name"
-                className={[
-                  'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                  nameError ? 'border-danger' : 'border-control-line focus:border-primary'
-                ].join(' ')}
-                value={name}
-                maxLength={PROJECT_NAME_MAX}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="예) Qode-Fe"
-                autoFocus
-              />
-              {nameError ? (
-                <span className="mt-1 block text-xs text-danger">{nameError}</span>
-              ) : null}
-            </label>
+            <TextField
+              size="sm"
+              id="create-project-name"
+              label="이름"
+              value={name}
+              maxLength={PROJECT_NAME_MAX}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="예) Qode-Fe"
+              autoFocus
+              error={nameError || undefined}
+            />
 
-            <label className="mt-3 block" htmlFor="create-project-description">
-              <span className="mb-1 block text-xs font-medium text-text-soft">설명 (선택)</span>
-              <input
-                id="create-project-description"
-                className="h-10 w-full rounded-md border border-control-line bg-surface px-3 text-base text-text-base outline-none focus:border-primary"
-                value={description}
-                maxLength={PROJECT_DESCRIPTION_MAX}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="예) 고객 대시보드 개선 프로젝트"
-              />
-            </label>
+            <TextField
+              size="sm"
+              id="create-project-description"
+              label="설명 (선택)"
+              className="mt-3"
+              value={description}
+              maxLength={PROJECT_DESCRIPTION_MAX}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="예) 고객 대시보드 개선 프로젝트"
+            />
           </section>
 
-          <section className="rounded-lg border border-line bg-surface-muted p-3">
+          <section className="rounded-card border border-line bg-surface-muted p-3">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-semibold text-text-base">2. GitHub 인증</p>
-                <p className="text-xs text-text-soft">승인 후 저장소 목록을 불러옵니다.</p>
+                <p className="text-label font-semibold text-fg-default">2. GitHub 인증</p>
+                <p className="text-caption text-fg-muted">승인하면 저장소 목록을 불러와요.</p>
               </div>
               <span
-                className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(isAuthorized)}`}
+                className={`rounded-full border px-2 py-0.5 text-micro font-semibold ${stepTone(isAuthorized)}`}
               >
                 {isAuthorized ? '인증 완료' : '대기'}
               </span>
@@ -314,15 +297,15 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
             </div>
 
             {activeOauthFlow ? (
-              <div className="mt-3 rounded-md border border-line bg-surface p-3">
-                <p className="text-xs text-text-soft">
+              <div className="mt-3 rounded-control border border-line bg-surface p-3">
+                <p className="text-caption text-fg-muted">
                   인증 코드:{' '}
-                  <span className="font-semibold text-text-base">
+                  <span className="font-semibold text-fg-default">
                     {activeOauthFlow.data.userCode}
                   </span>
                 </p>
-                <p className="mt-1 text-xs text-text-soft">상태: {oauthStatusLabel}</p>
-                <p className="mt-1 break-all text-xs text-text-soft">
+                <p className="mt-1 text-caption text-fg-muted">상태: {oauthStatusLabel}</p>
+                <p className="mt-1 break-all text-caption text-fg-muted">
                   {activeOauthFlow.data.verificationUri}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -340,39 +323,43 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                   </Button>
                 </div>
                 {!oauthOpenUrl ? (
-                  <p className="mt-2 text-xs text-danger">GitHub 인증 URL이 올바르지 않습니다.</p>
+                  <p className="mt-2 text-caption text-fg-danger">
+                    GitHub 인증 URL이 올바르지 않아요.
+                  </p>
                 ) : null}
               </div>
             ) : null}
           </section>
 
           <section
+            // GitHub 인증 전에는 잠긴 단계 — 흐리게만 하지 않고 키보드·스크린리더에서도 막는다
+            inert={!isAuthorized}
             className={[
-              'rounded-lg border border-line bg-surface p-3 transition-opacity',
+              'rounded-card border border-line bg-surface p-3 transition-opacity',
               isAuthorized ? 'opacity-100' : 'pointer-events-none opacity-60'
             ].join(' ')}
           >
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-text-base">3. 저장소 선택</p>
-                <p className="text-xs text-text-soft">연결할 GitHub 저장소를 1개 선택하세요.</p>
+                <p className="text-label font-semibold text-fg-default">3. 저장소 선택</p>
+                <p className="text-caption text-fg-muted">연결할 GitHub 저장소를 1개 선택하세요.</p>
               </div>
               <span
-                className={`rounded-full border px-2 py-0.5 text-ui-10 font-semibold ${stepTone(hasRepo)}`}
+                className={`rounded-full border px-2 py-0.5 text-micro font-semibold ${stepTone(hasRepo)}`}
               >
                 {hasRepo ? '선택 완료' : '미선택'}
               </span>
             </div>
 
             {isAuthorized && repos.isLoading ? (
-              <p className="text-xs text-text-soft">저장소 목록을 불러오는 중...</p>
+              <StateMessage kind="loading">저장소 목록을 불러오는 중…</StateMessage>
             ) : null}
             {isAuthorized && !repos.isLoading && repoItems.length === 0 ? (
-              <p className="text-xs text-danger">연결 가능한 저장소가 없습니다.</p>
+              <p className="text-caption text-fg-danger">연결할 수 있는 저장소가 없어요.</p>
             ) : null}
             {!isAuthorized ? (
-              <p className="text-xs text-text-soft">
-                GitHub 인증을 완료하면 저장소를 선택할 수 있습니다.
+              <p className="text-caption text-fg-muted">
+                GitHub 인증을 완료하면 저장소를 선택할 수 있어요.
               </p>
             ) : null}
 
@@ -380,7 +367,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               {repoItems.map((repo) => (
                 <label
                   key={repo.fullName}
-                  className="mt-2 flex cursor-pointer items-center gap-2 rounded-md border border-line px-2 py-2 text-sm text-text-base first:mt-0"
+                  className="mt-2 flex cursor-pointer items-center gap-2 rounded-control border border-line px-2 py-2 text-label text-fg-default first:mt-0"
                 >
                   <input
                     type="radio"
@@ -392,12 +379,12 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
                     }}
                   />
                   <span>{repo.fullName}</span>
-                  <span className="ml-auto text-xs text-text-soft">{repo.defaultBranch}</span>
+                  <span className="ml-auto text-caption text-fg-muted">{repo.defaultBranch}</span>
                 </label>
               ))}
             </div>
 
-            {repoError ? <p className="mt-2 text-xs text-danger">{repoError}</p> : null}
+            {repoError ? <p className="mt-2 text-caption text-fg-danger">{repoError}</p> : null}
           </section>
         </div>
 
@@ -417,6 +404,22 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
           </div>
         ) : null}
 
+        {startGithubOauth.isError ? (
+          <div className="mt-3">
+            <InlineAlert tone="danger" title="GitHub 연결 실패">
+              {friendlyErrorMessage(startGithubOauth.error, 'github.connect').description}
+            </InlineAlert>
+          </div>
+        ) : null}
+
+        {create.isError ? (
+          <div className="mt-3">
+            <InlineAlert tone="danger" title="프로젝트를 만들지 못했어요">
+              {friendlyErrorMessage(create.error, 'project.create').description}
+            </InlineAlert>
+          </div>
+        ) : null}
+
         {createdProjectId ? (
           <div className="mt-3 space-y-2">
             <InlineAlert
@@ -429,7 +432,7 @@ export const CreateProjectModal = ({ open, onClose }: Props): React.JSX.Element 
               }
               title={`초기 동기화 ${syncStatusLabel}`}
             >
-              프로젝트가 생성되었습니다. ID: {createdProjectId}
+              프로젝트를 만들었어요. ID: {createdProjectId}
               {syncStatus.data?.data.latestJob?.errorMessage
                 ? ` (${syncStatus.data.data.latestJob.errorMessage})`
                 : ''}

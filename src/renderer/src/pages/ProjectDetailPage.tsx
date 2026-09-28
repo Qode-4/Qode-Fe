@@ -42,15 +42,22 @@ import { useDeleteDigestCard } from '../api/auth/useDigestAPI';
 import { useShareSelectionState } from '../hooks/useShareSelectionState';
 import type { IconName } from '../components/icons/iconTypes';
 import { Button } from '../components/ui/Button';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ChatComposer } from '../components/ui/ChatComposer';
 import { Icon } from '../components/ui/Icon';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { MarkdownAnswer } from '../components/ui/MarkdownAnswer';
+import { SourceList } from '../components/ui/SourceList';
+import { Spinner } from '../components/ui/Spinner';
+import { StateMessage } from '../components/ui/StateMessage';
+import { cleanAnswerSources, mergeSources } from '../lib/inlineSources';
 import { useToast } from '../hooks/useToast';
+import { useReducedMotion } from '../hooks/useMediaQuery';
 import type { RouteLocation } from '../lib/hashRouter';
 import { matchPath } from '../lib/hashRouter';
 import { mapResponseError } from '../lib/response-errors';
 import { mapSyncError } from '../lib/sync-errors';
+import { Avatar } from '../components/ui/Avatar';
 
 type TeamChatMenuAction = 'rename' | 'invite' | 'members' | 'delete' | 'leave' | 'create';
 
@@ -113,110 +120,6 @@ const extractSources = (message: unknown): SourceItem[] => {
   return target.originalMessage?.sources ?? [];
 };
 
-// AI 가 본문에 남긴 참조 메타데이터를 뽑아 SourceItem 으로 변환하고 원문에서는 제거한다.
-// 서버가 sources 배열을 안 채워주는 흐름에서도 카드가 뜨도록 한 프론트엔드 폴백이며,
-// 답변 본문에 같은 정보가 여러 번 반복되는 것을 방지한다.
-//
-// 지원 패턴 (모두 뽑아서 소스 카드로 옮기고 본문에서는 제거):
-//   1) 괄호 인라인:       "(참고: `src/x.ts` 1-17)" · "(참조: src/x.ts 1-17)"
-//                         "(apis/services/x.ts L101-116)" (참고 프리픽스 없어도)
-//                         "(components/y.tsx L62-93 주석 참고)"
-//   2) 파일 + 괄호 범위:  "components/youtube-player.tsx (L62-93)" · "utils/x.ts (L1-33, L28-58)"
-//   3) 파일 + 공백 범위:  "apis/services/x.ts L101-116"
-//   4) 메타 bullet 쌍:    "- **파일 경로**: `src/x.ts`\n- **라인 범위**: 1-17"
-//   5) 소스 리스트 헤더 + 없음 bullet: "관련 파일: \n- 없음"
-
-const PATH_TOKEN = '[a-zA-Z0-9_./-]+\\.[a-zA-Z0-9]{1,6}';
-
-// 1) 괄호 인라인. "참고:" 프리픽스는 선택. 숫자 뒤 잔여 텍스트 허용.
-const INLINE_SOURCE_REGEX = new RegExp(
-  `\\s*\\(\\s*(?:참[고조]\\s*:\\s*)?\`?(${PATH_TOKEN})\`?[\\s,]+L?(\\d+)\\s*[-–~]\\s*(\\d+)[^)]*\\)`,
-  'g'
-);
-
-// 2) 파일 + 괄호 범위. "components/y.tsx (L62-93)" 형태.
-//    괄호 안에 여러 range 가 있어도 첫 range 만 대표로 뽑는다.
-const PATH_PAREN_RANGE_REGEX = new RegExp(
-  `\\s*\`?(${PATH_TOKEN})\`?\\s*\\(L?(\\d+)\\s*[-–~]\\s*(\\d+)[^)]*\\)`,
-  'g'
-);
-
-// 3) 파일 + 공백 후 L range. "apis/services/x.ts L101-116"
-const PATH_LINE_INLINE_REGEX = new RegExp(
-  `\\s*\`?(${PATH_TOKEN})\`?\\s+L(\\d+)\\s*[-–~]\\s*(\\d+)`,
-  'g'
-);
-
-// 4) 메타 bullet 쌍
-const META_FILE_LINE_PAIR_REGEX =
-  /^[\t ]*[-*•][\t ]*\**\s*(?:파일\s*(?:경로|이름|위치)|파일)\s*\**\s*:\s*`?([^\s`\n]+)`?[^\n]*\n[\t ]*[-*•][\t ]*\**\s*(?:라인\s*(?:범위|번호)?|줄\s*번호|위치|Line(?:s)?)\s*\**\s*:\s*`?(\d+)\s*[-–~]\s*(\d+)`?[^\n]*(?:\n|$)/gim;
-
-// 5-a) 소스 리스트 섹션 헤더: "관련 파일:", "참고 파일 및 라인:", "관련 파일 및 라인:" 등
-const SOURCE_LIST_HEADER_REGEX =
-  /^[ \t]*(?:관련|참고|참조|Reference|References)[ \t]*(?:파일|코드|자료|위치|Source(?:s)?)(?:[ \t]*(?:및|,|and)[ \t]*(?:라인|줄|Line(?:s)?))?[ \t]*:[ \t]*\n?/gim;
-
-// 5-b) "없음" 계열 bullet — 헤더가 지워진 뒤 남는 안내를 정리
-const NO_SOURCE_BULLET_REGEX =
-  /^[\t ]*[-*•][\t ]*(?:없음|해당\s*없음|N\/?A|(?:직접적인?\s*)?언급\s*없음|(?:전체\s*)?제공\s*(?:코드|내용)에서[^\n]*(?:없음|N\/?A))[^\n]*\n?/gim;
-
-const extractInlineSources = (content: string): { content: string; sources: SourceItem[] } => {
-  const sources: SourceItem[] = [];
-  const push = (filePath: string, start: string, end: string): string => {
-    sources.push({
-      filePath: String(filePath),
-      startLine: Number(start),
-      endLine: Number(end),
-      snippet: ''
-    });
-    return '';
-  };
-
-  let next = content;
-
-  // 순서 중요: 구조적으로 큰 패턴 (메타 bullet 쌍, 괄호 파일, 괄호 인라인) 먼저.
-  next = next.replace(META_FILE_LINE_PAIR_REGEX, (_m, f: string, s: string, e: string) =>
-    push(f, s, e)
-  );
-  next = next.replace(INLINE_SOURCE_REGEX, (_m, f: string, s: string, e: string) => push(f, s, e));
-  next = next.replace(PATH_PAREN_RANGE_REGEX, (_m, f: string, s: string, e: string) =>
-    push(f, s, e)
-  );
-  next = next.replace(PATH_LINE_INLINE_REGEX, (_m, f: string, s: string, e: string) =>
-    push(f, s, e)
-  );
-
-  // 소스 리스트 섹션 헤더와 "없음" 계열 bullet 정리
-  next = next.replace(SOURCE_LIST_HEADER_REGEX, '');
-  next = next.replace(NO_SOURCE_BULLET_REGEX, '');
-
-  // 소스 references 만 있던 bullet 은 마커(-, *, •) 만 남는다. 고아 마커 라인은 정리한다.
-  next = next.replace(/^[\t ]*[-*•][\t ]*(?=\n|$)/gm, '');
-
-  // 연속된 공백 라인은 하나로, 라인 끝 공백도 정리
-  const cleaned = next
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-
-  // 파싱 후 본문이 너무 짧으면 원문을 유지해 빈 카드 방지
-  if (sources.length > 0 && cleaned.length < 10) {
-    return { content: content.trim(), sources };
-  }
-  return { content: cleaned, sources };
-};
-
-const mergeSources = (a: SourceItem[], b: SourceItem[]): SourceItem[] => {
-  const seen = new Set<string>();
-  const result: SourceItem[] = [];
-  for (const src of [...a, ...b]) {
-    const key = `${src.filePath}:${src.startLine ?? ''}-${src.endLine ?? ''}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(src);
-  }
-  return result;
-};
-
 const getMessageId = (message: unknown): string => {
   return (message as { id: string }).id;
 };
@@ -246,76 +149,20 @@ const isDigestTeamMessage = (message: unknown): boolean => {
 
 const LoadingDots = (): React.JSX.Element => {
   const [dots, setDots] = useState('.');
+  // 동작 줄이기 설정이면 점을 돌리지 않는다 — 전역 reduced-motion CSS 는 JS 타이머에 닿지 않는다
+  const reducedMotion = useReducedMotion();
   useEffect(() => {
+    if (reducedMotion) return;
     const id = window.setInterval(() => {
       setDots((prev) => (prev.length >= 3 ? '.' : `${prev}.`));
     }, 500);
     return () => window.clearInterval(id);
-  }, []);
+  }, [reducedMotion]);
   // 접미사 폭이 튀지 않게 3자리 고정 폭 확보 후 왼쪽 정렬 렌더.
   return (
     <span aria-hidden className="inline-block w-[1.5em] text-left">
-      {dots}
+      {reducedMotion ? '…' : dots}
     </span>
-  );
-};
-
-const MessageSources = ({
-  messageId,
-  sources
-}: {
-  messageId: string;
-  sources: SourceItem[];
-}): React.JSX.Element => {
-  const [expanded, setExpanded] = useState(true);
-  const headerId = `sources-header-${messageId}`;
-  const listId = `sources-list-${messageId}`;
-  return (
-    <div className="mt-3 rounded-[8px] border border-line bg-surface">
-      <button
-        type="button"
-        id={headerId}
-        aria-controls={listId}
-        aria-expanded={expanded}
-        onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full items-center justify-between px-3 py-1.5 text-ui-12 text-text-soft transition-colors hover:bg-surface-muted"
-      >
-        <span className="inline-flex items-center gap-2">
-          <span aria-hidden className="text-ui-12 leading-none text-text-soft">
-            •
-          </span>
-          <span>참조한 소스 {sources.length}개</span>
-        </span>
-      </button>
-      {expanded ? (
-        <div
-          id={listId}
-          role="region"
-          aria-labelledby={headerId}
-          className="border-t border-line-soft"
-        >
-          {sources.map((source) => (
-            <div
-              key={`${messageId}-${source.filePath}-${source.startLine ?? 0}`}
-              className="flex items-center justify-between gap-3 px-3 py-1 text-ui-12 text-text-soft"
-            >
-              <span className="min-w-0 flex-1 truncate">{source.filePath}</span>
-              <span className="shrink-0">
-                ({source.startLine ?? '-'}-{source.endLine ?? '-'})
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-};
-
-const Avatar = ({ name }: { name: string }): React.JSX.Element => {
-  return (
-    <div className="inline-flex size-6 items-center justify-center rounded-full border border-line bg-surface-muted text-ui-12 font-medium text-text-soft">
-      {name.charAt(0).toUpperCase()}
-    </div>
   );
 };
 
@@ -337,11 +184,11 @@ const MessageActionButton = ({
   const button = (
     <button
       type="button"
-      className="flex items-center gap-[2px] rounded-[4px] px-1 py-[2px] text-ui-10 font-medium text-text-soft transition-colors hover:bg-surface-muted hover:text-text-base disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex items-center gap-[2px] rounded-inline px-1 py-[2px] text-micro font-medium text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-default disabled:cursor-not-allowed disabled:opacity-50"
       disabled={disabled}
       onClick={onClick}
     >
-      <Icon name={iconName} size="sm" decorative className="text-text-soft" />
+      <Icon name={iconName} size="sm" decorative className="text-fg-muted" />
       <span>{label}</span>
     </button>
   );
@@ -380,7 +227,7 @@ export const ProjectDetailPage = ({
   const isSyncFailed = syncPhase === 'failed';
   // 인덱싱이 끝나기 전에는 검색할 코드가 없어 답이 근거 없이 나온다. 서버도 같은 이유로
   // 409 SYNC_IN_PROGRESS 로 막는다(ADR-005). 화면은 그 앞에서 아예 못 보내게 한다.
-  const SYNC_IN_PROGRESS_HINT = '코드를 동기화하는 중입니다. 잠시 후 다시 시도해주세요.';
+  const SYNC_IN_PROGRESS_HINT = '코드를 동기화하는 중이에요. 잠시 후 다시 시도해주세요.';
 
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -430,6 +277,8 @@ export const ProjectDetailPage = ({
   // 기존 단일 메시지 공유 훅(usePostMessageShare)은 useChatsAPI 에 남아 있지만 이 페이지에선 안 씀.
   const shareSelection = useShareSelectionState();
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  // 공유 취소는 되돌릴 수 없어서 확인을 거친다 (docs/patterns/confirm.md)
+  const [shareDeleteId, setShareDeleteId] = useState<string | null>(null);
   const [shareModalInitialIds, setShareModalInitialIds] = useState<Set<string>>(new Set());
   // 팀채팅에 도착한 공유 카드의 "공유 취소" 처리(공유자 본인만 노출).
   const deleteDigestCard = useDeleteDigestCard({ chatId: activeChatId || '__empty__' });
@@ -659,9 +508,9 @@ export const ProjectDetailPage = ({
   const copyText = async (value: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success('복사되었습니다');
+      toast.success('복사했어요');
     } catch {
-      toast.error('복사에 실패했습니다. 텍스트를 직접 선택하여 복사해주세요.');
+      toast.error('복사하지 못했어요. 텍스트를 직접 선택해서 복사해주세요.');
     }
   };
 
@@ -783,7 +632,7 @@ export const ProjectDetailPage = ({
     if (isPersonalTarget) {
       setStreamChatId(targetChatId);
       setStreamMessageId('');
-      setStreamStatus('요청 중...');
+      setStreamStatus('요청 중…');
       setStreamContent('');
       setStreamSources([]);
       setStreamError(null);
@@ -799,7 +648,7 @@ export const ProjectDetailPage = ({
               if (payload.assistantMessageId) setStreamMessageId(payload.assistantMessageId);
             },
             onStatus: (payload) => {
-              setStreamStatus(payload.message ?? payload.status ?? '진행 중...');
+              setStreamStatus(payload.message ?? payload.status ?? '진행 중…');
             },
             onChunk: (payload) => {
               if (!payload.content && !payload.token) return;
@@ -922,24 +771,32 @@ export const ProjectDetailPage = ({
           <LeaveTeamChatConfirmModal
             open
             chatName={teamChatModal.chatName}
+            error={
+              leaveTeamChat.error
+                ? friendlyErrorMessage(leaveTeamChat.error).description
+                : undefined
+            }
             isProcessing={leaveTeamChat.isPending}
-            onClose={closeTeamChatModal}
+            onClose={() => {
+              leaveTeamChat.reset();
+              closeTeamChatModal();
+            }}
             onConfirm={() => {
               leaveTeamChat.mutate(
                 { chatId: teamChatModal.chatId },
                 {
                   onSuccess: (result) => {
-                    if (result.chatDeleted) {
-                      dropActiveIfMatches(teamChatModal.chatId);
-                      toast.success('마지막 참여자로 나가면서 채팅방이 삭제되었어요');
-                    } else {
-                      dropActiveIfMatches(teamChatModal.chatId);
-                      toast.success('채팅방에서 나갔어요');
+                    // 보던 채팅이 사라질 때만 알린다 — 목록 변화로 보이면 조용히 (docs/patterns/feedback.md)
+                    const wasActive = activeChatId === teamChatModal.chatId;
+                    dropActiveIfMatches(teamChatModal.chatId);
+                    if (wasActive) {
+                      toast.success(
+                        result.chatDeleted
+                          ? '마지막 참여자로 나가면서 채팅방이 삭제되었어요'
+                          : '채팅방에서 나갔어요'
+                      );
                     }
                     closeTeamChatModal();
-                  },
-                  onError: (error) => {
-                    toast.error(friendlyErrorMessage(error));
                   }
                 }
               );
@@ -982,6 +839,7 @@ export const ProjectDetailPage = ({
             onClose={closeTeamChatModal}
             onTransferred={() => {
               // 서버가 원 방장 leave 까지 처리한다. FE 는 chat 캐시 제거 + 다른 채팅으로 이동.
+              const wasActive = activeChatId === teamChatModal.chatId;
               dropActiveIfMatches(teamChatModal.chatId);
               queryClient.removeQueries({
                 queryKey: QUERY_KEY.teamChatParticipants(teamChatModal.chatId)
@@ -989,7 +847,7 @@ export const ProjectDetailPage = ({
               void queryClient.invalidateQueries({
                 queryKey: QUERY_KEY.projectChatsByProject(projectId)
               });
-              toast.success('방장을 양도하고 채팅방을 나왔어요');
+              if (wasActive) toast.success('방장을 넘기고 채팅방을 나왔어요');
               closeTeamChatModal();
             }}
           />
@@ -1000,19 +858,25 @@ export const ProjectDetailPage = ({
           <DeleteTeamChatConfirmModal
             open
             chatName={teamChatModal.chatName}
+            error={
+              deleteTeamChat.error
+                ? friendlyErrorMessage(deleteTeamChat.error).description
+                : undefined
+            }
             isProcessing={deleteTeamChat.isPending}
-            onClose={closeTeamChatModal}
+            onClose={() => {
+              deleteTeamChat.reset();
+              closeTeamChatModal();
+            }}
             onConfirm={() => {
               deleteTeamChat.mutate(
                 { chatId: teamChatModal.chatId },
                 {
                   onSuccess: () => {
+                    const wasActive = activeChatId === teamChatModal.chatId;
                     dropActiveIfMatches(teamChatModal.chatId);
-                    toast.success('채팅방을 삭제했어요');
+                    if (wasActive) toast.success('채팅방을 삭제했어요');
                     closeTeamChatModal();
-                  },
-                  onError: (error) => {
-                    toast.error(friendlyErrorMessage(error));
                   }
                 }
               );
@@ -1025,7 +889,7 @@ export const ProjectDetailPage = ({
   if (!projectId) {
     return (
       <InlineAlert tone="danger" title="잘못된 경로">
-        projectId가 없습니다.
+        주소에 프로젝트 정보가 없어요.
       </InlineAlert>
     );
   }
@@ -1034,15 +898,16 @@ export const ProjectDetailPage = ({
     return (
       <InlineAlert tone="danger" title="프로젝트 조회 실패">
         <div className="flex flex-col items-start gap-2">
-          <p>프로젝트 정보를 불러올 수 없습니다.</p>
-          <button
+          <p>프로젝트 정보를 불러오지 못했어요.</p>
+          <Button
             type="button"
+            size="sm"
+            variant="secondary"
             onClick={() => void project.refetch()}
-            disabled={project.isFetching}
-            className="rounded-md border border-danger-line bg-surface px-3 py-1 text-ui-12 font-medium text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-60"
+            isLoading={project.isFetching}
           >
-            {project.isFetching ? '다시 시도 중...' : '다시 시도'}
-          </button>
+            다시 시도
+          </Button>
         </div>
       </InlineAlert>
     );
@@ -1055,11 +920,8 @@ export const ProjectDetailPage = ({
     return (
       <section className="flex h-full min-h-0 flex-col items-center justify-center bg-surface">
         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
-          <div
-            aria-hidden="true"
-            className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-primary"
-          />
-          <p className="text-ui-12 font-medium text-text-soft">프로젝트를 불러오는 중...</p>
+          <Spinner size="lg" tone="brand" />
+          <p className="text-caption text-fg-muted">프로젝트를 불러오는 중…</p>
         </div>
       </section>
     );
@@ -1079,7 +941,7 @@ export const ProjectDetailPage = ({
       {isAnalyzing ? (
         <div className="px-4 pt-3" aria-live="polite">
           <InlineAlert tone="info" title="분석 진행 중">
-            동기화 중... ({syncProgress}%)
+            동기화 중… ({syncProgress}%)
           </InlineAlert>
         </div>
       ) : null}
@@ -1115,8 +977,8 @@ export const ProjectDetailPage = ({
         ) : null}
         {isTeamChatReadOnly ? (
           <div className="mb-2">
-            <InlineAlert tone="info" title="팀채팅 읽기 전용">
-              팀채팅은 현재 읽기 전용입니다. 작성 기능은 추후 지원 예정입니다.
+            <InlineAlert tone="info" title="팀 채팅 읽기 전용">
+              팀 채팅은 아직 읽기만 할 수 있어요. 작성 기능은 준비 중이에요.
             </InlineAlert>
           </div>
         ) : null}
@@ -1125,15 +987,12 @@ export const ProjectDetailPage = ({
         <div
           role="status"
           aria-live="polite"
-          className="mx-4 mb-2 flex items-center gap-2 rounded-[10px] border border-line bg-surface-muted px-3 py-2 text-ui-12 text-text-subtle"
+          className="mx-4 mb-2 flex items-center gap-2 rounded-panel border border-line bg-surface-muted px-3 py-2 text-caption text-fg-subtle"
         >
-          <span
-            aria-hidden="true"
-            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-text-soft border-t-transparent"
-          />
+          <Spinner size="md" />
           <div className="min-w-0">
-            <p className="font-medium">연결이 끊어졌습니다</p>
-            <p className="text-ui-10 text-text-soft">재연결 중...</p>
+            <p className="font-medium">연결이 끊겼어요</p>
+            <p className="text-micro text-fg-muted">다시 연결하는 중…</p>
           </div>
         </div>
       ) : null}
@@ -1161,14 +1020,14 @@ export const ProjectDetailPage = ({
                   onBlur={() => {
                     void commitHeaderRename(headerRenameDraft);
                   }}
-                  className="w-full rounded-md border border-control-line bg-surface px-2 py-1 text-ui-20 font-semibold text-text-base outline-none focus:border-primary"
+                  className="w-full rounded-control border border-line-strong bg-surface px-2 py-1 text-title font-semibold text-fg-default outline-none focus:border-line-primary"
                   aria-label={`${activeChat.name} 이름 바꾸기`}
                 />
               ) : (
                 <button
                   type="button"
                   onClick={beginHeaderRename}
-                  className="w-full truncate rounded-md px-2 py-1 text-left text-ui-20 font-semibold text-text-base transition-colors hover:bg-surface-muted"
+                  className="w-full truncate rounded-control px-2 py-1 text-left text-title font-semibold text-fg-default transition-colors hover:bg-surface-muted"
                   title="클릭하여 채팅 이름 바꾸기"
                   aria-label={`${activeChat.name} — 이름 바꾸기`}
                 >
@@ -1177,7 +1036,7 @@ export const ProjectDetailPage = ({
               )}
             </div>
             {shareSelection.selectionMode ? (
-              <span className="shrink-0 text-ui-12 font-medium text-text-soft">
+              <span className="shrink-0 text-caption font-medium text-fg-muted">
                 {shareSelection.count}/{MAX_SHARE_PAIRS}개 선택됨
               </span>
             ) : selectableAssistantIds.size > 0 ? (
@@ -1186,7 +1045,7 @@ export const ProjectDetailPage = ({
                 size="sm"
                 variant="ghost"
                 onClick={() => shareSelection.enter()}
-                title="답변을 골라 팀채팅에 공유합니다"
+                title="답변을 골라 팀 채팅에 공유해요"
               >
                 팀 공유
               </Button>
@@ -1234,33 +1093,33 @@ export const ProjectDetailPage = ({
             followBottomRef.current =
               viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 80;
           }}
-          className="flex h-full justify-center overflow-y-auto px-6 pb-4 max-sm:px-3"
+          className="flex h-full justify-center overflow-y-auto overflow-x-hidden px-6 pb-4 max-sm:px-3"
         >
           {!activeChatId ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-              <p className="text-ui-12 font-medium text-text-soft">현재 프로젝트</p>
-              <h2 className="text-ui-20 font-semibold text-text-base">
+              <p className="text-caption font-medium text-fg-muted">현재 프로젝트</p>
+              <h2 className="text-title font-semibold text-fg-default">
                 {project.data?.data.name ?? '프로젝트'}
               </h2>
-              <p className="text-ui-14 text-text-soft">메시지를 입력하면 새 대화가 시작돼요.</p>
+              <p className="text-label text-fg-muted">메시지를 입력하면 새 대화가 시작돼요.</p>
             </div>
           ) : (
-            <div className="flex min-h-full w-full max-w-[48rem] flex-col gap-6">
+            <div className="flex min-h-full w-full min-w-0 max-w-[48rem] flex-col gap-6">
               {messages.isLoading ? (
-                <p className="text-ui-12 font-medium text-text-soft">메시지를 불러오는 중...</p>
+                <StateMessage kind="loading">메시지를 불러오는 중…</StateMessage>
               ) : null}
 
               {messages.isError ? (
                 <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
-                  <p className="text-ui-12 font-medium text-text-subtle">
-                    이전 대화를 불러올 수 없습니다.
+                  <p className="text-caption font-medium text-fg-subtle">
+                    이전 대화를 불러오지 못했어요.
                   </p>
                   <button
                     type="button"
                     onClick={() => {
                       void messages.refetch();
                     }}
-                    className="text-ui-12 font-medium text-accent-strong hover:underline"
+                    className="text-caption font-medium text-fg-primary hover:underline"
                   >
                     다시 시도
                   </button>
@@ -1303,19 +1162,7 @@ export const ProjectDetailPage = ({
                           })
                         }
                         isDeleting={deleteDigestCard.isPending}
-                        onDeleteShare={
-                          isMineShare
-                            ? () => {
-                                deleteDigestCard.mutate(
-                                  { messageId },
-                                  {
-                                    onSuccess: () => toast.success('공유를 취소했어요'),
-                                    onError: (error) => toast.error(handleApiError(error).message)
-                                  }
-                                );
-                              }
-                            : undefined
-                        }
+                        onDeleteShare={isMineShare ? () => setShareDeleteId(messageId) : undefined}
                       />
                     );
                   }
@@ -1332,13 +1179,13 @@ export const ProjectDetailPage = ({
                       <div key={messageId} className="flex items-end justify-end gap-2">
                         <div className="flex flex-col items-end gap-0.5 w-full">
                           {isLocalFailed ? (
-                            <p className="text-ui-10 font-medium text-danger">전송 실패</p>
+                            <p className="text-micro font-medium text-fg-danger">전송 실패</p>
                           ) : null}
-                          <div className="max-w-[70%] rounded-xl bg-primary-soft px-3 py-2.5 text-ui-16 font-medium leading-[1.6] text-text-base max-sm:max-w-[85%]">
+                          <div className="max-w-[70%] rounded-panel bg-primary-soft px-3 py-2.5 text-body font-medium leading-[1.6] text-fg-default max-sm:max-w-[85%]">
                             {messageContent}
                           </div>
                           {timeLabel ? (
-                            <p className="text-ui-10 text-text-soft">{timeLabel}</p>
+                            <p className="text-micro text-fg-muted">{timeLabel}</p>
                           ) : null}
                         </div>
                       </div>
@@ -1347,15 +1194,13 @@ export const ProjectDetailPage = ({
 
                   return (
                     <div key={messageId} className="flex items-end gap-2">
-                      <Avatar name={senderName} />
+                      <Avatar name={senderName} size="sm" />
                       <div className="flex flex-col gap-0.5 w-full">
-                        <p className="text-ui-10 font-medium text-text-soft">{senderName}</p>
-                        <div className="w-fit max-w-[70%] rounded-xl border border-line bg-surface px-3 py-2.5 text-ui-16 leading-[1.6] text-text-base max-sm:max-w-[85%]">
+                        <p className="text-micro font-medium text-fg-muted">{senderName}</p>
+                        <div className="w-fit max-w-[70%] rounded-panel border border-line bg-surface px-3 py-2.5 text-body leading-[1.6] text-fg-default max-sm:max-w-[85%]">
                           {messageContent}
                         </div>
-                        {timeLabel ? (
-                          <p className="text-ui-10 text-text-soft">{timeLabel}</p>
-                        ) : null}
+                        {timeLabel ? <p className="text-micro text-fg-muted">{timeLabel}</p> : null}
                       </div>
                     </div>
                   );
@@ -1366,11 +1211,11 @@ export const ProjectDetailPage = ({
                   return (
                     <div key={messageId} className="flex items-end justify-end">
                       <div className="flex max-w-[70%] flex-col items-end max-sm:max-w-[85%]">
-                        <div className="rounded-[12px] bg-primary-soft px-3 py-3 text-ui-16 font-medium leading-[1.6] text-text-base">
+                        <div className="rounded-panel bg-primary-soft px-3 py-3 text-body font-medium leading-[1.6] text-fg-default">
                           {messageContent}
                         </div>
                         {isLocalFailed ? (
-                          <p className="mt-1 text-ui-10 font-medium text-danger">전송 실패</p>
+                          <p className="mt-1 text-micro font-medium text-fg-danger">전송 실패</p>
                         ) : null}
                       </div>
                     </div>
@@ -1379,7 +1224,7 @@ export const ProjectDetailPage = ({
 
                 const apiSources = extractSources(message);
                 const { content: cleanContent, sources: inlineSources } =
-                  extractInlineSources(messageContent);
+                  cleanAnswerSources(messageContent);
                 const parsedSources = mergeSources(apiSources, inlineSources);
                 // 가장 최근 assistant 메시지에만 스트림 소스를 덧붙여 서버 미저장 케이스 커버.
                 if (showStream && messageId === streamMessageId) return null;
@@ -1405,31 +1250,19 @@ export const ProjectDetailPage = ({
                 const articleNode = (
                   <article
                     className={[
-                      'flex-1 rounded-[12px] bg-surface p-3 transition-shadow',
-                      showCheckbox && isSelected ? 'ring-2 ring-primary' : '',
+                      'min-w-0 flex-1 rounded-panel bg-surface p-3 transition-shadow',
+                      showCheckbox && isSelected ? 'ring-2 ring-line-primary' : '',
                       showCheckbox ? 'cursor-pointer' : ''
                     ].join(' ')}
                     onClick={showCheckbox ? () => shareSelection.toggle(messageId) : undefined}
                   >
                     <div className="mb-2 flex items-center gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
-                      >
-                        <img
-                          src="/favicon.ico"
-                          alt=""
-                          aria-hidden="true"
-                          className="size-4 object-contain"
-                        />
-                      </span>
-                      <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
+                      <Avatar kind="ai" size="md" />
+                      <span className="text-label font-semibold text-fg-default">Qode AI</span>
                     </div>
                     {hasVisibleBody ? <MarkdownAnswer content={cleanContent} /> : null}
 
-                    {hasSources ? (
-                      <MessageSources messageId={messageId} sources={mergedSources} />
-                    ) : null}
+                    {hasSources ? <SourceList sources={mergedSources} className="mt-3" /> : null}
 
                     {shareSelection.selectionMode ? null : (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -1479,40 +1312,30 @@ export const ProjectDetailPage = ({
               })}
 
               {showStream && activeChatId && isPersonalChat ? (
-                <article className="rounded-[12px] bg-surface p-3" aria-live="polite">
+                <article className="min-w-0 rounded-panel bg-surface p-3" aria-live="polite">
                   <div className="mb-2 flex items-center gap-2">
-                    <span
-                      aria-hidden="true"
-                      className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full border border-primary bg-surface"
-                    >
-                      <img
-                        src="/favicon.ico"
-                        alt=""
-                        aria-hidden="true"
-                        className="size-4 object-contain"
-                      />
-                    </span>
-                    <span className="text-ui-14 font-semibold text-text-base">Qode AI</span>
-                    <span className="text-ui-10 text-text-soft">
+                    <Avatar kind="ai" size="md" />
+                    <span className="text-label font-semibold text-fg-default">Qode AI</span>
+                    <span className="text-micro text-fg-muted">
                       · {streamStatus || '스트리밍 중'}
                     </span>
                   </div>
                   {(() => {
                     if (!streamContent) return null;
-                    const parsed = extractInlineSources(streamContent);
+                    const parsed = cleanAnswerSources(streamContent);
                     const merged = mergeSources(streamSources, parsed.sources);
                     return (
                       <>
                         <MarkdownAnswer content={parsed.content} />
                         {merged.length > 0 ? (
-                          <MessageSources messageId="__stream__" sources={merged} />
+                          <SourceList sources={merged} className="mt-3" />
                         ) : null}
                       </>
                     );
                   })()}
                   {streamError ? (
                     <div className="flex flex-col gap-2">
-                      <p className="text-ui-12 leading-[1.6] text-danger">
+                      <p className="text-caption leading-[1.6] text-fg-danger">
                         {mapResponseError(streamError)}
                       </p>
                       <div>
@@ -1528,13 +1351,13 @@ export const ProjectDetailPage = ({
                       </div>
                     </div>
                   ) : streamContent ? null : (
-                    <p className="text-ui-12 leading-[1.6] text-text-soft">
+                    <p className="text-caption leading-[1.6] text-fg-muted">
                       찾아보는 중이에요
                       <LoadingDots />
                     </p>
                   )}
                   {!streamError && streamContent === '' && streamSources.length > 0 ? (
-                    <p className="mt-2 text-ui-10 text-text-soft">
+                    <p className="mt-2 text-micro text-fg-muted">
                       참조 소스 {streamSources.length}개 수집됨
                     </p>
                   ) : null}
@@ -1548,7 +1371,7 @@ export const ProjectDetailPage = ({
       {shareSelection.selectionMode && isPersonalChat ? (
         <footer className="shrink-0 border-t border-line bg-surface px-6 py-3 max-sm:px-3">
           <div className="mx-auto flex w-full max-w-[48rem] items-center justify-between gap-3">
-            <span className="text-ui-14 text-text-base">
+            <span className="text-label text-fg-default">
               <b>{shareSelection.count}</b>개 선택됨 · 최대 {MAX_SHARE_PAIRS}개
             </span>
             <div className="flex items-center gap-2">
@@ -1578,13 +1401,13 @@ export const ProjectDetailPage = ({
             value={draft}
             placeholder={
               isAnalyzing
-                ? `동기화 중... (${syncProgress}%)`
+                ? '동기화가 끝나면 질문할 수 있어요.'
                 : !activeChatId
-                  ? '새 대화를 시작해보세요...'
+                  ? '새 대화를 시작해 보세요'
                   : isTeamChatReadOnly
-                    ? '팀채팅은 현재 읽기 전용입니다.'
+                    ? '팀 채팅은 아직 읽기만 할 수 있어요.'
                     : isTeamChat
-                      ? '팀에게 메시지 보내기...'
+                      ? '팀에게 메시지 보내기'
                       : '무엇이든 물어보세요!'
             }
             disabled={isTeamChatReadOnly || isAnalyzing}
@@ -1597,6 +1420,7 @@ export const ProjectDetailPage = ({
                   : undefined
             }
             isSending={isSending}
+            status={isAnalyzing ? `코드를 동기화하는 중이에요 · ${syncProgress}%` : undefined}
             onChange={setDraft}
             onSend={() => {
               void sendMessage();
@@ -1606,6 +1430,31 @@ export const ProjectDetailPage = ({
       )}
 
       {teamChatModalNode}
+      <ConfirmDialog
+        open={shareDeleteId !== null}
+        title="공유를 취소할까요?"
+        description="팀 채팅에서 이 공유 카드가 사라져요."
+        confirmLabel="공유 취소"
+        error={
+          deleteDigestCard.error
+            ? friendlyErrorMessage(deleteDigestCard.error).description
+            : undefined
+        }
+        isProcessing={deleteDigestCard.isPending}
+        onClose={() => {
+          deleteDigestCard.reset();
+          setShareDeleteId(null);
+        }}
+        onConfirm={() => {
+          if (!shareDeleteId) return;
+          deleteDigestCard.mutate(
+            { messageId: shareDeleteId },
+            {
+              onSuccess: () => setShareDeleteId(null)
+            }
+          );
+        }}
+      />
 
       {shareModalOpen && activeChatId && chatName && isPersonalChat ? (
         <ShareToTeamChatModal

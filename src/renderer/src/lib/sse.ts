@@ -69,7 +69,7 @@ const parseFrame = (block: string): SseFrame | null => {
 // 스트림 시작 전 서버가 일반 JSON 으로 4xx/5xx 를 응답할 수 있다.
 // 이 경우 SSE 프레임이 아니므로 상태·메시지를 뽑아 예외로 던진다.
 const extractHttpErrorMessage = async (response: Response): Promise<string> => {
-  let message = `요청에 실패했습니다. (${response.status})`;
+  let message = `요청하지 못했어요. (${response.status})`;
   try {
     const json = (await response.json()) as { message?: string };
     if (json?.message) message = json.message;
@@ -81,7 +81,7 @@ const extractHttpErrorMessage = async (response: Response): Promise<string> => {
 
 export class SseAbortError extends Error {
   constructor() {
-    super('요청이 취소되었습니다.');
+    super('요청이 취소됐어요.');
     this.name = 'SseAbortError';
   }
 }
@@ -121,7 +121,7 @@ export const streamSse = async (options: StreamSseOptions): Promise<void> => {
   }
 
   const reader = response.body?.getReader();
-  if (!reader) throw new Error('스트리밍 응답을 읽을 수 없습니다.');
+  if (!reader) throw new Error('답변을 읽을 수 없어요.');
 
   const decoder = new TextDecoder();
   let buffer = '';
@@ -144,7 +144,7 @@ export const streamSse = async (options: StreamSseOptions): Promise<void> => {
       const message =
         typeof payload === 'string'
           ? payload
-          : (payload?.message ?? '스트리밍 중 오류가 발생했습니다.');
+          : (payload?.message ?? '답변을 받는 중 문제가 생겼어요.');
       const code = typeof payload === 'string' ? undefined : payload?.code;
       throw new SseServerError(message, code);
     }
@@ -183,7 +183,7 @@ export const streamSse = async (options: StreamSseOptions): Promise<void> => {
     if (tail && !completed) dispatch(tail);
 
     if (!completed) {
-      throw new SseServerError('응답이 완료되기 전에 스트리밍 연결이 종료되었습니다.');
+      throw new SseServerError('답변이 끝나기 전에 연결이 끊겼어요.');
     }
   } catch (err) {
     if (signal?.aborted && !(err instanceof SseAbortError)) {

@@ -37,7 +37,7 @@ const Wrapper = ({ initialSelected }: { initialSelected: string[] }): React.JSX.
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected));
   const [note, setNote] = useState('');
   return (
-    <div className="w-[560px] rounded-2xl border border-line bg-surface p-6">
+    <div className="w-[560px] rounded-shell border border-line bg-surface p-6">
       <Step1SelectAndNote
         pairs={samplePairs}
         selectedIds={selected}
@@ -70,7 +70,7 @@ export const OnlyOneSelected: Story = {
 
 export const EmptyList: Story = {
   render: () => (
-    <div className="w-[560px] rounded-2xl border border-line bg-surface p-6">
+    <div className="w-[560px] rounded-shell border border-line bg-surface p-6">
       <Step1SelectAndNote
         pairs={[]}
         selectedIds={new Set()}

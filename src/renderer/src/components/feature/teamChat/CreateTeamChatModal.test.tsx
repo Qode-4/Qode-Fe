@@ -78,7 +78,7 @@ describe('CreateTeamChatModal', () => {
     // 멤버 로드 대기
     const user = userEvent.setup();
     await waitFor(() => {
-      expect(screen.getByRole('option', { name: /지호/ })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /지호/ })).toBeInTheDocument();
     });
 
     await user.type(screen.getByLabelText('채팅방 이름'), '기획 회의');
@@ -130,14 +130,14 @@ describe('CreateTeamChatModal', () => {
 
     const user = userEvent.setup();
     await waitFor(() => {
-      expect(screen.getByRole('option', { name: /나연/ })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /나연/ })).toBeInTheDocument();
     });
     await user.type(screen.getByLabelText('채팅방 이름'), '중복 이름');
     await user.click(screen.getByRole('checkbox', { name: '나연 선택' }));
     await user.click(screen.getByRole('button', { name: '생성' }));
 
     await waitFor(() => {
-      expect(screen.getByText('이미 사용 중인 채팅방 이름입니다.')).toBeInTheDocument();
+      expect(screen.getByText('이미 쓰고 있는 채팅방 이름이에요.')).toBeInTheDocument();
     });
   });
 });

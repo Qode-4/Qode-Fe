@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { Avatar } from '../../ui/Avatar';
+import { StateMessage } from '../../ui/StateMessage';
 
 export type PickListMember = {
   id: string;
@@ -14,11 +16,11 @@ type Props = {
   min?: number;
   max?: number;
   emptyMessage?: string;
+  /** 목록을 불러오는 중일 때 빈 상태 대신 보여줄 문구 */
+  loadingMessage?: string;
   searchPlaceholder?: string;
   ariaLabel?: string;
 };
-
-const initialOf = (name: string): string => name.trim().charAt(0).toUpperCase() || '?';
 
 export const ProjectMemberPickList = ({
   members,
@@ -26,7 +28,8 @@ export const ProjectMemberPickList = ({
   excludedIds = [],
   onToggle,
   max,
-  emptyMessage = '검색 결과가 없습니다.',
+  emptyMessage = '검색 결과가 없어요.',
+  loadingMessage,
   searchPlaceholder = '이름 검색',
   ariaLabel = '멤버 선택 목록'
 }: Props): React.JSX.Element => {
@@ -54,24 +57,32 @@ export const ProjectMemberPickList = ({
           onChange={(event) => setQuery(event.target.value)}
           placeholder={searchPlaceholder}
           aria-label="멤버 이름으로 검색"
-          className="h-9 w-full rounded-md border border-control-line bg-surface px-3 text-ui-14 text-text-base outline-none focus:border-primary"
+          className="h-9 w-full rounded-control border border-line-strong bg-surface px-3 text-label text-fg-default outline-none focus:border-line-primary"
         />
       </label>
 
       <ul
-        role="listbox"
         aria-label={ariaLabel}
-        aria-multiselectable
-        className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-md border border-line bg-surface"
+        className="max-h-[280px] min-h-[80px] overflow-y-auto rounded-control border border-line bg-surface"
       >
-        {visibleMembers.length === 0 ? (
-          <li className="px-3 py-6 text-center text-ui-12 text-text-soft">{emptyMessage}</li>
+        {loadingMessage ? (
+          <li className="px-3 py-6">
+            <StateMessage kind="loading" align="center">
+              {loadingMessage}
+            </StateMessage>
+          </li>
+        ) : visibleMembers.length === 0 ? (
+          <li className="px-3 py-6">
+            <StateMessage kind="empty" align="center">
+              {emptyMessage}
+            </StateMessage>
+          </li>
         ) : (
           visibleMembers.map((member) => {
             const isSelected = selectedSet.has(member.id);
             const disabled = !isSelected && atMax;
             return (
-              <li key={member.id} role="option" aria-selected={isSelected}>
+              <li key={member.id}>
                 <label
                   className={[
                     'flex cursor-pointer items-center gap-3 px-3 py-2 transition-colors',
@@ -86,22 +97,8 @@ export const ProjectMemberPickList = ({
                     onChange={() => onToggle(member.id)}
                     aria-label={`${member.name} 선택`}
                   />
-                  {member.avatarUrl ? (
-                    <img
-                      src={member.avatarUrl}
-                      alt=""
-                      aria-hidden
-                      className="size-7 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span
-                      aria-hidden
-                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-ui-12 font-semibold text-primary"
-                    >
-                      {initialOf(member.name)}
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1 truncate text-ui-14 text-text-base">
+                  <Avatar name={member.name} src={member.avatarUrl} size="md" tone="brand" />
+                  <span className="min-w-0 flex-1 truncate text-label text-fg-default">
                     {member.name}
                   </span>
                 </label>

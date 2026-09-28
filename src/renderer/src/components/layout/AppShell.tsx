@@ -14,7 +14,7 @@ import {
 import { createPortal } from 'react-dom';
 import { usePostAuthLogout } from '../../api/auth/useAuthAPI';
 import { useDeleteChat, usePatchChat } from '../../api/auth/useChatsAPI';
-import { friendlyErrorMessage } from '../../api/errorMessages';
+import { friendlyErrorMessage, type ErrorContext } from '../../api/errorMessages';
 import { useToast } from '../../hooks/useToast';
 import {
   useDeleteProject,
@@ -44,7 +44,6 @@ import type {
 } from '../../api/generated/data-contracts';
 import { QUERY_KEY } from '../../api/queryKeys';
 import { tokenStorage } from '../../api/tokenStorage';
-import overflowIcon from '../../assets/overflow-icon.png';
 import { navigate } from '../../lib/hashRouter';
 import { formatRelativeTime } from '../../lib/relativeTime';
 import { getStoredUiFontSize, persistUiFontSize, type UiFontSize } from '../../lib/uiFontSize';
@@ -53,8 +52,14 @@ import { Button } from '../ui/Button';
 import { ChatItemMenu, type ChatItemMenuAction } from '../ui/ChatItemMenu';
 import { DrawerHeader } from '../ui/DrawerHeader';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { InlineAlert } from '../ui/InlineAlert';
 import { OverlayModal } from '../ui/OverlayModal';
+import { cn } from '../../lib/cn';
+import { Avatar } from '../ui/Avatar';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { TextField } from '../ui/TextField';
+import { StateMessage } from '../ui/StateMessage';
 
 type Props = {
   me?: GetAuthData | null;
@@ -93,8 +98,6 @@ type ProjectMenuAction = {
 type SectionMenuAction = { key: 'rename' | 'createFolder' | 'delete'; label: string };
 type SettingsActionKind = 'profile' | 'logout';
 type SettingsMenuAction = { key: SettingsActionKind; label: string; iconName: IconName };
-type AvatarSize = 'sm' | 'md';
-
 const VIEWPORT_MARGIN = 8;
 const SETTINGS_MENU_WIDTH = 196;
 const PROFILE_DIALOG_WIDTH = 240;
@@ -103,78 +106,23 @@ const PROFILE_DIALOG_GAP = 17;
 
 // sm(640) 미만: 팝오버/메뉴는 바텀시트 (모달 풀스크린은 OverlayModal 자체에서 처리).
 const MOBILE_SHEET_CLASS =
-  'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl border-t border-line bg-surface p-2 shadow-lg';
-
-const avatarSizeClassMap: Record<AvatarSize, string> = {
-  sm: 'size-7 text-ui-12',
-  md: 'size-10 text-ui-16'
-};
+  'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-shell border-t border-line bg-surface p-2 shadow-overlay';
 
 const drawerTypography = {
-  sectionTitle: 'text-ui-12',
-  emptyState: 'text-ui-12',
-  listItem: 'text-ui-14',
-  listItemAction: 'text-ui-10',
-  settingsName: 'text-ui-12',
-  settingsEmail: 'text-ui-11',
-  settingsMenuItem: 'text-ui-11',
-  profileTitle: 'text-ui-12',
-  profileInput: 'text-ui-12',
-  profileEmail: 'text-ui-11',
-  profileButton: 'text-ui-12',
-  fontSizeLabel: 'text-ui-10',
-  fontSizeOption: 'text-ui-11'
+  sectionTitle: 'text-caption',
+  emptyState: 'text-caption',
+  listItem: 'text-label',
+  listItemAction: 'text-micro',
+  settingsName: 'text-caption',
+  settingsEmail: 'text-micro',
+  settingsMenuItem: 'text-micro',
+  profileTitle: 'text-caption',
+  profileInput: 'text-caption',
+  profileEmail: 'text-micro',
+  profileButton: 'text-caption',
+  fontSizeLabel: 'text-micro',
+  fontSizeOption: 'text-micro'
 } as const;
-
-type AvatarVariant = 'default' | 'brand';
-
-const UserAvatar = ({
-  name,
-  avatarUrl,
-  size,
-  variant = 'default'
-}: {
-  name: string;
-  avatarUrl?: string | null;
-  size: AvatarSize;
-  variant?: AvatarVariant;
-}): React.JSX.Element => {
-  const initial = name.trim().charAt(0).toUpperCase() || '?';
-  const sizeClassName = avatarSizeClassMap[size];
-  // avatarUrl이 바뀌면 실패 플래그를 초기화한다 — 이전 URL 실패가 새 URL을 가리면 안 된다.
-  // useEffect 대신 렌더 중 파생 상태 조정 패턴 (React 공식 권장).
-  const [imgFailed, setImgFailed] = useState(false);
-  const [prevAvatarUrl, setPrevAvatarUrl] = useState(avatarUrl);
-  if (avatarUrl !== prevAvatarUrl) {
-    setPrevAvatarUrl(avatarUrl);
-    setImgFailed(false);
-  }
-
-  if (avatarUrl && !imgFailed) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={`${name} 프로필 이미지`}
-        onError={() => setImgFailed(true)}
-        className={`inline-flex shrink-0 rounded-full border border-line object-cover ${sizeClassName}`}
-      />
-    );
-  }
-
-  const fallbackClassName =
-    variant === 'brand'
-      ? 'bg-primary-soft font-semibold text-primary'
-      : 'border border-line bg-surface-muted font-medium text-text-soft';
-
-  return (
-    <div
-      className={`inline-flex shrink-0 items-center justify-center rounded-full ${fallbackClassName} ${sizeClassName}`}
-      aria-hidden="true"
-    >
-      {initial}
-    </div>
-  );
-};
 
 // 팀당 최대 인원. 서버(project.service.ts MAX_TEAM_MEMBERS)와 같은 값이어야 한다.
 // 화면은 안내만 하고 실제 차단은 서버가 한다 — A-2 BR-A2-04.
@@ -228,6 +176,17 @@ const settingsMenuActions: SettingsMenuAction[] = [
   { key: 'logout', label: '로그아웃', iconName: 'Code_light' }
 ];
 
+type ConfirmRequest = {
+  title: string;
+  description: ReactNode;
+  confirmLabel: string;
+  emphasis?: boolean;
+  /** 실패 메시지 문맥(friendlyErrorMessage) */
+  errorContext?: ErrorContext;
+  /** 실패는 던진다 — runConfirm 이 모달 안에 보여준다 */
+  action: () => Promise<void>;
+};
+
 export const AppShell = ({
   me,
   projects,
@@ -256,6 +215,28 @@ export const AppShell = ({
   const isMobile = useIsMobile();
   const location = useHashLocation();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  // 되돌릴 수 없는 액션의 확인 — window.confirm 대신 ConfirmDialog (docs/patterns/confirm.md)
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const closeConfirm = (): void => {
+    setConfirmRequest(null);
+    setConfirmError(null);
+  };
+  // 실패하면 모달을 닫지 않고 안에 오류를 보여준다 — 바로 다시 시도할 수 있게 (docs/patterns/error.md)
+  const runConfirm = async (): Promise<void> => {
+    if (!confirmRequest) return;
+    setConfirmBusy(true);
+    setConfirmError(null);
+    try {
+      await confirmRequest.action();
+      closeConfirm();
+    } catch (error) {
+      setConfirmError(friendlyErrorMessage(error, confirmRequest.errorContext).description);
+    } finally {
+      setConfirmBusy(false);
+    }
+  };
   const [drawerDragOffset, setDrawerDragOffset] = useState(0);
   const drawerDragStartXRef = useRef<number | null>(null);
   const drawerDragPointerIdRef = useRef<number | null>(null);
@@ -374,7 +355,6 @@ export const AppShell = ({
 
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [reissueConfirming, setReissueConfirming] = useState(false);
-  const [memberActionError, setMemberActionError] = useState<string | null>(null);
 
   const modalProject = useMemo(
     () => projects.find((it) => it.id === projectModal?.projectId),
@@ -431,9 +411,9 @@ export const AppShell = ({
     if (!sourceGitUrl) return;
     try {
       await navigator.clipboard.writeText(sourceGitUrl);
-      toast.success('복사되었습니다');
+      toast.success('복사했어요');
     } catch {
-      toast.error('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
+      toast.error('복사하지 못했어요. 브라우저 권한을 확인해주세요.');
     }
   };
 
@@ -452,19 +432,19 @@ export const AppShell = ({
     }
   };
 
-  const removeMember = async (userId: string, isSelf: boolean): Promise<void> => {
+  const removeMember = (userId: string, isSelf: boolean, memberName: string): void => {
     if (!modalProjectId) return;
-    const message = isSelf
-      ? '이 프로젝트에서 나갈까요? 다시 들어오려면 초대 링크가 필요해요.'
-      : '이 멤버를 프로젝트에서 내보낼까요?';
-    if (!window.confirm(message)) return;
-
-    setMemberActionError(null);
-    try {
-      await deleteProjectMember.mutateAsync({ projectId: modalProjectId, userId });
-    } catch (error) {
-      setMemberActionError(handleApiError(error).message);
-    }
+    setConfirmRequest({
+      title: isSelf ? '이 프로젝트에서 나갈까요?' : `‘${memberName}’님을 프로젝트에서 제거할까요?`,
+      description: isSelf
+        ? '다시 들어오려면 초대 링크가 필요해요.'
+        : '다시 초대하기 전까지 이 프로젝트에 접근할 수 없어요.',
+      confirmLabel: isSelf ? '나가기' : '제거',
+      emphasis: true,
+      action: async () => {
+        await deleteProjectMember.mutateAsync({ projectId: modalProjectId, userId });
+      }
+    });
   };
 
   const selectedProjectSyncStatus = useGetProjectSyncStatus({
@@ -478,7 +458,7 @@ export const AppShell = ({
     Boolean(selectedProjectId) && !isSyncInProgress && !postProjectSync.isPending;
   const syncMenuLabel =
     isSyncInProgress || postProjectSync.isPending
-      ? '동기화 중...'
+      ? '동기화 중…'
       : selectedProjectSyncStatusValue === 'failed'
         ? '동기화 다시 시도'
         : '동기화';
@@ -861,9 +841,6 @@ export const AppShell = ({
       setInviteSuccess(null);
       setReissueConfirming(false);
     }
-    if (kind === 'members') {
-      setMemberActionError(null);
-    }
   };
 
   const closeProjectModal = (): void => {
@@ -912,16 +889,21 @@ export const AppShell = ({
     project: ProjectsListData['data'][number]
   ): Promise<void> => {
     setOpenMenuProjectId(null);
-    if (!window.confirm(`"${project.name}" 프로젝트를 삭제할까요?`)) return;
-
-    try {
-      await deleteProject.mutateAsync(project.id);
-      if (selectedProjectId === project.id) {
-        navigate('/projects', { replace: true });
+    setConfirmRequest({
+      title: `‘${project.name}’ 프로젝트를 삭제할까요?`,
+      description: '멤버 전원이 이 프로젝트와 그 안의 대화에 더 이상 접근할 수 없어요.',
+      confirmLabel: '삭제',
+      emphasis: true,
+      errorContext: 'project.delete',
+      action: async () => {
+        await deleteProject.mutateAsync(project.id);
+        // 보던 프로젝트가 사라지면 왜 화면이 바뀌었는지 알린다 (docs/patterns/feedback.md)
+        if (selectedProjectId === project.id) {
+          navigate('/projects', { replace: true });
+          toast.success(`‘${project.name}’ 프로젝트를 삭제했어요`);
+        }
       }
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'project.delete'));
-    }
+    });
   };
 
   const handleProjectMenuOpen = (projectId: string, button: HTMLButtonElement): void => {
@@ -961,6 +943,7 @@ export const AppShell = ({
   const closeSectionRenameModal = (): void => {
     setSectionRenameModalSectionId(null);
     setSectionRenameTouched(false);
+    patchSection.reset();
   };
 
   const openSectionCreateModal = (): void => {
@@ -972,6 +955,7 @@ export const AppShell = ({
   const closeSectionCreateModal = (): void => {
     setSectionCreateModalOpen(false);
     setSectionCreateTouched(false);
+    postSection.reset();
   };
 
   const openFolderCreateModal = (sectionId: string): void => {
@@ -984,6 +968,7 @@ export const AppShell = ({
   const closeFolderCreateModal = (): void => {
     setFolderCreateModalSectionId(null);
     setFolderCreateTouched(false);
+    postFolder.reset();
   };
 
   const applySectionRename = async (): Promise<void> => {
@@ -999,8 +984,8 @@ export const AppShell = ({
         body: { name: trimmed }
       });
       closeSectionRenameModal();
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'section.rename'));
+    } catch {
+      // 실패는 mutation.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     }
   };
 
@@ -1012,8 +997,8 @@ export const AppShell = ({
     try {
       await postSection.mutateAsync({ name: trimmed });
       closeSectionCreateModal();
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'section.create'));
+    } catch {
+      // 실패는 mutation.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     }
   };
 
@@ -1021,13 +1006,15 @@ export const AppShell = ({
     const section = sections.find((item) => item.id === sectionId);
     setOpenSectionMenuId(null);
     if (!section) return;
-    if (!window.confirm(`"${section.name}" 섹션을 삭제할까요?`)) return;
-
-    try {
-      await deleteSection.mutateAsync(sectionId);
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'section.delete'));
-    }
+    setConfirmRequest({
+      title: `‘${section.name}’ 섹션을 삭제할까요?`,
+      description: '삭제하면 되돌릴 수 없어요.',
+      confirmLabel: '삭제',
+      errorContext: 'section.delete',
+      action: async () => {
+        await deleteSection.mutateAsync(sectionId);
+      }
+    });
   };
 
   const createFolder = async (): Promise<void> => {
@@ -1041,20 +1028,23 @@ export const AppShell = ({
         body: { name: trimmed }
       });
       closeFolderCreateModal();
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'folder.create'));
+    } catch {
+      // 실패는 mutation.error 로 모달 안에 보여준다 (docs/patterns/error.md)
     }
   };
 
   const handlePersonalChatDelete = async (chat: ChatsMeListData['data'][number]): Promise<void> => {
     if (!selectedProjectId) return;
-    if (!window.confirm(`"${chat.name}" 채팅을 삭제할까요?`)) return;
-
-    try {
-      await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
-    } catch (error) {
-      toast.error(friendlyErrorMessage(error, 'chat.delete'));
-    }
+    setConfirmRequest({
+      title: `‘${chat.name}’ 채팅을 삭제할까요?`,
+      description: '대화 내용이 모두 사라져요.',
+      confirmLabel: '삭제',
+      errorContext: 'chat.delete',
+      action: async () => {
+        await deleteChat.mutateAsync({ projectId: selectedProjectId, chatId: chat.id });
+        if (activeChatId === chat.id) toast.success(`‘${chat.name}’ 채팅을 삭제했어요`);
+      }
+    });
   };
 
   const beginChatRename = (chat: ChatsMeListData['data'][number]): void => {
@@ -1104,13 +1094,13 @@ export const AppShell = ({
   };
 
   return (
-    <div className="h-full w-full bg-app-bg">
+    <div className="h-full w-full bg-canvas">
       <div className="grid h-full grid-cols-[240px_minmax(0,1fr)] max-sm:grid-cols-1">
         {isMobile && mobileDrawerOpen ? (
           <button
             type="button"
             aria-label="사이드바 닫기"
-            className="fixed inset-0 z-30 bg-black/40 sm:hidden"
+            className="fixed inset-0 z-30 bg-scrim/40 sm:hidden"
             onClick={() => setMobileDrawerOpen(false)}
           />
         ) : null}
@@ -1121,7 +1111,7 @@ export const AppShell = ({
           className={[
             'flex min-h-0 flex-col bg-sidebar touch-pan-y',
             'max-sm:fixed max-sm:inset-y-0 max-sm:left-0 max-sm:z-40 max-sm:w-[280px] max-sm:max-w-[85vw]',
-            'max-sm:shadow-lg max-sm:transition-transform',
+            'max-sm:shadow-overlay max-sm:transition-transform max-sm:duration-base max-sm:ease-enter',
             isMobile && !mobileDrawerOpen ? 'max-sm:-translate-x-full' : 'max-sm:translate-x-0'
           ].join(' ')}
           onPointerDown={handleDrawerPointerDown}
@@ -1138,7 +1128,7 @@ export const AppShell = ({
             type="button"
             aria-label="사이드바 닫기"
             onClick={() => setMobileDrawerOpen(false)}
-            className="absolute right-2 top-2 z-10 hidden h-11 w-11 items-center justify-center rounded-md text-text-subtle hover:bg-surface-muted active:bg-line max-sm:inline-flex"
+            className="absolute right-2 top-2 z-10 hidden h-11 w-11 items-center justify-center rounded-control text-fg-subtle hover:bg-surface-muted active:bg-line max-sm:inline-flex"
           >
             <svg
               aria-hidden="true"
@@ -1173,9 +1163,9 @@ export const AppShell = ({
                   onClick={requestProjectSync}
                   aria-busy={isSyncInProgress || postProjectSync.isPending}
                   className={[
-                    'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-3 text-ui-12 font-medium text-text-base transition-colors',
+                    'flex h-9 w-full items-center justify-between gap-2 rounded-control border border-line bg-surface px-3 text-caption font-medium text-fg-default transition-colors',
                     'hover:bg-surface-muted active:bg-line',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-base focus-visible:ring-offset-2',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-default focus-visible:ring-offset-2',
                     'disabled:cursor-not-allowed disabled:opacity-60'
                   ].join(' ')}
                 >
@@ -1184,7 +1174,7 @@ export const AppShell = ({
                     {syncMenuLabel}
                   </span>
                   <span
-                    className="min-w-0 truncate text-ui-11 font-normal text-text-soft"
+                    className="min-w-0 truncate text-micro font-normal text-fg-muted"
                     aria-live="polite"
                   >
                     {syncStatusInlineText}
@@ -1196,7 +1186,7 @@ export const AppShell = ({
               <div className="inline-flex w-full items-center justify-between gap-2">
                 <p
                   className={[
-                    'min-w-0 flex-1 font-medium leading-none text-text-subtle',
+                    'min-w-0 flex-1 font-medium leading-none text-fg-subtle',
                     drawerTypography.sectionTitle
                   ].join(' ')}
                 >
@@ -1206,15 +1196,15 @@ export const AppShell = ({
                   type="button"
                   aria-label={sectionsCollapsed ? '섹션 펼치기' : '섹션 접기'}
                   aria-expanded={!sectionsCollapsed}
-                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-text-soft transition-colors hover:bg-surface-muted hover:text-text-subtle active:bg-line"
+                  className="inline-flex items-center justify-center rounded-inline p-1 text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg-subtle active:bg-line"
                   onClick={() => setSectionsCollapsed((prev) => !prev)}
                 >
                   <span
                     aria-hidden="true"
                     className={
                       sectionsCollapsed
-                        ? '-rotate-90 text-[11px] leading-none transition-transform'
-                        : 'text-[11px] leading-none transition-transform'
+                        ? '-rotate-90 text-caption leading-none transition-transform'
+                        : 'text-caption leading-none transition-transform'
                     }
                   >
                     ▾
@@ -1232,30 +1222,25 @@ export const AppShell = ({
               {sectionsCollapsed ? null : (
                 <>
                   {sectionsErrorMessage ? null : sectionsLoading ? (
-                    <div
-                      className={[
-                        'flex h-24 items-center justify-center text-center font-normal leading-[1.6] text-text-soft',
-                        drawerTypography.emptyState
-                      ].join(' ')}
-                    >
-                      섹션을 불러오는 중입니다...
-                    </div>
+                    <StateMessage kind="loading" align="center" className="h-24">
+                      섹션을 불러오는 중…
+                    </StateMessage>
                   ) : sections.length > 0 ? (
                     <nav aria-label="섹션 목록" className="mt-0.5">
                       {sections.map((section) => (
                         <div key={section.id} className="group relative">
                           <div
                             className={[
-                              'inline-flex h-7 w-full items-center gap-1 rounded-[8px] pl-2 py-[2px] font-normal no-underline transition-colors',
+                              'inline-flex h-7 w-full items-center gap-1 rounded-card pl-2 py-[2px] font-normal no-underline transition-colors',
                               drawerTypography.listItem,
-                              'text-text-base'
+                              'text-fg-default'
                             ].join(' ')}
                           >
                             <Icon
                               name="dot_round_fill"
                               size="sm"
                               decorative
-                              className="text-text-soft"
+                              className="text-fg-muted"
                             />
                             <span className="min-w-0 flex-1 truncate">{section.name}</span>
                             <button
@@ -1271,7 +1256,7 @@ export const AppShell = ({
                                 openSectionMenuId === section.id ? sectionMenuId : undefined
                               }
                               className={[
-                                'inline-flex shrink-0 items-center justify-center rounded-[4px] p-1 transition-opacity',
+                                'inline-flex shrink-0 items-center justify-center rounded-inline p-1 transition-opacity',
                                 openSectionMenuId === section.id
                                   ? 'bg-line opacity-100'
                                   : 'opacity-0 hover:bg-line group-hover:opacity-100 group-focus-within:opacity-100'
@@ -1286,7 +1271,7 @@ export const AppShell = ({
                                 name="Setting_line_light"
                                 size="sm"
                                 decorative
-                                className="text-text-soft"
+                                className="text-fg-muted"
                               />
                             </button>
                           </div>
@@ -1296,7 +1281,7 @@ export const AppShell = ({
                               <div
                                 key={folder.id}
                                 className={[
-                                  'inline-flex h-7 w-full items-center gap-1 rounded-[8px] px-2 py-[2px] font-normal text-text-subtle transition-colors hover:bg-surface-muted',
+                                  'inline-flex h-7 w-full items-center gap-1 rounded-card px-2 py-[2px] font-normal text-fg-subtle transition-colors hover:bg-surface-muted',
                                   drawerTypography.listItem
                                 ].join(' ')}
                               >
@@ -1304,7 +1289,7 @@ export const AppShell = ({
                                   name="Folder_light"
                                   size={20}
                                   decorative
-                                  className="text-fill-icon"
+                                  className="text-fg-default"
                                 />
                                 <span className="min-w-0 flex-1 truncate">{folder.name}</span>
                               </div>
@@ -1314,11 +1299,11 @@ export const AppShell = ({
                               type="button"
                               onClick={() => openFolderCreateModal(section.id)}
                               className={[
-                                'inline-flex h-7 items-center gap-1 pl-3 pr-2 py-[2px] font-normal text-text-soft transition-colors hover:text-text-subtle',
+                                'inline-flex h-7 items-center gap-1 pl-3 pr-2 py-[2px] font-normal text-fg-muted transition-colors hover:text-fg-subtle',
                                 drawerTypography.listItem
                               ].join(' ')}
                             >
-                              <span className="text-[18px] leading-none">+</span>
+                              <span className="text-title leading-none">+</span>
                               <span>추가</span>
                             </button>
                           </div>
@@ -1331,11 +1316,11 @@ export const AppShell = ({
                     type="button"
                     onClick={openSectionCreateModal}
                     className={[
-                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-text-soft transition-colors hover:text-text-subtle',
+                      'mt-1 inline-flex h-7 items-center gap-1 pl-3 py-[2px] font-normal text-fg-muted transition-colors hover:text-fg-subtle',
                       drawerTypography.listItem
                     ].join(' ')}
                   >
-                    <span className="text-[18px] leading-none">+</span>
+                    <span className="text-title leading-none">+</span>
                     <span>추가</span>
                   </button>
                 </>
@@ -1346,23 +1331,20 @@ export const AppShell = ({
               <div className="inline-flex w-full items-center justify-between gap-2">
                 <p
                   className={[
-                    'min-w-0 flex-1 font-medium leading-none text-text-subtle',
+                    'min-w-0 flex-1 font-medium leading-none text-fg-subtle',
                     drawerTypography.sectionTitle
                   ].join(' ')}
                 >
                   내 채팅
                 </p>
-                <button
-                  type="button"
+                <IconButton
+                  size="sm"
+                  name="Add_round_light"
                   aria-label="새 채팅 만들기"
                   disabled={!selectedProjectId}
-                  className="inline-flex items-center justify-center rounded-[4px] p-1 text-text-soft transition-colors hover:bg-surface-muted hover:text-text-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={onCreatePersonalChat}
-                >
-                  <span aria-hidden="true" className="text-[16px] leading-none">
-                    +
-                  </span>
-                </button>
+                  className="text-fg-muted hover:text-fg-subtle"
+                />
               </div>
               {chatsIsError ? (
                 <div
@@ -1371,24 +1353,23 @@ export const AppShell = ({
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
-                  <p className="text-text-subtle">채팅 목록을 불러올 수 없습니다.</p>
+                  <p className="text-fg-subtle">채팅 목록을 불러오지 못했어요.</p>
                   <button
                     type="button"
                     onClick={onRetryChats}
-                    className="font-medium text-accent-strong hover:underline"
+                    className="font-medium text-fg-primary hover:underline"
                   >
                     다시 시도
                   </button>
                 </div>
               ) : !chatsIsLoading && personalChats.length === 0 ? (
-                <p
-                  className={[
-                    'mt-1 px-3 py-2 font-normal text-text-subtle',
-                    drawerTypography.emptyState
-                  ].join(' ')}
+                <StateMessage
+                  kind="empty"
+                  className="mt-1 px-3 py-2"
+                  action={selectedProjectId ? '＋ 를 눌러 코드에 질문해 보세요.' : undefined}
                 >
-                  아직 채팅이 없습니다.
-                </p>
+                  아직 채팅이 없어요.
+                </StateMessage>
               ) : null}
               <nav aria-label="내 채팅 목록" className="mt-0.5">
                 {personalChats.map((chat) => {
@@ -1418,7 +1399,7 @@ export const AppShell = ({
                       <div
                         key={chat.id}
                         className={[
-                          'flex h-7 w-full items-center rounded-[8px] px-2 py-[2px]',
+                          'flex h-7 w-full items-center rounded-card px-2 py-[2px]',
                           isActive ? 'bg-primary-soft' : 'bg-surface-muted'
                         ].join(' ')}
                       >
@@ -1443,7 +1424,7 @@ export const AppShell = ({
                           className={[
                             'w-full bg-transparent outline-none',
                             drawerTypography.listItem,
-                            'text-text-base placeholder:text-text-soft'
+                            'text-fg-default placeholder:text-fg-muted'
                           ].join(' ')}
                           aria-label={`${chat.name} 이름 바꾸기`}
                         />
@@ -1458,11 +1439,11 @@ export const AppShell = ({
                         aria-current={isActive ? 'true' : undefined}
                         title={chat.name}
                         className={[
-                          'flex h-7 w-full min-w-0 items-center overflow-hidden rounded-[6px] px-2 py-[2px] text-left transition-colors',
+                          'flex h-7 w-full min-w-0 items-center overflow-hidden rounded-control px-2 py-[2px] text-left transition-colors',
                           drawerTypography.listItem,
                           isActive
-                            ? 'bg-primary-soft font-medium text-text-base'
-                            : 'font-normal text-text-base hover:bg-surface-muted active:bg-line'
+                            ? 'bg-primary-soft font-medium text-fg-default'
+                            : 'font-normal text-fg-default hover:bg-surface-muted active:bg-line'
                         ].join(' ')}
                         onClick={() => onSelectChat?.(chat.id)}
                       >
@@ -1478,12 +1459,7 @@ export const AppShell = ({
                         <ChatItemMenu
                           triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
                           ariaLabel={`${chat.name} 채팅 작업 메뉴`}
-                          triggerClassName={[
-                            'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
-                            isActive
-                              ? 'text-text-base hover:bg-line'
-                              : 'text-text-soft hover:bg-line'
-                          ].join(' ')}
+                          triggerClassName={cn('hover:bg-line', isActive && 'text-fg-default')}
                           actions={menuActions}
                         />
                       </div>
@@ -1497,24 +1473,21 @@ export const AppShell = ({
               <div className="inline-flex w-full items-center justify-between gap-2">
                 <p
                   className={[
-                    'min-w-0 flex-1 font-medium leading-none text-text-subtle',
+                    'min-w-0 flex-1 font-medium leading-none text-fg-subtle',
                     drawerTypography.sectionTitle
                   ].join(' ')}
                 >
                   팀 채팅
                 </p>
                 {API_CAPABILITIES.teamChatWritable ? (
-                  <button
-                    type="button"
+                  <IconButton
+                    size="sm"
+                    name="Add_round_light"
                     aria-label="새 팀 채팅 만들기"
                     disabled={!selectedProjectId}
-                    className="inline-flex items-center justify-center rounded-[4px] p-1 text-text-soft transition-colors hover:bg-surface-muted hover:text-text-subtle active:bg-line disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={onCreateTeamChat}
-                  >
-                    <span aria-hidden="true" className="text-[16px] leading-none">
-                      +
-                    </span>
-                  </button>
+                    className="text-fg-muted hover:text-fg-subtle"
+                  />
                 ) : null}
               </div>
 
@@ -1525,24 +1498,27 @@ export const AppShell = ({
                     drawerTypography.emptyState
                   ].join(' ')}
                 >
-                  <p className="text-text-subtle">채팅 목록을 불러올 수 없습니다.</p>
+                  <p className="text-fg-subtle">채팅 목록을 불러오지 못했어요.</p>
                   <button
                     type="button"
                     onClick={onRetryChats}
-                    className="font-medium text-accent-strong hover:underline"
+                    className="font-medium text-fg-primary hover:underline"
                   >
                     다시 시도
                   </button>
                 </div>
               ) : !chatsIsLoading && teamChats.length === 0 ? (
-                <p
-                  className={[
-                    'mt-1 px-3 py-2 font-normal text-text-subtle',
-                    drawerTypography.emptyState
-                  ].join(' ')}
+                <StateMessage
+                  kind="empty"
+                  className="mt-1 px-3 py-2"
+                  action={
+                    API_CAPABILITIES.teamChatWritable && onCreateTeamChat && selectedProjectId
+                      ? '＋ 를 눌러 팀원과 대화를 시작해 보세요.'
+                      : undefined
+                  }
                 >
-                  아직 채팅이 없습니다.
-                </p>
+                  아직 채팅이 없어요.
+                </StateMessage>
               ) : null}
               <nav aria-label="팀 채팅 목록" className="mt-0.5">
                 {teamChats.map((chat) => {
@@ -1592,11 +1568,11 @@ export const AppShell = ({
                         aria-current={isActive ? 'true' : undefined}
                         title={chat.name}
                         className={[
-                          'flex h-7 w-full min-w-0 items-center gap-1 overflow-hidden rounded-[6px] px-2 py-[2px] text-left transition-colors',
+                          'flex h-7 w-full min-w-0 items-center gap-1 overflow-hidden rounded-control px-2 py-[2px] text-left transition-colors',
                           drawerTypography.listItem,
                           isActive
-                            ? 'bg-primary-soft font-medium text-text-base'
-                            : 'font-normal text-text-base hover:bg-surface-muted active:bg-line'
+                            ? 'bg-primary-soft font-medium text-fg-default'
+                            : 'font-normal text-fg-default hover:bg-surface-muted active:bg-line'
                         ].join(' ')}
                         onClick={() => onSelectChat?.(chat.id)}
                       >
@@ -1613,12 +1589,7 @@ export const AppShell = ({
                           <ChatItemMenu
                             triggerAriaLabel={`${chat.name} 채팅 메뉴 열기`}
                             ariaLabel={`${chat.name} 채팅 작업 메뉴`}
-                            triggerClassName={[
-                              'inline-flex h-6 w-6 items-center justify-center rounded transition-colors',
-                              isActive
-                                ? 'text-text-base hover:bg-line'
-                                : 'text-text-soft hover:bg-line'
-                            ].join(' ')}
+                            triggerClassName={cn('hover:bg-line', isActive && 'text-fg-default')}
                             actions={teamMenuActions}
                           />
                         </div>
@@ -1634,40 +1605,33 @@ export const AppShell = ({
               className="flex items-center gap-2 border-t border-line pt-3 pr-0 pb-4 pl-1"
               aria-label="프로필"
             >
-              <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" variant="brand" />
-              <p className="min-w-0 flex-1 truncate text-[14px] font-semibold text-text-base">
+              <Avatar name={userName} src={userAvatarUrl} size="md" tone="brand" />
+              <p className="min-w-0 flex-1 truncate text-body font-semibold text-fg-default">
                 {userName}
               </p>
-              <button
-                type="button"
-                data-settings-trigger
+              <IconButton
+                size="md"
+                name="More_vertical_light"
                 aria-label="더보기"
+                data-settings-trigger
                 onClick={handleSettingsTriggerClick}
-                className="p-2"
-              >
-                <img src={overflowIcon} alt="더보기-아이콘" className="w-6" />
-              </button>
+                className="text-fg-muted"
+              />
             </div>
           </div>
         </aside>
 
-        <main className="flex min-h-0 flex-col overflow-hidden bg-app-bg p-3 pl-0 max-sm:p-0">
-          <header className="sticky top-0 z-20 hidden items-center gap-1 bg-app-bg px-1 py-1 max-sm:flex">
-            <button
-              type="button"
+        <main className="flex min-h-0 flex-col overflow-hidden bg-canvas p-3 pl-0 max-sm:p-0">
+          <header className="sticky top-0 z-20 hidden items-center gap-1 bg-canvas px-1 py-1 max-sm:flex">
+            <IconButton
+              size="md"
+              name="Menu_light"
               aria-label="사이드바 열기"
               aria-expanded={mobileDrawerOpen}
               aria-controls="app-mobile-drawer"
               onClick={() => setMobileDrawerOpen(true)}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-base hover:bg-surface-muted active:bg-line"
-            >
-              <span aria-hidden className="flex flex-col gap-[3px]">
-                <span className="block h-[2px] w-5 rounded-full bg-current" />
-                <span className="block h-[2px] w-5 rounded-full bg-current" />
-                <span className="block h-[2px] w-5 rounded-full bg-current" />
-              </span>
-            </button>
-            <p className="min-w-0 flex-1 truncate text-center text-ui-14 font-semibold text-text-base">
+            />
+            <p className="min-w-0 flex-1 truncate text-center text-label font-semibold text-fg-default">
               {(() => {
                 const active =
                   personalChats.find((c) => c.id === activeChatId) ??
@@ -1676,29 +1640,16 @@ export const AppShell = ({
                 return projects.find((p) => p.id === selectedProjectId)?.name ?? 'Qode';
               })()}
             </p>
-            <button
-              type="button"
+            <IconButton
+              size="md"
+              name="Add_round_light"
               aria-label="새 개인 채팅"
+              disabled={!selectedProjectId}
               onClick={() => {
                 setMobileDrawerOpen(false);
                 onCreatePersonalChat?.();
               }}
-              disabled={!selectedProjectId}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-base hover:bg-surface-muted active:bg-line disabled:opacity-40"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M10 4 L10 16 M4 10 L16 10" />
-              </svg>
-            </button>
+            />
           </header>
           {selectedProjectId && selectedProjectSyncStatus.isError ? (
             <div className="px-6 pt-3 max-sm:px-3" role="alert" aria-live="assertive">
@@ -1707,7 +1658,7 @@ export const AppShell = ({
               </InlineAlert>
             </div>
           ) : null}
-          <div className="min-h-0 flex-1 overflow-hidden rounded-[16px] border border-line bg-surface max-sm:rounded-none max-sm:border-0">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-shell border border-line bg-surface max-sm:rounded-none max-sm:border-0">
             {children}
           </div>
         </main>
@@ -1720,7 +1671,7 @@ export const AppShell = ({
               className={
                 isMobile
                   ? MOBILE_SHEET_CLASS
-                  : 'fixed z-50 w-[196px] rounded-[12px] border border-line bg-surface p-1 shadow-none'
+                  : 'fixed z-50 w-[196px] rounded-panel border border-line bg-surface p-1 shadow-none'
               }
               style={
                 isMobile
@@ -1732,20 +1683,18 @@ export const AppShell = ({
               onKeyDown={handleSettingsMenuKeyDown}
             >
               <div className="flex items-center gap-2 p-2">
-                <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="sm" />
+                <Avatar name={userName} src={userAvatarUrl} size="md" />
                 <div className="min-w-0">
                   <p
                     className={[
-                      'truncate font-semibold text-text-base',
+                      'truncate font-semibold text-fg-default',
                       drawerTypography.settingsName
                     ].join(' ')}
                   >
                     {userName}
                   </p>
                   <p
-                    className={['truncate text-text-soft', drawerTypography.settingsEmail].join(
-                      ' '
-                    )}
+                    className={['truncate text-fg-muted', drawerTypography.settingsEmail].join(' ')}
                   >
                     {userEmail}
                   </p>
@@ -1764,12 +1713,12 @@ export const AppShell = ({
                     settingsMenuItemRefs.current[index] = el;
                   }}
                   className={[
-                    'flex h-6 w-full items-center gap-1 rounded-[8px] px-2 py-0.5 text-left font-normal text-text-subtle hover:bg-surface-muted',
+                    'flex h-6 w-full items-center gap-1 rounded-card px-2 py-0.5 text-left font-normal text-fg-subtle hover:bg-surface-muted',
                     drawerTypography.settingsMenuItem
                   ].join(' ')}
                   onClick={() => handleSettingsAction(it.key)}
                 >
-                  <Icon name={it.iconName} size={16} decorative className="text-text-subtle" />
+                  <Icon name={it.iconName} size="sm" decorative className="text-fg-subtle" />
                   <span>{it.label}</span>
                 </button>
               ))}
@@ -1786,7 +1735,7 @@ export const AppShell = ({
               className={
                 isMobile
                   ? MOBILE_SHEET_CLASS
-                  : 'fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none'
+                  : 'fixed z-50 w-[200px] rounded-card border border-line bg-surface p-1 shadow-none'
               }
               style={
                 isMobile ? undefined : { top: sectionMenuPos?.top, left: sectionMenuPos?.left }
@@ -1805,10 +1754,10 @@ export const AppShell = ({
                     sectionMenuItemRefs.current[index] = el;
                   }}
                   className={[
-                    'block w-full rounded-md px-3 py-1.5 text-left text-xs',
+                    'block w-full rounded-control px-3 py-1.5 text-left text-caption',
                     it.key === 'delete'
-                      ? 'text-red-600 hover:bg-red-50'
-                      : 'text-text-base hover:bg-surface-muted',
+                      ? 'text-fg-danger hover:bg-danger-soft'
+                      : 'text-fg-default hover:bg-surface-muted',
                     it.key === 'delete' && deleteSection.isPending ? 'opacity-50' : ''
                   ].join(' ')}
                   disabled={it.key === 'delete' && deleteSection.isPending}
@@ -1843,7 +1792,7 @@ export const AppShell = ({
         open={Boolean(folderCreateModalSectionId)}
         onClose={closeFolderCreateModal}
         title="폴더 추가"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={async (e) => {
@@ -1851,32 +1800,33 @@ export const AppShell = ({
             await createFolder();
           }}
         >
-          <label className="block" htmlFor="folder-create-input">
-            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
-            <input
-              id="folder-create-input"
-              className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                folderCreateTouched && !folderCreateValue.trim()
-                  ? 'border-danger'
-                  : 'border-control-line focus:border-primary'
-              ].join(' ')}
-              value={folderCreateValue}
-              onChange={(e) => setFolderCreateValue(e.target.value)}
-              onBlur={() => setFolderCreateTouched(true)}
-              autoFocus
-            />
-            {folderCreateTouched && !folderCreateValue.trim() ? (
-              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="folder-create-input"
+            label="이름"
+            value={folderCreateValue}
+            onChange={(e) => setFolderCreateValue(e.target.value)}
+            onBlur={() => setFolderCreateTouched(true)}
+            autoFocus
+            error={
+              folderCreateTouched && !folderCreateValue.trim() ? '이름을 입력해주세요.' : undefined
+            }
+          />
+
+          {postFolder.isError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">
+                {friendlyErrorMessage(postFolder.error, 'folder.create').description}
+              </InlineAlert>
+            </div>
+          ) : null}
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeFolderCreateModal}>
               취소
             </Button>
             <Button type="submit" size="sm" isLoading={postFolder.isPending}>
-              {postFolder.isPending ? '추가 중...' : '추가'}
+              추가
             </Button>
           </div>
         </form>
@@ -1886,7 +1836,7 @@ export const AppShell = ({
         open={sectionCreateModalOpen}
         onClose={closeSectionCreateModal}
         title="섹션 추가"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={async (e) => {
@@ -1894,32 +1844,35 @@ export const AppShell = ({
             await createSection();
           }}
         >
-          <label className="block" htmlFor="section-create-input">
-            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
-            <input
-              id="section-create-input"
-              className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                sectionCreateTouched && !sectionCreateValue.trim()
-                  ? 'border-danger'
-                  : 'border-control-line focus:border-primary'
-              ].join(' ')}
-              value={sectionCreateValue}
-              onChange={(e) => setSectionCreateValue(e.target.value)}
-              onBlur={() => setSectionCreateTouched(true)}
-              autoFocus
-            />
-            {sectionCreateTouched && !sectionCreateValue.trim() ? (
-              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="section-create-input"
+            label="이름"
+            value={sectionCreateValue}
+            onChange={(e) => setSectionCreateValue(e.target.value)}
+            onBlur={() => setSectionCreateTouched(true)}
+            autoFocus
+            error={
+              sectionCreateTouched && !sectionCreateValue.trim()
+                ? '이름을 입력해주세요.'
+                : undefined
+            }
+          />
+
+          {postSection.isError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">
+                {friendlyErrorMessage(postSection.error, 'section.create').description}
+              </InlineAlert>
+            </div>
+          ) : null}
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionCreateModal}>
               취소
             </Button>
             <Button type="submit" size="sm" isLoading={postSection.isPending}>
-              {postSection.isPending ? '추가 중...' : '추가'}
+              추가
             </Button>
           </div>
         </form>
@@ -1929,7 +1882,7 @@ export const AppShell = ({
         open={Boolean(sectionRenameModalSectionId)}
         onClose={closeSectionRenameModal}
         title="섹션 이름 변경"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={async (e) => {
@@ -1937,32 +1890,35 @@ export const AppShell = ({
             await applySectionRename();
           }}
         >
-          <label className="block" htmlFor="section-rename-input">
-            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
-            <input
-              id="section-rename-input"
-              className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                sectionRenameTouched && !sectionRenameValue.trim()
-                  ? 'border-danger'
-                  : 'border-control-line focus:border-primary'
-              ].join(' ')}
-              value={sectionRenameValue}
-              onChange={(e) => setSectionRenameValue(e.target.value)}
-              onBlur={() => setSectionRenameTouched(true)}
-              autoFocus
-            />
-            {sectionRenameTouched && !sectionRenameValue.trim() ? (
-              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="section-rename-input"
+            label="이름"
+            value={sectionRenameValue}
+            onChange={(e) => setSectionRenameValue(e.target.value)}
+            onBlur={() => setSectionRenameTouched(true)}
+            autoFocus
+            error={
+              sectionRenameTouched && !sectionRenameValue.trim()
+                ? '이름을 입력해주세요.'
+                : undefined
+            }
+          />
+
+          {patchSection.isError ? (
+            <div className="mt-3">
+              <InlineAlert tone="danger">
+                {friendlyErrorMessage(patchSection.error, 'section.rename').description}
+              </InlineAlert>
+            </div>
+          ) : null}
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={closeSectionRenameModal}>
               취소
             </Button>
             <Button type="submit" size="sm" isLoading={patchSection.isPending}>
-              {patchSection.isPending ? '저장 중...' : '저장'}
+              저장
             </Button>
           </div>
         </form>
@@ -1974,8 +1930,8 @@ export const AppShell = ({
               data-profile-settings-dialog
               className={
                 isMobile
-                  ? 'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl border-t border-line bg-surface shadow-lg'
-                  : 'fixed z-50 w-[240px] rounded-[12px] border border-line bg-surface shadow-none'
+                  ? 'fixed inset-x-0 bottom-0 z-50 w-full rounded-t-shell border-t border-line bg-surface shadow-overlay'
+                  : 'fixed z-50 w-[240px] rounded-panel border border-line bg-surface shadow-none'
               }
               style={
                 isMobile
@@ -1990,7 +1946,7 @@ export const AppShell = ({
                 <h2
                   id={profileSettingsTitleId}
                   className={[
-                    'font-semibold leading-[1.6] text-text-subtle',
+                    'font-semibold leading-[1.6] text-fg-subtle',
                     drawerTypography.profileTitle
                   ].join(' ')}
                 >
@@ -2000,19 +1956,19 @@ export const AppShell = ({
 
               <div className="px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="md" />
+                  <Avatar name={userName} src={userAvatarUrl} size="xl" />
                   <div className="min-w-0 flex-1">
                     <input
                       value={userName}
                       readOnly
                       className={[
-                        'h-6 w-full rounded-[8px] border border-control-line bg-surface px-2 font-medium text-text-subtle outline-none',
+                        'h-6 w-full rounded-card border border-line-strong bg-surface px-2 font-medium text-fg-subtle outline-none',
                         drawerTypography.profileInput
                       ].join(' ')}
                     />
                     <p
                       className={[
-                        'mt-0.5 truncate font-medium text-text-soft',
+                        'mt-0.5 truncate font-medium text-fg-muted',
                         drawerTypography.profileEmail
                       ].join(' ')}
                     >
@@ -2025,7 +1981,7 @@ export const AppShell = ({
               <div className="border-t border-line-soft px-3 py-2">
                 <p
                   className={[
-                    'mb-1.5 font-medium text-text-soft',
+                    'mb-1.5 font-medium text-fg-muted',
                     drawerTypography.fontSizeLabel
                   ].join(' ')}
                   id={`${profileSettingsTitleId}-font-size-label`}
@@ -2035,7 +1991,7 @@ export const AppShell = ({
                 <div
                   role="radiogroup"
                   aria-labelledby={`${profileSettingsTitleId}-font-size-label`}
-                  className="flex items-center gap-0.5 rounded-md bg-line-soft p-0.5"
+                  className="flex items-center gap-0.5 rounded-control bg-line-soft p-0.5"
                 >
                   {[
                     { key: 'default' as const, label: '기본' },
@@ -2050,11 +2006,11 @@ export const AppShell = ({
                         aria-checked={isActive}
                         onClick={() => handleFontSizeChange(option.key)}
                         className={[
-                          'h-6 flex-1 rounded-[4px] font-medium transition-colors',
+                          'h-6 flex-1 rounded-inline font-medium transition-colors',
                           drawerTypography.fontSizeOption,
                           isActive
-                            ? 'bg-primary-soft text-text-base'
-                            : 'bg-transparent text-text-soft hover:text-text-subtle'
+                            ? 'bg-primary-soft text-fg-default'
+                            : 'bg-transparent text-fg-muted hover:text-fg-subtle'
                         ].join(' ')}
                       >
                         {option.label}
@@ -2069,7 +2025,7 @@ export const AppShell = ({
                   <button
                     type="button"
                     className={[
-                      'h-6 flex-1 rounded-[6px] bg-surface font-medium text-text-soft hover:bg-surface-muted active:bg-line',
+                      'h-6 flex-1 rounded-control bg-surface font-medium text-fg-muted hover:bg-surface-muted active:bg-line',
                       drawerTypography.profileButton
                     ].join(' ')}
                     onClick={handleProfileDialogCancel}
@@ -2080,7 +2036,7 @@ export const AppShell = ({
                     type="button"
                     disabled
                     className={[
-                      'h-6 flex-1 rounded-[6px] bg-zinc-800 font-medium text-white disabled:cursor-not-allowed disabled:opacity-60',
+                      'h-6 flex-1 rounded-control bg-inverse font-medium text-fg-on-dark disabled:cursor-not-allowed disabled:opacity-60',
                       drawerTypography.profileButton
                     ].join(' ')}
                   >
@@ -2102,7 +2058,7 @@ export const AppShell = ({
               className={
                 isMobile
                   ? MOBILE_SHEET_CLASS
-                  : 'fixed z-50 w-[200px] rounded-lg border border-line bg-surface p-1 shadow-none'
+                  : 'fixed z-50 w-[200px] rounded-card border border-line bg-surface p-1 shadow-none'
               }
               style={isMobile ? undefined : { top: menuPos?.top, left: menuPos?.left }}
               role="menu"
@@ -2119,10 +2075,10 @@ export const AppShell = ({
                     menuItemRefs.current[index] = el;
                   }}
                   className={[
-                    'block w-full rounded-md px-3 py-1.5 text-left text-xs',
+                    'block w-full rounded-control px-3 py-1.5 text-left text-caption',
                     it.key === 'delete'
-                      ? 'text-red-600 hover:bg-red-50'
-                      : 'text-text-base hover:bg-surface-muted',
+                      ? 'text-fg-danger hover:bg-danger-soft'
+                      : 'text-fg-default hover:bg-surface-muted',
                     it.key === 'delete' && deleteProject.isPending ? 'opacity-50' : '',
                     it.key === 'sync' && !canRequestProjectSync ? 'opacity-50' : ''
                   ].join(' ')}
@@ -2158,7 +2114,7 @@ export const AppShell = ({
         open={projectModal?.kind === 'rename'}
         onClose={closeProjectModal}
         title="프로젝트 이름 바꾸기"
-        widthClassName="max-w-[520px]"
+        size="md"
       >
         <form
           onSubmit={(e) => {
@@ -2166,25 +2122,16 @@ export const AppShell = ({
             applyProjectRename();
           }}
         >
-          <label className="block" htmlFor="project-rename-input">
-            <span className="mb-1 block text-xs font-medium text-text-soft">이름</span>
-            <input
-              id="project-rename-input"
-              className={[
-                'h-10 w-full rounded-md border bg-surface px-3 text-base text-text-base outline-none',
-                renameTouched && !renameValue.trim()
-                  ? 'border-danger'
-                  : 'border-control-line focus:border-primary'
-              ].join(' ')}
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              onBlur={() => setRenameTouched(true)}
-              autoFocus
-            />
-            {renameTouched && !renameValue.trim() ? (
-              <span className="mt-1 block text-xs text-danger">이름을 입력해주세요.</span>
-            ) : null}
-          </label>
+          <TextField
+            size="sm"
+            id="project-rename-input"
+            label="이름"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onBlur={() => setRenameTouched(true)}
+            autoFocus
+            error={renameTouched && !renameValue.trim() ? '이름을 입력해주세요.' : undefined}
+          />
 
           {renameInfo ? (
             <div className="mt-3">
@@ -2207,15 +2154,15 @@ export const AppShell = ({
         open={projectModal?.kind === 'invite'}
         onClose={closeProjectModal}
         title="멤버 추가하기"
-        widthClassName="max-w-[620px]"
+        size="lg"
       >
         <>
           <div className="flex items-end justify-between gap-3">
-            <p className="text-sm text-text-soft">링크를 받은 사람은 누구나 참여할 수 있어요.</p>
+            <p className="text-label text-fg-muted">링크를 받은 사람은 누구나 참여할 수 있어요.</p>
             <span
               className={[
-                'shrink-0 text-sm',
-                isTeamFull ? 'font-semibold text-danger' : 'text-text-subtle'
+                'shrink-0 text-label',
+                isTeamFull ? 'font-semibold text-fg-danger' : 'text-fg-subtle'
               ].join(' ')}
             >
               {memberCount} / {MAX_TEAM_MEMBERS}명
@@ -2223,13 +2170,13 @@ export const AppShell = ({
           </div>
 
           <label className="mt-3 block" htmlFor="project-invite-link">
-            <span className="mb-1 block text-xs font-medium text-text-soft">초대 링크</span>
+            <span className="mb-1 block text-caption font-medium text-fg-muted">초대 링크</span>
             {/* input 에 min-w-0 이 없으면 최소 너비가 버텨서 옆 버튼이 찌그러지고
                 "복사" 글자가 세로로 접힌다. */}
             <div className="flex items-center gap-2">
               <input
                 id="project-invite-link"
-                className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
+                className="h-10 min-w-0 flex-1 rounded-control border border-line bg-surface-muted px-3 text-body text-fg-default outline-none"
                 value={inviteLink}
                 readOnly
                 onFocus={(e) => e.currentTarget.select()}
@@ -2269,9 +2216,9 @@ export const AppShell = ({
           ) : null}
 
           {reissueConfirming ? (
-            <div className="mt-4 rounded-lg border border-line bg-surface-muted p-3">
-              <p className="text-sm text-text-base">
-                이전 링크로는 더 이상 참여할 수 없게 됩니다. 새 링크를 만들까요?
+            <div className="mt-4 rounded-card border border-line bg-surface-muted p-3">
+              <p className="text-label text-fg-default">
+                새 링크를 만들면 이전 링크로는 더 이상 참여할 수 없어요. 새 링크를 만들까요?
               </p>
               <div className="mt-3 flex items-center justify-end gap-2">
                 <Button
@@ -2285,10 +2232,10 @@ export const AppShell = ({
                 <Button
                   type="button"
                   size="sm"
-                  disabled={postInviteReissue.isPending}
+                  isLoading={postInviteReissue.isPending}
                   onClick={() => void reissueInviteLink()}
                 >
-                  {postInviteReissue.isPending ? '만드는 중...' : '새 링크 만들기'}
+                  새 링크 만들기
                 </Button>
               </div>
             </div>
@@ -2307,7 +2254,7 @@ export const AppShell = ({
                 >
                   새 링크 만들기
                 </Button>
-                <p className="mt-1 text-xs text-text-subtle">
+                <p className="mt-1 text-caption text-fg-subtle">
                   이전 링크는 즉시 사용할 수 없게 돼요.
                 </p>
               </div>
@@ -2323,18 +2270,12 @@ export const AppShell = ({
         open={projectModal?.kind === 'members'}
         onClose={closeProjectModal}
         title="멤버들"
-        widthClassName="max-w-[680px]"
+        size="lg"
       >
         <>
-          {memberActionError ? (
-            <div className="mt-3">
-              <InlineAlert tone="danger">{memberActionError}</InlineAlert>
-            </div>
-          ) : null}
-
           {modalProjectMembers.isError ? (
-            <div className="mt-3 rounded-lg border border-danger-line bg-danger-bg p-3">
-              <p className="text-sm text-danger">멤버 목록을 불러올 수 없습니다.</p>
+            <div className="mt-3 rounded-card border border-line-danger bg-danger-soft p-3">
+              <p className="text-label text-fg-danger">멤버 목록을 불러오지 못했어요.</p>
               <div className="mt-2">
                 <Button
                   type="button"
@@ -2348,15 +2289,17 @@ export const AppShell = ({
               </div>
             </div>
           ) : (
-            <div className="mt-3 overflow-hidden rounded-lg border border-line">
-              <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-xs font-semibold text-text-soft max-sm:hidden">
+            <div className="mt-3 overflow-hidden rounded-card border border-line">
+              <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] border-b border-line-soft bg-surface-muted px-3 py-2 text-caption font-semibold text-fg-muted max-sm:hidden">
                 <div>멤버</div>
                 <div className="text-center">역할</div>
                 <div className="text-right">액션</div>
               </div>
 
               {modalProjectMembers.isLoading ? (
-                <div className="px-3 py-3 text-sm text-text-subtle">멤버를 불러오는 중...</div>
+                <StateMessage kind="loading" className="px-3 py-3">
+                  멤버를 불러오는 중…
+                </StateMessage>
               ) : null}
 
               {modalProjectMembers.data?.data.map((member) => {
@@ -2372,13 +2315,13 @@ export const AppShell = ({
                     className="grid grid-cols-[minmax(0,1fr)_120px_160px] max-sm:grid-cols-1 max-sm:gap-y-2 items-center border-b border-line-soft px-3 py-3 last:border-b-0"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size="sm" />
+                      <Avatar name={member.name} src={member.avatarUrl} size="md" />
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-text-base">
+                        <div className="truncate text-label font-semibold text-fg-default">
                           {member.name}
-                          {isSelf ? <span className="ml-1 text-text-subtle">(나)</span> : null}
+                          {isSelf ? <span className="ml-1 text-fg-subtle">(나)</span> : null}
                         </div>
-                        <div className="text-xs text-text-subtle">
+                        <div className="text-caption text-fg-subtle">
                           {member.joinedAt
                             ? `${formatJoinedAt(member.joinedAt)} 참여`
                             : '참여일 미상'}
@@ -2388,10 +2331,10 @@ export const AppShell = ({
                     <div className="text-center max-sm:text-left">
                       <span
                         className={[
-                          'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                          'inline-block rounded-full px-2 py-0.5 text-caption font-medium',
                           isOwner
-                            ? 'bg-primary-soft text-accent-strong'
-                            : 'bg-surface-muted text-text-subtle'
+                            ? 'bg-primary-soft text-fg-primary'
+                            : 'bg-surface-muted text-fg-subtle'
                         ].join(' ')}
                       >
                         {member.role}
@@ -2404,7 +2347,7 @@ export const AppShell = ({
                           size="sm"
                           variant="secondary"
                           disabled={deleteProjectMember.isPending}
-                          onClick={() => void removeMember(member.id, isSelf)}
+                          onClick={() => removeMember(member.id, isSelf, member.name)}
                         >
                           {isSelf ? '나가기' : '프로젝트에서 제거'}
                         </Button>
@@ -2422,46 +2365,48 @@ export const AppShell = ({
         open={projectModal?.kind === 'source'}
         onClose={closeProjectModal}
         title="소스"
-        widthClassName="max-w-[620px]"
+        size="lg"
       >
         <>
           <div className="mt-3">
-            <span className="mb-1 block text-xs font-medium text-text-soft">Git Repository</span>
+            <span className="mb-1 block text-caption font-medium text-fg-muted">
+              Git Repository
+            </span>
             <div className="flex items-center gap-2">
               {sourceGitUrl ? (
                 <input
-                  className="h-10 min-w-0 flex-1 rounded-md border border-line bg-surface-muted px-3 text-base text-text-base outline-none"
+                  className="h-10 min-w-0 flex-1 rounded-control border border-line bg-surface-muted px-3 text-body text-fg-default outline-none"
                   value={sourceGitUrl}
                   readOnly
                   onFocus={(e) => e.currentTarget.select()}
                 />
               ) : (
-                <div className="flex h-10 min-w-0 flex-1 items-center rounded-md border border-line bg-surface-muted px-3 text-sm text-text-subtle">
-                  연결된 레포지토리 정보가 없습니다.
+                <div className="flex h-10 min-w-0 flex-1 items-center rounded-control border border-line bg-surface-muted px-3 text-label text-fg-subtle">
+                  연결된 저장소 정보가 없어요.
                 </div>
               )}
-              <button
-                type="button"
+              <IconButton
+                variant="outline"
+                size="md"
+                name="Copy_light"
+                aria-label="URL 복사"
                 disabled={!sourceGitUrl}
                 onClick={() => void copySourceGitUrl()}
-                aria-label="URL 복사"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-text-base transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Icon name="Copy_light" size="sm" />
-              </button>
+                className="size-10"
+              />
               {sourceGitUrl ? (
                 <a
                   href={sourceGitUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-line bg-surface px-3 text-xs font-semibold text-text-base transition-colors hover:bg-surface-muted"
+                  className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-control border border-line bg-surface px-3 text-caption font-semibold text-fg-default transition-colors hover:bg-surface-muted"
                 >
                   새 탭에서 열기
                 </a>
               ) : (
                 <span
                   aria-disabled="true"
-                  className="inline-flex h-10 shrink-0 cursor-not-allowed items-center justify-center whitespace-nowrap rounded-md border border-line bg-surface px-3 text-xs font-semibold text-text-base opacity-60"
+                  className="inline-flex h-10 shrink-0 cursor-not-allowed items-center justify-center whitespace-nowrap rounded-control border border-line bg-surface px-3 text-caption font-semibold text-fg-default opacity-60"
                 >
                   새 탭에서 열기
                 </span>
@@ -2470,6 +2415,17 @@ export const AppShell = ({
           </div>
         </>
       </OverlayModal>
+      <ConfirmDialog
+        open={confirmRequest !== null}
+        title={confirmRequest?.title ?? ''}
+        description={confirmRequest?.description}
+        confirmLabel={confirmRequest?.confirmLabel ?? ''}
+        emphasis={confirmRequest?.emphasis}
+        error={confirmError}
+        isProcessing={confirmBusy}
+        onClose={closeConfirm}
+        onConfirm={() => void runConfirm()}
+      />
     </div>
   );
 };
