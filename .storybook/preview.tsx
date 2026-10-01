@@ -1,6 +1,7 @@
 import type { Preview } from '@storybook/react-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '../src/renderer/src/assets/main.css';
+import './preview.css';
 import { ToastProvider } from '../src/renderer/src/components/ui/ToastProvider';
 
 const createQueryClient = (): QueryClient =>
