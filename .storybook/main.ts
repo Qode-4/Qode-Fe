@@ -6,14 +6,13 @@ import svgr from 'vite-plugin-svgr';
 
 const config: StorybookConfig = {
   stories: ['../src/renderer/src/components/**/*.stories.@(ts|tsx)'],
-  addons: ['@storybook/addon-essentials', '@storybook/addon-interactions', '@storybook/addon-a11y'],
+  addons: ['@storybook/addon-a11y', '@storybook/addon-docs'],
+
   framework: {
     name: '@storybook/react-vite',
     options: {}
   },
-  docs: {
-    autodocs: 'tag'
-  },
+
   async viteFinal(baseConfig) {
     return mergeConfig(baseConfig, {
       resolve: {
