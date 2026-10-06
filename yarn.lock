@@ -4577,6 +4577,35 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chromatic@npm:^18.11.0":
+  version: 18.11.0
+  resolution: "chromatic@npm:18.11.0"
+  dependencies:
+    semver: ^7.3.5
+  peerDependencies:
+    "@chromatic-com/cypress": ^0.*.* || ^1.0.0
+    "@chromatic-com/playwright": ^0.*.* || ^1.0.0
+    "@chromatic-com/vitest": ^0.*.* || ^1.0.0
+  dependenciesMeta:
+    "@sentry/cli":
+      built: true
+    esbuild:
+      built: true
+  peerDependenciesMeta:
+    "@chromatic-com/cypress":
+      optional: true
+    "@chromatic-com/playwright":
+      optional: true
+    "@chromatic-com/vitest":
+      optional: true
+  bin:
+    chroma: dist/bin.cjs
+    chromatic: dist/bin.cjs
+    chromatic-cli: dist/bin.cjs
+  checksum: b788e479211c37470c8bc36d59e682808015c155cdd782c497456e32d8b548aa033fec041ed8d2d47bfdb297a5790dc08c914e24e91d80f0bdad7d1ac15ff4eb
+  languageName: node
+  linkType: hard
+
 "chromium-pickle-js@npm:^0.2.0":
   version: 0.2.0
   resolution: "chromium-pickle-js@npm:0.2.0"
@@ -9599,6 +9628,7 @@ __metadata:
     "@vitejs/plugin-react": ^5.1.1
     autoprefixer: ^10.4.24
     axios: ^1.13.5
+    chromatic: ^18.11.0
     clsx: ^2.1.1
     electron: ^39.2.6
     electron-builder: ^26.0.12
